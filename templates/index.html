@@ -2,10 +2,27 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>WinGo Lottery Prediction Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>WinGo 1-Min Lottery Prediction Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
 <style>
-  /* --- Reset & base styles --- */
+  /* --- Global Styles & Reset --- */
+  :root {
+    --primary-bg: #f5f7fa;
+    --card-bg: #ffffff;
+    --header-bg: #1e3a8a;
+    --header-text: #ffffff;
+    --primary-color: #2563eb;
+    --secondary-color: #f59e0b;
+    --text-color: #1f2937;
+    --subtle-text: #6b7280;
+    --border-color: #e5e7eb;
+    --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+
   * {
     box-sizing: border-box;
     margin: 0;
@@ -13,119 +30,187 @@
   }
 
   body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: #f1f5fb;
-    color: #333;
-    min-height: 100vh;
+    font-family: 'Poppins', sans-serif;
+    background: var(--primary-bg);
+    color: var(--text-color);
+    line-height: 1.6;
     display: flex;
     flex-direction: column;
-    line-height: 1.5;
+    min-height: 100vh;
   }
 
-  /* --- Header --- */
-  header {
-    background: #2a3f66;
-    color: white;
-    padding: 1rem 1.5rem;
-    text-align: center;
-    font-weight: 700;
-    font-size: 1.5rem;
-    letter-spacing: 1.2px;
-    box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+  /* --- Layout & Structure --- */
+  .dashboard-header-container {
     position: sticky;
     top: 0;
     z-index: 1000;
   }
 
-  main {
-    flex: 1;
-    padding: 1.2rem 0.8rem;
-    max-width: 960px;
-    margin: 0 auto;
-    width: 100%;
+  .dashboard-header {
+    background: var(--header-bg);
+    color: var(--header-text);
+    padding: 1.2rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: var(--shadow-md);
   }
 
-  h2 {
-    margin-top: 1.5rem;
-    margin-bottom: 0.8rem;
-    color: #2a3f66;
-    border-bottom: 2px solid #2a3f66;
-    padding-bottom: 0.3rem;
-    font-size: 1.2rem;
-    letter-spacing: 0.6px;
+  .dashboard-title {
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
+
+  .top-meta {
+    text-align: right;
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+  .top-meta .label {
+    color: #9ca3af;
+  }
+  .top-meta .value {
+    color: var(--header-text);
+  }
+  .top-meta #countdown-timer {
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--secondary-color);
+    margin-top: 0.3rem;
+  }
+  
+  main {
+    flex: 1;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1.5rem 1rem;
+    width: 100%;
+  }
+  
+  h2, .section-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--text-color);
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--border-color);
     display: flex;
     justify-content: space-between;
     align-items: center;
   }
 
   .section {
-    background: white;
-    border-radius: 10px;
-    padding: 1.2rem;
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 1.5rem;
     margin-bottom: 1.5rem;
-    box-shadow: 0 4px 12px rgba(42,63,102,0.08);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border-color);
   }
-
+  
+  .grid-container {
+    display: grid;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .grid-2 {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  }
+  
   .flex-row {
     display: flex;
     flex-wrap: wrap;
-    gap: 1rem;
+    gap: 1.5rem;
     align-items: center;
   }
 
-  .flex-col {
-    display: flex;
-    flex-direction: column;
-  }
-
-  /* --- Prediction numbers bubbles --- */
+  /* --- Prediction & Data Display --- */
   .prediction-numbers {
     display: flex;
     gap: 0.8rem;
-    margin-top: 0.4rem;
+    margin-top: 1rem;
     justify-content: center;
+    flex-wrap: wrap;
   }
 
   .number-bubble {
-    background: #2a3f66;
-    color: white;
-    font-weight: 700;
-    font-size: 2rem;
-    width: 55px;
-    height: 55px;
+    width: 60px;
+    height: 60px;
     border-radius: 50%;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    box-shadow: 0 3px 6px rgba(42,63,102,0.4);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    font-weight: 700;
+    font-size: 2.2rem;
+    color: white;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    border: 2px solid transparent;
+    transition: transform 0.2s, box-shadow 0.2s;
   }
-
   .number-bubble:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(42,63,102,0.5);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.25);
   }
-
+  .number-bubble.red { background-color: #ef4444; border-color: #b91c1c; }
+  .number-bubble.green { background-color: #22c55e; border-color: #166534; }
+  .number-bubble.violet { background-color: #8b5cf6; border-color: #5b21b6; }
+  
   .bubble-pct {
     font-size: 0.8rem;
-    font-weight: 600;
-    color: #f0f0f0;
-    margin-top: 2px;
-    letter-spacing: 0.3px;
-    display: block;
-    background: rgba(0,0,0,0.2);
-    padding: 0 3px;
-    border-radius: 3px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.9);
+    margin-top: -5px;
   }
 
-  /* Chips styles */
+  .info-block {
+    text-align: center;
+  }
+  .info-block-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--subtle-text);
+    margin-bottom: 0.5rem;
+  }
+  .info-block-content {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-color);
+  }
+  .info-block-content.color-pred, .info-block-content.size-pred {
+    font-size: 2.5rem;
+    padding: 1rem 2rem;
+    border-radius: 12px;
+    color: white;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+    box-shadow: var(--shadow-md);
+  }
+  .info-block-content.Red { background-color: #ef4444; }
+  .info-block-content.Green { background-color: #22c55e; }
+  .info-block-content.Violet { background-color: #8b5cf6; }
+  .info-block-content.Big { background-color: #f97316; }
+  .info-block-content.Small { background-color: #3b82f6; }
+  .info-block-content.Pending { background-color: #d1d5db; color: #4b5563; }
+
+  .meta-text {
+    font-size: 0.9rem;
+    color: var(--subtle-text);
+    margin-top: 0.8rem;
+    line-height: 1.4;
+  }
+  .meta-text strong {
+    color: var(--text-color);
+    font-weight: 600;
+  }
+  
   .chip {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     padding: 0.2em 0.8em;
-    border-radius: 20px;
+    border-radius: 9999px;
     font-size: 0.85rem;
     font-weight: 600;
     margin-right: 0.4em;
@@ -139,7 +224,7 @@
   .chip.gray { background: #bdbdbd; color: #333; }
   .chip.blue { background: #2196f3; color: #fff; }
   .chip.gold { background: #ffc107; color: #333; }
-  
+
   .chip.Result-Green { background-color: #4caf50; color: #fff; }
   .chip.Result-Red { background-color: #e53935; color: #fff; }
   .chip.Result-Violet { background-color: #9c27b0; color: #fff; }
@@ -147,638 +232,347 @@
   .chip.Result-Big { background-color: #ff9800; color: #fff; }
   .chip.Result-Small { background-color: #3f51b5; color: #fff; }
 
-  /* Prediction details and percentages */
-  .prediction-detail {
-    font-weight: 600;
-    font-size: 1.1rem;
-    margin-bottom: 0.2rem;
-    color: #444;
+  /* --- AI Prediction Section --- */
+  #ai-prediction-section {
+    background-color: #ecfdf5;
+    border-color: #a7f3d0;
   }
-  .percentages {
-    font-size: 0.9rem;
-    color: #555;
-    margin-top: 0.1rem;
-    font-weight: 500;
-  }
-  .percentages span {
-    margin-right: 0.6rem;
-  }
-
-  /* Previous draw styles */
-  .previous-draw {
-    font-weight: 600;
-    font-size: 1.1rem;
-    color: #2a3f66;
-  }
-  .previous-draw strong {
-    font-size: 1.2rem;
-    color: #d32f2f;
-  }
-
-  /* Table Styles */
-  table {
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
-    font-size: 0.8rem;
-    border-radius: 8px;
-    overflow: hidden;
-  }
-
-  thead {
-    background: #2a3f66;
-    color: white;
-  }
-
-  th, td {
-    padding: 0.4rem 0.2rem;
-    text-align: center;
-    border-bottom: 1px solid #e1e6ef;
-    vertical-align: middle;
-  }
-  th:first-child, td:first-child {
-    padding-left: 0.6rem;
-  }
-  th:last-child, td:last-child {
-    padding-right: 0.6rem;
-  }
-  tbody tr:last-child td { border-bottom: none; }
-  tbody tr:hover { background: #eef4ff; cursor: pointer; }
-
-  .correct { color: #2e7d32; font-weight: 700; }
-  .incorrect { color: #c62828; font-weight: 700; }
-
-  /* Timestamp and timer styles */
-  #timestamp-display {
-    text-align: center;
-    font-size: 0.9rem;
-    color: #555;
-    margin-top: 0.4rem;
-    margin-bottom: 0.4rem;
-  }
-  .timer {
-    font-weight: 700;
-    font-size: 1.1rem;
-    color: #2a3f66;
-    text-align: center;
-    margin-bottom: 1.2rem;
-    padding: 0.6rem;
-    background: #e8f0fe;
-    border-radius: 6px;
-    box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
-  }
-
-  /* Error message */
-  .error-message {
-    color: #d32f2f;
-    background: #ffebee;
-    border: 1px solid #d32f2f;
-    border-radius: 6px;
-    padding: 0.8em 1em;
-    margin: 1em 0;
-    text-align: center;
-    font-weight: 600;
-    display: none;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  }
-
-  /* Combined performance streaks */
-  .performance-streaks-container {
+  #ai-prediction-value {
+    font-size: 4rem;
+    font-weight: 800;
+    margin: 0;
+    color: #065f46;
     display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
-    margin-bottom: 0.8rem;
-  }
-
-  .performance-streaks-container > .inner-section {
-    flex: 1 1 calc(50% - 0.5rem);
-    background: #f8faff;
-    border: 1px solid #e1e6ef;
-    padding: 0.8rem;
-    border-radius: 8px;
-  }
-  
-  .performance-streaks-container > .full-width-section {
-      flex: 1 1 100%;
-      background: #f8faff;
-      border: 1px solid #e1e6ef;
-      padding: 0.8rem;
-      border-radius: 8px;
-  }
-
-  .performance-streaks-container h3 {
-    font-size: 1rem;
-    color: #3f51b5;
-    margin: 0 0 0.5rem 0;
-    border-bottom: 1px dashed #c5cae9;
-    padding-bottom: 0.3rem;
-  }
-
-  .accuracy-grid, .streaks-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    justify-content: center;
+    align-items: center;
     gap: 0.5rem;
   }
+  #ai-prediction-value.red { color: #dc2626; }
+  #ai-prediction-value.green { color: #16a34a; }
+  #ai-prediction-value.violet { text-shadow: 0 0 10px #7e22ce; }
+  #ai-prediction-meta {
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+    color: #4b5563;
+  }
+  #ai-prediction-meta strong { color: #1f2937; }
 
+  /* --- Accuracy & Streaks --- */
+  .performance-stats-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+  }
   .stat-card {
-    background: #fff;
-    border: 1px solid #e1e6ef;
+    background: #f9fafb;
     border-radius: 8px;
-    padding: 0.4rem 0.2rem;
+    padding: 1rem;
     text-align: center;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
-    font-size: 1rem;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    min-height: 55px;
+    border: 1px solid var(--border-color);
   }
-
   .stat-label {
-    color: #555;
-    font-weight: 500;
-    margin-bottom: 0.2em;
-    font-size: 0.85em;
-    line-height: 1.2;
+    font-size: 0.85rem;
+    color: var(--subtle-text);
   }
-
   .stat-value {
+    font-size: 1.5rem;
     font-weight: 700;
-    font-size: 1.1rem;
-    color: #2a3f66;
-    line-height: 1.1;
+    color: var(--text-color);
+  }
+  .win-streak-value { color: #22c55e; }
+  .loss-streak-value { color: #ef4444; }
+
+  .streak-row {
+    font-size: 0.9rem;
+    color: var(--subtle-text);
+  }
+  .streak-row strong {
+    font-weight: 600;
   }
 
-  .stat-card.streak-card .stat-value {
-    color: #ef6c00;
+  /* --- Tables --- */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+    font-size: 0.9rem;
   }
-
-  .streak-detail-row {
-    font-size: 0.9em;
-    color: #777;
-    margin-top: 0.2em;
-    line-height: 1.2;
+  thead {
+    background: var(--primary-color);
+    color: var(--header-text);
   }
-  .streak-detail-row strong { color: #333; font-weight: 600; }
+  th, td {
+    padding: 0.8rem 0.5rem;
+    text-align: center;
+    border-bottom: 1px solid var(--border-color);
+  }
+  tbody tr:nth-child(even) { background-color: #f9fafb; }
+  tbody tr:hover { background-color: #f3f4f6; }
+  .table-scroll {
+    overflow-x: auto;
+  }
+  
+  .correct { color: #16a34a; font-weight: 700; }
+  .incorrect { color: #dc2626; font-weight: 700; }
 
-  /* Button bar and buttons */
-  .button-bar {
+  /* --- Buttons & Inputs --- */
+  .button-group {
     display: flex;
-    justify-content: flex-end;
-    gap: 0.6rem;
-    margin-top: 0.8rem;
-    margin-bottom: 1.2rem;
     flex-wrap: wrap;
+    gap: 0.8rem;
   }
-  .dashboard-btn {
-    background: #1976d2;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    padding: 0.5em 1em;
+  .btn {
+    font-family: 'Poppins', sans-serif;
+    padding: 0.6rem 1.2rem;
     font-size: 0.9rem;
     font-weight: 600;
+    border-radius: 8px;
     cursor: pointer;
-    transition: background 0.2s ease, transform 0.1s ease;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    border: none;
+    transition: background-color 0.2s, transform 0.1s;
+    box-shadow: var(--shadow-sm);
   }
-  .dashboard-btn:hover { background: #1253a2; transform: translateY(-1px); }
-  .dashboard-btn:active { transform: translateY(0); box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+  .btn-primary {
+    background-color: var(--primary-color);
+    color: white;
+  }
+  .btn-primary:hover {
+    background-color: #1d4ed8;
+  }
+  .btn-primary:active {
+    transform: translateY(1px);
+  }
 
-  /* Raw JSON display */
-  #raw-json-section { margin-top: 1.5rem; }
-  #raw-json-dropdown {
-    font-size: 0.85rem;
-    padding: 0.3rem 0.5rem;
-    border-radius: 4px;
-    border: 1px solid #ccc;
-    background-color: #f8f8f8;
-    cursor: pointer;
-    margin-left: 0.8rem;
+  .btn-ai {
+    background-color: #fef08a;
+    color: #4c4217;
+    font-weight: 700;
+    border: 1px solid #fde047;
   }
-  #raw-json-display {
-    background: #23272e;
-    color: #e0e0e0;
+  .btn-ai.active {
+    background-color: #facc15;
+    color: #1e3a8a;
+  }
+
+  #copy-json-btn {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+    background: #4b5563;
+    color: white;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+  }
+
+  /* --- Raw Data Section --- */
+  .raw-data-controls {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  #raw-json-dropdown {
+    font-family: 'Poppins', sans-serif;
+    font-size: 0.9rem;
+    padding: 0.5rem 0.8rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+  }
+  .raw-json-display {
+    background: #1f2937;
+    color: #e5e7eb;
+    font-family: 'Roboto Mono', monospace;
     padding: 1rem;
     border-radius: 8px;
     overflow-x: auto;
-    max-height: 250px;
-    font-family: 'Fira Code', 'Cascadia Code', 'Consolas', 'Monaco', monospace;
-    font-size: 0.85em;
-    margin-top: 0.8em;
-    margin-bottom: 0.5em;
+    max-height: 400px;
     position: relative;
     white-space: pre-wrap;
     word-break: break-all;
-  }
-  #copy-json-btn {
-    background: #1976d2;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    padding: 0.3rem 0.8rem;
-    cursor: pointer;
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    font-size: 0.75em;
-    transition: background 0.2s;
-  }
-  #copy-json-btn:hover { background: #1253a2; }
-
-  /* AI TOGGLE BUTTON AND BADGE */
-  .ai-toggle-btn {
-    background: #fffde7;
-    color: #1976d2;
-    border: 1px solid #ffd600;
-    border-radius: 50px;
-    padding: 0.3em 1em;
-    font-size: 0.92rem;
-    font-weight: 600;
-    cursor: pointer;
-    margin-left: 0.1em;
-    margin-right: 0.1em;
-    transition: background 0.2s, color 0.2s, border 0.2s;
-    box-shadow: 0 1px 2px rgba(255,214,0,0.10);
-    outline: none;
-  }
-  .ai-toggle-btn.active { background: #ffd600; color: #2a3f66; border: 1px solid #1976d2; }
-  .ai-badge {
-    display: inline-block;
-    background: #ffd600;
-    color: #2a3f66;
-    border-radius: 12px;
-    font-size: 0.98em;
-    font-weight: 700;
-    padding: 0.1em 0.7em;
-    margin-left: 0.7em;
-    margin-bottom: 0.2em;
-    vertical-align: middle;
-    box-shadow: 0 1px 4px rgba(255,214,0,0.10);
-    letter-spacing: 1px;
-  }
-  .ai-badge[disabled] { background: #eee; color: #aaa; }
-
-  /* AI Prediction Section */
-  #ai-prediction-section {
-    background: #e8f0fe;
-    border: 1px solid #b3cde0;
-    text-align: center;
-  }
-  #ai-prediction-section h2, #ai-big-small-accuracy-section h2 { color: #1a4d8d; border-bottom-color: #1a4d8d; margin-top: 0; }
-  #ai-prediction-value { font-size: 3rem; font-weight: 700; color: #007bff; margin-bottom: 0.2rem; display: flex; justify-content: center; align-items: center; gap: 0.5em; }
-  #ai-prediction-meta { font-size: 0.9em; color: #555; margin-top: 0.5em; }
-
-  /* AI Big/Small Accuracy Section */
-  #ai-big-small-accuracy-section { background: #e8f0fe; border: 1px solid #b3cde0; text-align: center; }
-  #ai-big-small-accuracy-value { font-size: 2.2rem; font-weight: 700; color: #28a745; margin-bottom: 0.2rem; }
-  #ai-big-small-accuracy-meta { font-size: 0.9em; color: #555; margin-top: 0.5em; }
-
-  /* --- Color Prediction Section --- */
-  #color-prediction-section {
-    background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
-    border: 1px solid #ddd;
-  }
-  #color-prediction-display { text-align: center; }
-  .color-pred-box {
-    font-size: 2.5rem;
-    font-weight: 700;
-    color: white;
-    padding: 1rem 2rem;
-    border-radius: 10px;
-    display: inline-block;
-    min-width: 150px;
-    margin: 0.5rem auto;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-    text-shadow: 1px 1px 3px rgba(0,0,0,0.4);
-  }
-  .color-pred-box.Red { background-color: #e53935; }
-  .color-pred-box.Green { background-color: #4caf50; }
-  .color-pred-box.Pending { background-color: #9e9e9e; }
-  #color-prediction-meta {
-    font-size: 0.9em;
-    color: #666;
-    margin-top: 0.8rem;
+    font-size: 0.8rem;
     line-height: 1.4;
-  }
-  #color-prediction-meta strong { color: #333; }
-  #color-pred-sequence {
-    font-family: monospace;
-    font-size: 1.1em;
-    background: #eef4ff;
-    padding: 2px 6px;
-    border-radius: 4px;
-    letter-spacing: 2px;
-  }
-
-  /* --- Size Prediction Section --- */
-  #size-prediction-section {
-    background: linear-gradient(135deg, #fff9c4 0%, #f7e98e 100%);
-    border: 1px solid #ddd;
-  }
-  #size-prediction-display { text-align: center; }
-  .size-pred-box {
-    font-size: 2.5rem;
-    font-weight: 700;
-    color: white;
-    padding: 1rem 2rem;
-    border-radius: 10px;
-    display: inline-block;
-    min-width: 150px;
-    margin: 0.5rem auto;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-    text-shadow: 1px 1px 3px rgba(0,0,0,0.4);
-  }
-  .size-pred-box.Big { background-color: #ff9800; }
-  .size-pred-box.Small { background-color: #3f51b5; }
-  .size-pred-box.Pending { background-color: #9e9e9e; }
-  #size-prediction-meta {
-    font-size: 0.9em;
-    color: #666;
-    margin-top: 0.8rem;
-    line-height: 1.4;
-  }
-  #size-prediction-meta strong { color: #333; }
-  #size-pred-sequence {
-    font-family: monospace;
-    font-size: 1.1em;
-    background: #eef4ff;
-    padding: 2px 6px;
-    border-radius: 4px;
-    letter-spacing: 2px;
-  }
-
-  /* Rule accuracy tables */
-  #color-rule-accuracy-table, #size-rule-accuracy-table {
-    width: 100%;
-    margin-top: 0.5rem;
-    font-size: 0.9em;
-  }
-  #color-rule-accuracy-table th, #color-rule-accuracy-table td,
-  #size-rule-accuracy-table th, #size-rule-accuracy-table td {
-    padding: 0.3rem;
-    font-size: 0.75rem;
-    border-color: #e1e6ef;
-  }
-  #color-rule-accuracy-table thead, #size-rule-accuracy-table thead { background-color: #3f51b5; }
-  #color-rule-accuracy-table td:nth-child(2), #color-rule-accuracy-table td:nth-child(3),
-  #size-rule-accuracy-table td:nth-child(2), #size-rule-accuracy-table td:nth-child(3) {
-      font-weight: 600;
   }
   
-  .history-chip {
-    display: inline-block;
-    padding: 0.2em 0.8em;
-    border-radius: 20px;
-    font-size: 0.85rem;
-    font-weight: 600;
-    vertical-align: middle;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  /* --- Status & Messages --- */
+  .status-message {
+    text-align: center;
+    font-size: 0.9rem;
+    padding: 0.5rem;
+    border-radius: 8px;
+    margin: 0.5rem 0;
   }
-  .history-chip.Red { background-color: #e53935; color: #fff; }
-  .history-chip.Green { background-color: #4caf50; color: #fff; }
-  .history-chip.Big { background-color: #ff9800; color: #fff; }
-  .history-chip.Small { background-color: #3f51b5; color: #fff; }
-  .history-chip.Pending { background-color: #bdbdbd; color: #333; }
-  .history-chip.Violet { background-color: #9c27b0; color: #fff; }
+  .status-message.success {
+    color: #166534;
+    background-color: #dcfce7;
+  }
+  .status-message.error {
+    color: #991b1b;
+    background-color: #fee2e2;
+  }
+  .status-message.info {
+    color: #1d4ed8;
+    background-color: #dbeafe;
+  }
 
-  .streak-distribution-table {
-      width: 100%;
+  /* --- Mobile Adjustments --- */
+  @media (max-width: 768px) {
+    .dashboard-header {
+      flex-direction: column;
+      align-items: flex-start;
+      padding: 1rem;
+    }
+    .top-meta {
+      text-align: left;
       margin-top: 0.5rem;
-      font-size: 0.8em;
-      border-collapse: collapse;
-  }
-  .streak-distribution-table th, .streak-distribution-table td {
-      border: 1px solid #e1e6ef;
-      padding: 0.3rem;
-      text-align: center;
-  }
-  .streak-distribution-table thead {
-      background-color: #b3cde0;
-      color: #2a3f66;
-      font-weight: 600;
-  }
-  .streak-distribution-table tbody tr:hover {
-      background-color: #eef4ff;
-  }
-
-  /* Responsive adjustments */
-  @media (max-width: 600px) {
-    header { font-size: 1.2rem; padding: 0.8rem; }
-    h2 { font-size: 1.05rem; margin-top: 1rem; margin-bottom: 0.6rem; }
-    .section { padding: 0.8rem; margin-bottom: 1rem; border-radius: 6px; }
-    .button-bar { flex-direction: column; align-items: stretch; gap: 0.5rem; margin-top: 0.6rem; margin-bottom: 1rem; }
-    .number-bubble { width: 45px; height: 45px; font-size: 1.6rem; }
-    table { font-size: 0.7rem; }
-    .performance-streaks-container { flex-direction: column; }
-    .performance-streaks-container > .inner-section,
-    .performance-streaks-container > .full-width-section { flex: 1 1 100%; }
-    .color-pred-box, .size-pred-box { font-size: 2rem; padding: 0.8rem 1.5rem; }
+    }
+    .dashboard-title {
+      font-size: 1.4rem;
+    }
+    h2, .section-title {
+      font-size: 1.15rem;
+    }
+    .section {
+      padding: 1rem;
+    }
+    .grid-container {
+      gap: 1rem;
+    }
+    .prediction-numbers {
+      flex-wrap: wrap;
+    }
+    .number-bubble {
+      width: 50px;
+      height: 50px;
+      font-size: 1.8rem;
+    }
+    .info-block-content.color-pred, .info-block-content.size-pred {
+      font-size: 2rem;
+      padding: 0.8rem 1.5rem;
+    }
+    .button-group {
+      justify-content: flex-start;
+    }
+    .btn {
+      padding: 0.5rem 1rem;
+    }
+    .raw-data-controls {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    #raw-json-dropdown {
+      width: 100%;
+    }
   }
 </style>
 </head>
 <body>
-<header>
-  WinGo Lottery Prediction Dashboard 🎲
-</header>
+<div class="dashboard-header-container">
+  <header class="dashboard-header">
+    <div class="dashboard-title">
+      WinGo 1-Min Lottery Prediction Dashboard 🎲
+    </div>
+    <div class="top-meta">
+      <div id="timestamp-display">
+        <span class="label">Last Updated:</span> <span class="value" id="last-updated-time">--</span>
+      </div>
+      <div id="countdown-timer">Next update in: -- seconds ⏳</div>
+    </div>
+  </header>
+</div>
 
 <main>
-  <div id="timestamp-display">Last Updated: <span id="last-updated-time">--</span></div>
-  <div class="timer" id="countdown-timer">Next update in: -- seconds ⏳</div>
-  <div class="error-message" id="error-message"></div>
+  <div class="status-message error" id="error-message"></div>
 
   <section class="section">
-    <h2 style="border-bottom: none; margin: 0;">Actions & Status 🎯
-      <div class="button-bar" style="margin-top: 0; margin-bottom: 0;">
-        <button class="dashboard-btn" onclick="manualRefresh()">Refresh 🔄</button>
-        <button class="dashboard-btn" onclick="window.location.href='/mixpred/'">MixPred 🎮</button>
-        <button class="dashboard-btn ai-toggle-btn" id="ai-toggle-btn" onclick="toggleAI()" aria-pressed="false" title="Enable or disable AI prediction">
+    <div class="flex-row" style="align-items: center; justify-content: space-between;">
+      <h2 style="margin:0; border-bottom: none;">Actions & Status 🎯</h2>
+      <div class="button-group">
+        <button class="btn btn-primary" onclick="manualRefresh()">Refresh 🔄</button>
+        <button class="btn btn-primary" onclick="window.location.href='/api/simulator/'">Simulator 🎮</button>
+        <button class="btn btn-ai" id="ai-toggle-btn" onclick="toggleAI()" aria-pressed="false" title="Enable or disable AI prediction">
           <span id="ai-toggle-btn-label">Start AI 🤖</span>
         </button>
       </div>
-    </h2>
-    <div class="previous-draw" id="previous-draw" style="margin-top: 0.8rem; text-align: center;">Loading...</div>
+    </div>
+    <div id="previous-draw" class="status-message info" style="margin-top: 1rem;">Loading...</div>
   </section>
 
-  <div class="flex-row">
-    <section class="section" id="ai-prediction-section" style="flex: 1 1 48%;">
-      <h2>AI Predicted Number 🧠</h2>
+  <div class="grid-container grid-2">
+    <section class="section" id="ai-prediction-section">
+      <h2 class="section-title">AI Predicted Number 🧠</h2>
       <div id="ai-prediction-value">--</div>
-      <div id="ai-prediction-display-badge"></div>
       <div id="ai-prediction-meta">
-        Issue: <span id="ai-issue">--</span> | Last AI Run: <span id="ai-timestamp">--</span>
+        <strong>Issue:</strong> <span id="ai-issue">--</span> | <strong>Last AI Run:</strong> <span id="ai-timestamp">--</span>
       </div>
     </section>
-    <section class="section" id="ai-big-small-accuracy-section" style="flex: 1 1 48%;">
-      <h2>AI Big/Small Accuracy 📊</h2>
-      <div id="ai-big-small-accuracy-value">--</div>
+    <section class="section" id="ai-big-small-accuracy-section" style="background-color: #e0f2fe; border-color: #7dd3fc;">
+      <h2 class="section-title">AI Big/Small Accuracy 📊</h2>
+      <div id="ai-big-small-accuracy-value" style="font-size: 3rem; font-weight: 800; color: #075985;">--</div>
       <div id="ai-big-small-accuracy-meta">
-          Calculated on <span id="ai-accuracy-timestamp">--</span> |
-          Correct: <span id="ai-accuracy-correct">--</span> |
-          Total: <span id="ai-accuracy-total">--</span>
+          <strong>Calculated on:</strong> <span id="ai-accuracy-timestamp">--</span> |
+          <strong>Correct:</strong> <span id="ai-accuracy-correct">--</span> |
+          <strong>Total:</strong> <span id="ai-accuracy-total">--</span>
       </div>
     </section>
   </div>
-
-  <div class="flex-row">
-    <section class="section" id="color-prediction-section" style="flex: 1 1 48%;">
-        <h2>Color Pattern Prediction (Red/Green) 🎨</h2>
-        <div id="color-prediction-display">
-            <div class="color-pred-box Pending">Pending</div>
-            <div id="color-prediction-meta">
-                Awaiting data...
-            </div>
+  
+  <div class="grid-container grid-2">
+    <section class="section">
+      <h2 class="section-title">Color Pattern Prediction 🎨</h2>
+      <div class="info-block" id="color-prediction-display">
+        <div class="info-block-content color-pred Pending">Pending</div>
+        <div class="meta-text" id="color-prediction-meta">
+            Awaiting data...
         </div>
-        <table id="color-rule-accuracy-table">
-            <thead>
-                <tr>
-                    <th>Rule</th>
-                    <th>Correct</th>
-                    <th>Total</th>
-                    <th>Accuracy</th>
-                </tr>
-            </thead>
-            <tbody id="color-rule-accuracy-body">
-                <tr><td colspan="4">Loading rule accuracy...</td></tr>
-            </tbody>
-        </table>
+      </div>
     </section>
-    <section class="section" id="size-prediction-section" style="flex: 1 1 48%;">
-        <h2>Size Pattern Prediction (Big/Small) 📏</h2>
-        <div id="size-prediction-display">
-            <div class="size-pred-box Pending">Pending</div>
-            <div id="size-prediction-meta">
-                Awaiting data...
-            </div>
+    <section class="section">
+      <h2 class="section-title">Size Pattern Prediction 📏</h2>
+      <div class="info-block" id="size-prediction-display">
+        <div class="info-block-content size-pred Pending">Pending</div>
+        <div class="meta-text" id="size-prediction-meta">
+            Awaiting data...
         </div>
-        <table id="size-rule-accuracy-table">
-            <thead>
-                <tr>
-                    <th>Rule</th>
-                    <th>Correct</th>
-                    <th>Total</th>
-                    <th>Accuracy</th>
-                </tr>
-            </thead>
-            <tbody id="size-rule-accuracy-body">
-                <tr><td colspan="4">Loading rule accuracy...</td></tr>
-            </tbody>
-        </table>
+      </div>
     </section>
   </div>
 
   <section class="section" id="current-prediction">
-    <h2>Main Prediction (Draw #<span id="draw-number">--</span>) ✨</h2>
-    <div class="flex-row" style="justify-content: space-around; text-align: center;">
-      <div>
-        <div style="font-weight: 500; color: #555;">Predicted Numbers:</div>
+    <h2 class="section-title">Main Prediction (Draw #<span id="draw-number">--</span>) ✨</h2>
+    <div class="flex-row" style="justify-content: center; gap: 2rem;">
+      <div class="info-block" style="flex: 1;">
+        <div class="info-block-title">Predicted Numbers</div>
         <div class="prediction-numbers" id="predicted-numbers"></div>
       </div>
-      <div class="flex-col" style="flex-grow: 1;">
-        <div class="prediction-detail">Big/Small: <span id="predicted-big-small">--</span></div>
-        <div class="percentages" id="big-small-percentages"></div>
+      <div class="info-block" style="flex: 1;">
+        <div class="info-block-title">Big/Small</div>
+        <div class="info-block-content" id="predicted-big-small">--</div>
+        <div class="meta-text" id="big-small-percentages"></div>
       </div>
-      <div class="flex-col" style="flex-grow: 1;">
-        <div class="prediction-detail">Color: <span id="predicted-color">--</span></div>
-        <div class="percentages" id="color-percentages"></div>
+      <div class="info-block" style="flex: 1;">
+        <div class="info-block-title">Color</div>
+        <div class="info-block-content" id="predicted-color">--</div>
+        <div class="meta-text" id="color-percentages"></div>
       </div>
     </div>
   </section>
 
-  <div class="flex-row">
-    <section class="section" id="color-performance-section" style="flex: 1 1 48%;">
-        <h2>Color Prediction Performance 🚀</h2>
-        <div id="color-performance-stats" class="performance-streaks-container">
-            <p>Loading performance data...</p>
-        </div>
-        <div class="full-width-section">
-            <h3>Streak Distribution</h3>
-            <table class="streak-distribution-table" id="color-streak-distribution">
-                <thead>
-                    <tr>
-                        <th>Streak Length</th>
-                        <th>Win Count</th>
-                        <th>Loss Count</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr><td colspan="3">Loading streak distribution...</td></tr>
-                </tbody>
-            </table>
-        </div>
-    </section>
-    <section class="section" id="size-performance-section" style="flex: 1 1 48%;">
-        <h2>Size Prediction Performance 📊</h2>
-        <div id="size-performance-stats" class="performance-streaks-container">
-            <p>Loading performance data...</p>
-        </div>
-        <div class="full-width-section">
-            <h3>Streak Distribution</h3>
-            <table class="streak-distribution-table" id="size-streak-distribution">
-                <thead>
-                    <tr>
-                        <th>Streak Length</th>
-                        <th>Win Count</th>
-                        <th>Loss Count</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr><td colspan="3">Loading streak distribution...</td></tr>
-                </tbody>
-            </table>
-        </div>
-    </section>
-  </div>
-
-  <div class="flex-row">
-    <section class="section" id="color-history-section" style="flex: 1 1 48%;">
-        <h2>Color Prediction History 📜</h2>
-        <div style="overflow-x: auto;">
-          <table>
-            <thead>
-              <tr>
-                <th>Issue #</th>
-                <th>Predicted</th>
-                <th>Rule</th>
-                <th>Actual</th>
-                <th>Result</th>
-              </tr>
-            </thead>
-            <tbody id="color-history-table-body">
-                <tr><td colspan="5">Loading history...</td></tr>
-            </tbody>
-          </table>
-        </div>
-    </section>
-    <section class="section" id="size-history-section" style="flex: 1 1 48%;">
-        <h2>Size Prediction History 📊</h2>
-        <div style="overflow-x: auto;">
-          <table>
-            <thead>
-              <tr>
-                <th>Issue #</th>
-                <th>Predicted</th>
-                <th>Rule</th>
-                <th>Actual</th>
-                <th>Result</th>
-              </tr>
-            </thead>
-            <tbody id="size-history-table-body">
-                <tr><td colspan="5">Loading history...</td></tr>
-            </tbody>
-          </table>
-        </div>
-    </section>
-  </div>
-
+  <section class="section" id="sequence-analysis-section">
+    <h2 class="section-title">Sequence Pattern Analysis 📈</h2>
+    <div id="sequence-analysis">Loading sequence analysis...</div>
+  </section>
+  
   <section class="section" id="history-predictions">
-    <h2>Main Prediction History 📜</h2>
-    <div style="overflow-x: auto;">
+    <h2 class="section-title">Main Prediction History 📜</h2>
+    <div class="table-scroll">
       <table>
         <thead>
           <tr>
             <th>Draw #</th>
-            <th>Predicted</th>
+            <th>Prediction</th>
             <th>Actual</th>
             <th>Num</th>
             <th>B/S</th>
@@ -792,31 +586,75 @@
     </div>
   </section>
 
+  <div class="grid-container grid-2">
+    <section class="section" id="color-history-section">
+      <h2 class="section-title">Color Prediction History 📜</h2>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Issue #</th>
+              <th>Predicted</th>
+              <th>Rule</th>
+              <th>Actual</th>
+              <th>Result</th>
+            </tr>
+          </thead>
+          <tbody id="color-history-table-body">
+              <tr><td colspan="5">Loading history...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+    <section class="section" id="size-history-section">
+      <h2 class="section-title">Size Prediction History 📊</h2>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Issue #</th>
+              <th>Predicted</th>
+              <th>Rule</th>
+              <th>Actual</th>
+              <th>Result</th>
+            </tr>
+          </thead>
+          <tbody id="size-history-table-body">
+              <tr><td colspan="5">Loading history...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+  
   <section class="section" id="past-performance-streaks">
-    <h2>Main Prediction Performance & Streaks 📊📈</h2>
-    <div class="performance-streaks-container">
-      <div class="inner-section" id="past-performance">
-        <h3>Accuracy</h3>
-        <div class="accuracy-grid" id="accuracy-stats">
-          <div class="stat-card"><div class="stat-label">Loading...</div><div class="stat-value">--</div></div>
-        </div>
-      </div>
-      <div class="inner-section" id="streaks-section">
-        <h3>Streaks</h3>
-        <div class="streaks-grid" id="streaks-stats">
-          <div class="stat-card"><div class="stat-label">Loading...</div><div class="stat-value">--</div></div>
-        </div>
-      </div>
+    <h2 class="section-title">Main Prediction Performance & Streaks 📊📈</h2>
+    <div class="performance-stats-container" id="accuracy-stats">
+      <div class="stat-card"><div class="stat-label">Loading...</div><div class="stat-value">--</div></div>
+    </div>
+    <div class="performance-stats-container" id="streaks-stats" style="margin-top: 1.5rem;">
+      <div class="stat-card"><div class="stat-label">Loading...</div><div class="stat-value">--</div></div>
     </div>
   </section>
-
-  <section class="section" id="sequence-analysis-section">
-    <h2>Sequence Pattern Analysis 📈</h2>
-    <div id="sequence-analysis">Loading sequence analysis...</div>
-  </section>
-
+  
+  <div class="grid-container grid-2">
+    <section class="section" id="color-performance-section">
+      <h2 class="section-title">Color Prediction Performance 🚀</h2>
+      <div id="color-performance-stats">
+          <p>Loading performance data...</p>
+      </div>
+    </section>
+    <section class="section" id="size-performance-section">
+      <h2 class="section-title">Size Prediction Performance 📊</h2>
+      <div id="size-performance-stats">
+          <p>Loading performance data...</p>
+      </div>
+    </section>
+  </div>
+  
   <section class="section" id="raw-json-section">
-    <h2>Raw API Responses
+    <div class="raw-data-controls">
+      <h2 style="margin:0; border-bottom: none;">Raw API Responses</h2>
       <select id="raw-json-dropdown" onchange="updateRawJsonDisplay()">
         <option value="prediction">Main Prediction</option>
         <option value="color_insights">Color Insights</option>
@@ -826,8 +664,10 @@
         <option value="ai_big_small_accuracy">AI B/S Accuracy</option>
         <option value="status">Status</option>
       </select>
-    </h2>
-    <pre id="raw-json-display"><button id="copy-json-btn">Copy</button>No data loaded yet.</pre>
+    </div>
+    <pre id="raw-json-display" class="raw-json-display">
+      <button id="copy-json-btn">Copy</button>No data loaded yet.
+    </pre>
   </section>
 </main>
 
@@ -980,7 +820,7 @@
 
   async function fetchAIStatusAndUpdateBtn() {
     try {
-      const res = await fetch('/api/ai/status'); // ✅ CORRECT
+      const res = await fetch('/api/ai/status');
       if (!res.ok) throw new Error('Failed to fetch AI status');
       const data = await res.json();
       aiEnabled = !!data.ai_enabled_flag;
@@ -996,20 +836,22 @@
   function updateAIToggleBtn() {
     const btn = document.getElementById('ai-toggle-btn');
     const label = document.getElementById('ai-toggle-btn-label');
-    const aiDisplayBadge = document.getElementById('ai-prediction-display-badge');
-    if (!btn || !label || !aiDisplayBadge) return;
+    const aiPredValue = document.getElementById('ai-prediction-value');
+    
+    if (!btn || !label || !aiPredValue) return;
+    
     if (aiEnabled) {
       btn.classList.add('active');
       label.textContent = 'Stop AI 🛑';
     } else {
       btn.classList.remove('active');
       label.textContent = 'Start AI 🤖';
-      aiDisplayBadge.innerHTML = `<span class="ai-badge" disabled title="AI is OFF">AI OFF</span>`;
+      aiPredValue.innerHTML = `<span style="font-size: 1rem; color: #6b7280;">AI is OFF</span>`;
     }
   }
 
   async function toggleAI() {
-    const endpoint = aiEnabled ? '/api/ai/stop' : '/api/ai/start'; // ✅ CORRECT
+    const endpoint = aiEnabled ? '/api/ai/stop' : '/api/ai/start';
     document.getElementById('ai-toggle-btn').disabled = true;
     try {
       const res = await fetch(endpoint, { method: 'POST' });
@@ -1033,23 +875,24 @@
       setTimeout(() => errorDiv.style.display = "none", 5000);
   }
 
-  // ✅ FIXED: Main Prediction Data Loading
+  // --- Main Prediction Data Loading ---
   async function loadMainPredictionData() {
     try {
-        const res = await fetch('/api/prediction'); // ✅ CORRECT
+        const res = await fetch('/api/prediction');
         const data = await res.json();
         rawApiResponses['prediction'] = data;
 
         if (data.timestamp) {
             lastApiTimestamp = data.timestamp;
-            document.getElementById('last-updated-time').textContent = formatTimestamp(data.timestamp);
         }
 
         const prevDrawElem = document.getElementById('previous-draw');
         if (data.status === 'initializing') {
-            prevDrawElem.innerHTML = `<span style="color: #888;">⏳ Main prediction system initializing...</span>`;
+            prevDrawElem.className = 'status-message info';
+            prevDrawElem.innerHTML = `⏳ Main prediction system initializing...`;
         } else if (data.status === 'error') {
-            prevDrawElem.innerHTML = `<span style="color: #d32f2f;">❌ Error: ${data.message}</span>`;
+            prevDrawElem.className = 'status-message error';
+            prevDrawElem.innerHTML = `❌ Error: ${data.message}`;
         } else {
             const drawNumber = data.next_issue || data.issue || '--';
             const prediction = data.prediction || {};
@@ -1059,7 +902,6 @@
 
             document.getElementById('draw-number').textContent = String(drawNumber).slice(-4);
             
-            // Update predicted numbers bubbles
             const numbersContainer = document.getElementById('predicted-numbers');
             if (predictedNumbers && predictedNumbers.length > 0) {
                 numbersContainer.innerHTML = '';
@@ -1067,9 +909,9 @@
                     const bubble = document.createElement('div');
                     bubble.className = 'number-bubble';
                     bubble.textContent = item.number;
-                    if ([0, 2, 4, 6, 8].includes(item.number)) bubble.style.backgroundColor = '#d32f2f';
-                    if ([1, 3, 5, 7, 9].includes(item.number)) bubble.style.backgroundColor = '#388e3c';
-                    if ([0, 5].includes(item.number)) bubble.style.boxShadow = '0 0 10px 3px #8e24aa';
+                    if ([0, 2, 4, 6, 8].includes(item.number)) bubble.classList.add('red');
+                    if ([1, 3, 5, 7, 9].includes(item.number)) bubble.classList.add('green');
+                    if ([0, 5].includes(item.number)) bubble.classList.add('violet');
                     const pctDiv = document.createElement('div');
                     pctDiv.className = 'bubble-pct';
                     pctDiv.textContent = `${item.likelihood.toFixed(1)}%`;
@@ -1080,23 +922,20 @@
                 numbersContainer.innerHTML = '<div class="number-bubble" style="background: #999;">--</div>';
             }
 
-            // Update big/small prediction
             document.getElementById('predicted-big-small').textContent = bigSmall;
             const bigSmallPercentages = document.getElementById('big-small-percentages');
             if (prediction.big_small_percentages) {
                 bigSmallPercentages.innerHTML = Object.entries(prediction.big_small_percentages)
-                    .map(([k, v]) => `<span>${k.replace('_percentage', '')}: ${v.toFixed(1)}%</span>`).join('');
+                    .map(([k, v]) => `<span>${k.replace('_percentage', '')}: ${v.toFixed(1)}%</span>`).join(' | ');
             }
 
-            // Update color prediction
             document.getElementById('predicted-color').textContent = color;
             const colorPercentages = document.getElementById('color-percentages');
             if (prediction.color_percentages) {
                 colorPercentages.innerHTML = Object.entries(prediction.color_percentages)
-                    .map(([k, v]) => `<span>${k}: ${v.toFixed(1)}%</span>`).join('');
+                    .map(([k, v]) => `<span>${k}: ${v.toFixed(1)}%</span>`).join(' | ');
             }
 
-            // Update previous draw info
             if (data.recent_results) {
                 const recentIssues = Object.keys(data.recent_results).sort((a,b) => b.localeCompare(a));
                 if (recentIssues.length > 0) {
@@ -1104,13 +943,14 @@
                     const lastNum = data.recent_results[lastIssueKey];
                     const lastColor = NUM_TO_COLOR_MAP[lastNum] || '--';
                     const lastSize = lastNum >= 5 ? 'Big' : 'Small';
+                    prevDrawElem.className = 'status-message success';
                     prevDrawElem.innerHTML = `Previous Draw #${String(lastIssueKey).slice(-4)}: <strong>${lastNum}</strong> (${lastColor}, ${lastSize})`;
                 }
             } else {
+                prevDrawElem.className = 'status-message info';
                 prevDrawElem.innerHTML = `Current Prediction for Draw #${String(drawNumber).slice(-4)}`;
             }
 
-            // Update sequence analysis
             const seqDiv = document.getElementById('sequence-analysis');
             if (data.sequence_analysis && data.sequence_analysis.length > 0) {
                 seqDiv.innerHTML = data.sequence_analysis.map(item => `
@@ -1197,10 +1037,10 @@
         Object.entries(streakStats).forEach(([key, val]) => {
             const label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
             streaksContainer.innerHTML += `
-                <div class="stat-card streak-card">
+                <div class="stat-card">
                     <div class="stat-label">${label} Streaks</div>
-                    <div class="streak-detail-row">Win: <strong>${val.current_win || 0}</strong> (Max: ${val.max_win || 0})</div>
-                    <div class="streak-detail-row">Loss: <strong>${val.current_loss || 0}</strong> (Max: ${val.max_loss || 0})</div>
+                    <div class="streak-row">Win: <strong class="win-streak-value">${val.current_win || 0}</strong> (Max: ${val.max_win || 0})</div>
+                    <div class="streak-row">Loss: <strong class="loss-streak-value">${val.current_loss || 0}</strong> (Max: ${val.max_loss || 0})</div>
                 </div>
             `;
         });
@@ -1209,178 +1049,124 @@
     }
   }
 
-  // ✅ FIXED: AI Prediction Data Loading
-  async function loadAIPredictionData() {
-    try {
-      const res = await fetch('/api/ai_prediction'); // ✅ CORRECT underscore
-      const data = await res.json();
-      rawApiResponses['ai_prediction'] = data;
-
-      const valueElem = document.getElementById('ai-prediction-value');
-      const badgeElem = document.getElementById('ai-prediction-display-badge');
-      const issueElem = document.getElementById('ai-issue');
-      const timestampElem = document.getElementById('ai-timestamp');
-
-      if (data.status === 'success' && data.ai_prediction !== undefined && data.ai_prediction !== null) {
-        valueElem.textContent = data.ai_prediction;
-        badgeElem.innerHTML = `<span class="ai-badge">AI ON</span>`;
-        issueElem.textContent = String(data.issue || '--').slice(-4);
-        timestampElem.textContent = formatTimestamp(data.timestamp);
-      } else if (data.status === 'no_data') {
-        valueElem.textContent = '--';
-        badgeElem.innerHTML = aiEnabled ? `<span class="ai-badge">Waiting for data...</span>` : `<span class="ai-badge" disabled title="AI is OFF">AI OFF</span>`;
-        issueElem.textContent = '--';
-        timestampElem.textContent = '--';
-      } else {
-        valueElem.textContent = '⚠️';
-        badgeElem.innerHTML = `<span class="ai-badge" style="background: #ff6b6b;">Error</span>`;
-        issueElem.textContent = '--';
-        timestampElem.textContent = '--';
-      }
-    } catch (err) {
-      console.error("Failed to load AI prediction:", err);
-      document.getElementById('ai-prediction-value').textContent = '❌';
-      document.getElementById('ai-prediction-display-badge').innerHTML = `<span class="ai-badge" style="background: #ff6b6b;">Error</span>`;
-    }
-  }
-
-  // ✅ FIXED: AI Big/Small Accuracy
-  async function loadAIBigSmallAccuracy() {
-    try {
-      const res = await fetch('/api/ai_big_small_accuracy'); // ✅ CORRECT underscore
-      const data = await res.json();
-      rawApiResponses['ai_big_small_accuracy'] = data;
-
-      const valueElem = document.getElementById('ai-big-small-accuracy-value');
-      const timestampElem = document.getElementById('ai-accuracy-timestamp');
-      const correctElem = document.getElementById('ai-accuracy-correct');
-      const totalElem = document.getElementById('ai-accuracy-total');
-
-      if (data.status === 'success' && data.overall_accuracy_percentage !== undefined) {
-        valueElem.textContent = `${data.overall_accuracy_percentage}%`;
-        timestampElem.textContent = formatTimestamp(data.timestamp);
-        correctElem.textContent = data.correct_predictions || 0;
-        totalElem.textContent = data.total_predictions || 0;
-      } else {
-        valueElem.textContent = '--';
-        timestampElem.textContent = '--';
-        correctElem.textContent = '--';
-        totalElem.textContent = '--';
-      }
-    } catch (err) {
-      console.error("Failed to load AI accuracy:", err);
-      document.getElementById('ai-big-small-accuracy-value').textContent = '❌';
-    }
-  }
-
-  // ✅ FIXED: Color Insights Data Loading
+  // --- Color Insights Data Loading ---
   async function loadColorInsightsData() {
     const predDisplay = document.getElementById('color-prediction-display');
     const perfStats = document.getElementById('color-performance-stats');
     const historyBody = document.getElementById('color-history-table-body');
-    const ruleAccuracyBody = document.getElementById('color-rule-accuracy-body');
-    const streakDistribution = document.getElementById('color-streak-distribution').querySelector('tbody');
 
     try {
-        const res = await fetch('/api/color_insights'); // ✅ CORRECT underscore
+        const res = await fetch('/api/color_insights');
         if (!res.ok) throw new Error(`API Error: ${res.statusText}`);
         const data = await res.json();
         rawApiResponses['color_insights'] = data;
 
-        // Update prediction display
-        if (data.predictions && data.predictions.next_prediction) {
-            const nextPred = data.predictions.next_prediction;
-            const box = predDisplay.querySelector('.color-pred-box') || document.createElement('div');
-            
-            box.className = `color-pred-box ${nextPred}`;
-            box.textContent = nextPred;
-            
-            if (!predDisplay.querySelector('.color-pred-box')) {
-                predDisplay.innerHTML = '';
-                predDisplay.appendChild(box);
-            }
-
-            // Update meta info
-            const meta = document.getElementById('color-prediction-meta');
-            if (data.analysis) {
-                meta.innerHTML = `
-                    <strong>Recent Sequence:</strong> <span id="color-pred-sequence">${data.analysis.recent_sequence || 'Loading...'}</span><br>
-                    <strong>Applied Rule:</strong> ${data.analysis.applied_rule || 'Analyzing patterns...'}<br>
-                    <strong>Confidence:</strong> ${data.analysis.confidence || '--'}%
-                `;
-            }
-        }
-
-        // Update rule accuracy table
-        if (data.rule_accuracy && Object.keys(data.rule_accuracy).length > 0) {
-            ruleAccuracyBody.innerHTML = '';
-            Object.entries(data.rule_accuracy).forEach(([rule, stats]) => {
-                const tr = document.createElement('tr');
-                const accuracy = stats.total > 0 ? ((stats.correct / stats.total) * 100).toFixed(1) : '0.0';
-                tr.innerHTML = `
-                    <td style="text-align: left; font-size: 0.75rem;">${rule}</td>
-                    <td>${stats.correct}</td>
-                    <td>${stats.total}</td>
-                    <td>${accuracy}%</td>
-                `;
-                ruleAccuracyBody.appendChild(tr);
-            });
-        } else {
-            ruleAccuracyBody.innerHTML = '<tr><td colspan="4">No rule accuracy data available.</td></tr>';
-        }
-
-        // Update performance stats
-        if (data.performance) {
-            perfStats.innerHTML = `
-                <div class="inner-section">
-                    <h3>Color Accuracy</h3>
-                    <div class="accuracy-grid">
-                        <div class="stat-card">
-                            <div class="stat-label">Overall</div>
-                            <div class="stat-value">${data.performance.accuracy || '--'}%</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">Win Streak</div>
-                            <div class="stat-value">${data.performance.current_win_streak || 0}</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">Loss Streak</div>
-                            <div class="stat-value">${data.performance.current_loss_streak || 0}</div>
-                        </div>
-                    </div>
+        const pred = data.color_prediction;
+        if (pred && pred.next_color) {
+            predDisplay.innerHTML = `
+                <div class="info-block-content color-pred ${pred.next_color}">${pred.next_color}</div>
+                <div class="meta-text" id="color-prediction-meta">
+                    For Issue #<strong>${String(pred.issue).slice(-4)}</strong> based on <strong>${pred.rule_name || 'N/A'}</strong> (Score: ${pred.rule_score || 0}%)
+                    <br>Observed Sequence: <span id="color-pred-sequence" style="font-family:'Roboto Mono',monospace; background: #eef4ff; padding: 2px 6px; border-radius: 4px; letter-spacing: 2px;">${pred.observed_sequence || 'N/A'}</span>
+                    <br>Last Updated: ${formatTimestamp(pred.last_updated)}
                 </div>
             `;
+        } else {
+            predDisplay.innerHTML = `<div class="info-block-content color-pred Pending">Pending</div><div class="meta-text" id="color-prediction-meta">No active color prediction.</div>`;
         }
 
-        // Update streak distribution
-        if (data.streak_distribution && Object.keys(data.streak_distribution).length > 0) {
-            streakDistribution.innerHTML = '';
-            Object.entries(data.streak_distribution).forEach(([length, counts]) => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${length}</td>
-                    <td>${counts.win || 0}</td>
-                    <td>${counts.loss || 0}</td>
+        const acc = data.color_accuracy;
+        const streaks = data.color_streaks;
+        if (acc && streaks) {
+            let perRuleHtml = '<p>No rule data.</p>';
+            if (acc.per_rule && Object.keys(acc.per_rule).length > 0) {
+              perRuleHtml = `
+                <table style="font-size:0.8rem;">
+                  <thead><tr><th>Rule</th><th>Accuracy</th><th>Count</th></tr></thead>
+                  <tbody>
+                    ${Object.entries(acc.per_rule).sort(([,a],[,b]) => b.total - a.total).map(([rule, stats]) => `
+                      <tr>
+                        <td>${rule}</td>
+                        <td>${stats.accuracy_pct.toFixed(1)}%</td>
+                        <td>${stats.correct}/${stats.total}</td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>`;
+            }
+            
+            let winDistributionHtml = '';
+            if (streaks.win_streak_distribution && Object.keys(streaks.win_streak_distribution).length > 0) {
+                winDistributionHtml = `
+                    <h3>Win Streak Count</h3>
+                    <div class="table-scroll">
+                      <table style="font-size:0.8rem;">
+                          <thead><tr><th>Length</th><th>Count</th></tr></thead>
+                          <tbody>
+                              ${Object.entries(streaks.win_streak_distribution).sort((a, b) => parseInt(a[0]) - parseInt(b[0])).map(([length, count]) => `
+                                  <tr><td>${length}</td><td>${count}</td></tr>
+                              `).join('')}
+                          </tbody>
+                      </table>
+                    </div>
                 `;
-                streakDistribution.appendChild(tr);
-            });
+            }
+            
+            let loseDistributionHtml = '';
+            if (streaks.lose_streak_distribution && Object.keys(streaks.lose_streak_distribution).length > 0) {
+                loseDistributionHtml = `
+                    <h3>Loss Streak Count</h3>
+                    <div class="table-scroll">
+                      <table style="font-size:0.8rem;">
+                          <thead><tr><th>Length</th><th>Count</th></tr></thead>
+                          <tbody>
+                              ${Object.entries(streaks.lose_streak_distribution).sort((a, b) => parseInt(a[0]) - parseInt(b[0])).map(([length, count]) => `
+                                  <tr><td>${length}</td><td>${count}</td></tr>
+                              `).join('')}
+                          </tbody>
+                      </table>
+                    </div>
+                `;
+            }
+
+            perfStats.innerHTML = `
+                <div class="performance-stats-container">
+                    <div class="stat-card"><div class="stat-label">Accuracy</div><div class="stat-value">${(acc.accuracy_percentage || 0).toFixed(2)}%</div></div>
+                    <div class="stat-card"><div class="stat-label">Total</div><div class="stat-value">${acc.correct_predictions || 0}/${acc.total_predictions || 0}</div></div>
+                    <div class="stat-card"><div class="stat-label">Current Win</div><div class="stat-value win-streak-value">${streaks.current_win_streak || 0}</div></div>
+                    <div class="stat-card"><div class="stat-label">Current Loss</div><div class="stat-value loss-streak-value">${streaks.current_lose_streak || 0}</div></div>
+                    <div class="stat-card"><div class="stat-label">Max Win</div><div class="stat-value">${streaks.max_win_streak || 0}</div></div>
+                    <div class="stat-card"><div class="stat-label">Max Loss</div><div class="stat-value">${streaks.max_lose_streak || 0}</div></div>
+                </div>
+                <div style="margin-top: 1.5rem;">
+                  <h3 class="section-title" style="font-size:1.1rem; margin-bottom:0.5rem; border:none;">Accuracy by Rule</h3>
+                  ${perRuleHtml}
+                </div>
+                <div class="grid-container grid-2" style="margin-top: 1.5rem; margin-bottom: 0;">
+                    <div>${winDistributionHtml || ''}</div>
+                    <div>${loseDistributionHtml || ''}</div>
+                </div>
+            `;
+        } else {
+            perfStats.innerHTML = '<p>No color performance data available.</p>';
         }
 
-        // Update history table
-        if (data.prediction_history && data.prediction_history.length > 0) {
-            historyBody.innerHTML = '';
-            data.prediction_history.slice(0, 10).forEach(item => {
+        const historyData = data.color_prediction_history;
+        historyBody.innerHTML = '';
+        if (historyData && historyData.length > 0) {
+            historyData.forEach(item => {
+                const actualColor = item.actual_color;
+                const isCorrect = actualColor !== null && item.predicted_color === actualColor;
+
                 const tr = document.createElement('tr');
-                const predicted = item.predicted || 'Pending';
-                const actual = item.actual || 'Pending';
-                const result = item.result || 'Pending';
-                
                 tr.innerHTML = `
                     <td>${String(item.issue).slice(-4)}</td>
-                    <td><span class="history-chip ${predicted}">${predicted}</span></td>
-                    <td style="font-size: 0.75rem;">${item.rule || '--'}</td>
-                    <td><span class="history-chip ${actual}">${actual}</span></td>
-                    <td class="${result === 'Correct' ? 'correct' : result === 'Incorrect' ? 'incorrect' : ''}">${result === 'Correct' ? '✔' : result === 'Incorrect' ? '✘' : '--'}</td>
+                    <td>${createHistoryChip(item.predicted_color, 'Result-'+item.predicted_color)}</td>
+                    <td>${item.rule_name || 'N/A'}</td>
+                    <td>${createHistoryChip(actualColor, 'Result-'+actualColor)}</td>
+                    <td class="${actualColor ? (isCorrect ? 'correct' : 'incorrect') : ''}">
+                        ${actualColor ? (isCorrect ? '✔' : '✘') : '?'}
+                    </td>
                 `;
                 historyBody.appendChild(tr);
             });
@@ -1390,120 +1176,130 @@
 
     } catch (err) {
         console.error("Failed to load color insights:", err);
-        predDisplay.innerHTML = '<div class="color-pred-box Pending">Error</div>';
-        perfStats.innerHTML = '<p>Error loading color performance data.</p>';
-        historyBody.innerHTML = '<tr><td colspan="5">Error loading color history.</td></tr>';
+        showErrorMessage(`Failed to load Color Insights: ${err.message}`);
+        predDisplay.innerHTML = `<div class="info-block-content color-pred Pending">Error</div><div class="meta-text" id="color-prediction-meta">Could not fetch color data.</div>`;
+        perfStats.innerHTML = '<p>Error loading performance data.</p>';
+        historyBody.innerHTML = '<tr><td colspan="5">Error loading history.</td></tr>';
     }
   }
 
-  // ✅ FIXED: Size Insights Data Loading
+  // --- Size Insights Data Loading ---
   async function loadSizeInsightsData() {
     const predDisplay = document.getElementById('size-prediction-display');
     const perfStats = document.getElementById('size-performance-stats');
     const historyBody = document.getElementById('size-history-table-body');
-    const ruleAccuracyBody = document.getElementById('size-rule-accuracy-body');
-    const streakDistribution = document.getElementById('size-streak-distribution').querySelector('tbody');
 
     try {
-        const res = await fetch('/api/size_insights'); // ✅ CORRECT underscore
+        const res = await fetch('/api/size_insights');
         if (!res.ok) throw new Error(`API Error: ${res.statusText}`);
         const data = await res.json();
         rawApiResponses['size_insights'] = data;
 
-        // Update prediction display
-        if (data.predictions && data.predictions.next_prediction) {
-            const nextPred = data.predictions.next_prediction;
-            const box = predDisplay.querySelector('.size-pred-box') || document.createElement('div');
-            
-            box.className = `size-pred-box ${nextPred}`;
-            box.textContent = nextPred;
-            
-            if (!predDisplay.querySelector('.size-pred-box')) {
-                predDisplay.innerHTML = '';
-                predDisplay.appendChild(box);
-            }
-
-            // Update meta info
-            const meta = document.getElementById('size-prediction-meta');
-            if (data.analysis) {
-                meta.innerHTML = `
-                    <strong>Recent Sequence:</strong> <span id="size-pred-sequence">${data.analysis.recent_sequence || 'Loading...'}</span><br>
-                    <strong>Applied Rule:</strong> ${data.analysis.applied_rule || 'Analyzing patterns...'}<br>
-                    <strong>Confidence:</strong> ${data.analysis.confidence || '--'}%
-                `;
-            }
-        }
-
-        // Update rule accuracy table
-        if (data.rule_accuracy && Object.keys(data.rule_accuracy).length > 0) {
-            ruleAccuracyBody.innerHTML = '';
-            Object.entries(data.rule_accuracy).forEach(([rule, stats]) => {
-                const tr = document.createElement('tr');
-                const accuracy = stats.total > 0 ? ((stats.correct / stats.total) * 100).toFixed(1) : '0.0';
-                tr.innerHTML = `
-                    <td style="text-align: left; font-size: 0.75rem;">${rule}</td>
-                    <td>${stats.correct}</td>
-                    <td>${stats.total}</td>
-                    <td>${accuracy}%</td>
-                `;
-                ruleAccuracyBody.appendChild(tr);
-            });
-        } else {
-            ruleAccuracyBody.innerHTML = '<tr><td colspan="4">No rule accuracy data available.</td></tr>';
-        }
-
-        // Update performance stats
-        if (data.performance) {
-            perfStats.innerHTML = `
-                <div class="inner-section">
-                    <h3>Size Accuracy</h3>
-                    <div class="accuracy-grid">
-                        <div class="stat-card">
-                            <div class="stat-label">Overall</div>
-                            <div class="stat-value">${data.performance.accuracy || '--'}%</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">Win Streak</div>
-                            <div class="stat-value">${data.performance.current_win_streak || 0}</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="stat-label">Loss Streak</div>
-                            <div class="stat-value">${data.performance.current_loss_streak || 0}</div>
-                        </div>
-                    </div>
+        const pred = data.size_prediction;
+        if (pred && pred.next_size) {
+            predDisplay.innerHTML = `
+                <div class="info-block-content size-pred ${pred.next_size}">${pred.next_size}</div>
+                <div class="meta-text" id="size-prediction-meta">
+                    For Issue #<strong>${String(pred.issue).slice(-4)}</strong> based on <strong>${pred.rule_name || 'N/A'}</strong> (Score: ${pred.rule_score || 0}%)
+                    <br>Observed Sequence: <span id="size-pred-sequence" style="font-family:'Roboto Mono',monospace; background: #eef4ff; padding: 2px 6px; border-radius: 4px; letter-spacing: 2px;">${pred.observed_sequence || 'N/A'}</span>
+                    <br>Last Updated: ${formatTimestamp(pred.last_updated)}
                 </div>
             `;
+        } else {
+            predDisplay.innerHTML = `<div class="info-block-content size-pred Pending">Pending</div><div class="meta-text" id="size-prediction-meta">No active size prediction.</div>`;
         }
 
-        // Update streak distribution
-        if (data.streak_distribution && Object.keys(data.streak_distribution).length > 0) {
-            streakDistribution.innerHTML = '';
-            Object.entries(data.streak_distribution).forEach(([length, counts]) => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${length}</td>
-                    <td>${counts.win || 0}</td>
-                    <td>${counts.loss || 0}</td>
+        const acc = data.size_accuracy;
+        const streaks = data.size_streaks;
+        if (acc && streaks) {
+            let perRuleHtml = '<p>No rule data.</p>';
+            if (acc.per_rule && Object.keys(acc.per_rule).length > 0) {
+              perRuleHtml = `
+                <table style="font-size:0.8rem;">
+                  <thead><tr><th>Rule</th><th>Accuracy</th><th>Count</th></tr></thead>
+                  <tbody>
+                    ${Object.entries(acc.per_rule).sort(([,a],[,b]) => b.total - a.total).map(([rule, stats]) => `
+                      <tr>
+                        <td>${rule}</td>
+                        <td>${stats.accuracy_pct.toFixed(1)}%</td>
+                        <td>${stats.correct}/${stats.total}</td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>`;
+            }
+            
+            let winDistributionHtml = '';
+            if (streaks.win_streak_distribution && Object.keys(streaks.win_streak_distribution).length > 0) {
+                winDistributionHtml = `
+                    <h3>Win Streak Count</h3>
+                    <div class="table-scroll">
+                      <table style="font-size:0.8rem;">
+                          <thead><tr><th>Length</th><th>Count</th></tr></thead>
+                          <tbody>
+                              ${Object.entries(streaks.win_streak_distribution).sort((a, b) => parseInt(a[0]) - parseInt(b[0])).map(([length, count]) => `
+                                  <tr><td>${length}</td><td>${count}</td></tr>
+                              `).join('')}
+                          </tbody>
+                      </table>
+                    </div>
                 `;
-                streakDistribution.appendChild(tr);
-            });
+            }
+            
+            let loseDistributionHtml = '';
+            if (streaks.lose_streak_distribution && Object.keys(streaks.lose_streak_distribution).length > 0) {
+                loseDistributionHtml = `
+                    <h3>Loss Streak Count</h3>
+                    <div class="table-scroll">
+                      <table style="font-size:0.8rem;">
+                          <thead><tr><th>Length</th><th>Count</th></tr></thead>
+                          <tbody>
+                              ${Object.entries(streaks.lose_streak_distribution).sort((a, b) => parseInt(a[0]) - parseInt(b[0])).map(([length, count]) => `
+                                  <tr><td>${length}</td><td>${count}</td></tr>
+                              `).join('')}
+                          </tbody>
+                      </table>
+                    </div>
+                `;
+            }
+
+            perfStats.innerHTML = `
+                <div class="performance-stats-container">
+                    <div class="stat-card"><div class="stat-label">Accuracy</div><div class="stat-value">${(acc.accuracy_percentage || 0).toFixed(2)}%</div></div>
+                    <div class="stat-card"><div class="stat-label">Total</div><div class="stat-value">${acc.correct_predictions || 0}/${acc.total_predictions || 0}</div></div>
+                    <div class="stat-card"><div class="stat-label">Current Win</div><div class="stat-value win-streak-value">${streaks.current_win_streak || 0}</div></div>
+                    <div class="stat-card"><div class="stat-label">Current Loss</div><div class="stat-value loss-streak-value">${streaks.current_lose_streak || 0}</div></div>
+                    <div class="stat-card"><div class="stat-label">Max Win</div><div class="stat-value">${streaks.max_win_streak || 0}</div></div>
+                    <div class="stat-card"><div class="stat-label">Max Loss</div><div class="stat-value">${streaks.max_lose_streak || 0}</div></div>
+                </div>
+                <div style="margin-top: 1.5rem;">
+                  <h3 class="section-title" style="font-size:1.1rem; margin-bottom:0.5rem; border:none;">Accuracy by Rule</h3>
+                  ${perRuleHtml}
+                </div>
+                <div class="grid-container grid-2" style="margin-top: 1.5rem; margin-bottom: 0;">
+                    <div>${winDistributionHtml || ''}</div>
+                    <div>${loseDistributionHtml || ''}</div>
+                </div>
+            `;
+        } else {
+            perfStats.innerHTML = '<p>No size performance data available.</p>';
         }
 
-        // Update history table
-        if (data.prediction_history && data.prediction_history.length > 0) {
-            historyBody.innerHTML = '';
-            data.prediction_history.slice(0, 10).forEach(item => {
+        const historyData = data.size_prediction_history;
+        historyBody.innerHTML = '';
+        if (historyData && historyData.length > 0) {
+            historyData.forEach(item => {
+                const actualSize = item.actual_size;
+                const isCorrect = actualSize !== null && item.predicted_size === actualSize;
                 const tr = document.createElement('tr');
-                const predicted = item.predicted || 'Pending';
-                const actual = item.actual || 'Pending';
-                const result = item.result || 'Pending';
-                
                 tr.innerHTML = `
                     <td>${String(item.issue).slice(-4)}</td>
-                    <td><span class="history-chip ${predicted}">${predicted}</span></td>
-                    <td style="font-size: 0.75rem;">${item.rule || '--'}</td>
-                    <td><span class="history-chip ${actual}">${actual}</span></td>
-                    <td class="${result === 'Correct' ? 'correct' : result === 'Incorrect' ? 'incorrect' : ''}">${result === 'Correct' ? '✔' : result === 'Incorrect' ? '✘' : '--'}</td>
+                    <td>${createHistoryChip(item.predicted_size, 'Result-'+item.predicted_size)}</td>
+                    <td>${item.rule_name || 'N/A'}</td>
+                    <td>${createHistoryChip(actualSize, 'Result-'+actualSize)}</td>
+                    <td class="${actualSize ? (isCorrect ? 'correct' : 'incorrect') : ''}">
+                        ${actualSize ? (isCorrect ? '✔' : '✘') : '?'}
+                    </td>
                 `;
                 historyBody.appendChild(tr);
             });
@@ -1513,40 +1309,126 @@
 
     } catch (err) {
         console.error("Failed to load size insights:", err);
-        predDisplay.innerHTML = '<div class="size-pred-box Pending">Error</div>';
-        perfStats.innerHTML = '<p>Error loading size performance data.</p>';
-        historyBody.innerHTML = '<tr><td colspan="5">Error loading size history.</td></tr>';
+        showErrorMessage(`Failed to load Size Insights: ${err.message}`);
+        predDisplay.innerHTML = `<div class="info-block-content size-pred Pending">Error</div><div class="meta-text" id="size-prediction-meta">Could not fetch size data.</div>`;
+        perfStats.innerHTML = '<p>Error loading performance data.</p>';
+        historyBody.innerHTML = '<tr><td colspan="5">Error loading history.</td></tr>';
+    }
+  }
+
+  async function loadAIPredictionData() {
+    const valElem = document.getElementById('ai-prediction-value');
+    const issueElem = document.getElementById('ai-issue');
+    const tsElem = document.getElementById('ai-timestamp');
+
+    valElem.textContent = '--'; issueElem.textContent = '--'; tsElem.textContent = '--';
+    valElem.classList.remove('red', 'green', 'violet');
+
+    if (!aiEnabled) {
+      valElem.innerHTML = `<span style="font-size: 1rem; color: #6b7280;">AI is OFF</span>`;
+      return;
+    }
+
+    try {
+        const res = await fetch('/api/ai_prediction');
+        const data = await res.json();
+        rawApiResponses['ai_prediction'] = data;
+        
+        if (data.status === 'no_data' || data.ai_prediction === undefined) {
+            valElem.innerHTML = `<span style="font-size: 1rem; color: #6b7280;">No Data</span>`;
+        } else {
+            const predNum = parseInt(data.ai_prediction);
+            valElem.textContent = predNum;
+            issueElem.textContent = String(data.issue).slice(-4);
+            tsElem.textContent = formatTimestamp(data.timestamp);
+            if (!isNaN(predNum)) {
+                if ([0, 2, 4, 6, 8].includes(predNum)) valElem.classList.add('red');
+                if ([1, 3, 5, 7, 9].includes(predNum)) valElem.classList.add('green');
+                if ([0, 5].includes(predNum)) valElem.classList.add('violet');
+            }
+        }
+    } catch (err) {
+        showErrorMessage(`Failed to load AI data: ${err.message}`);
+        valElem.innerHTML = `<span style="font-size: 1rem; color: #6b7280;">Error</span>`;
+    }
+  }
+
+  async function loadAIBigSmallAccuracy() {
+    const valElem = document.getElementById('ai-big-small-accuracy-value');
+    const tsElem = document.getElementById('ai-accuracy-timestamp');
+    const correctElem = document.getElementById('ai-accuracy-correct');
+    const totalElem = document.getElementById('ai-accuracy-total');
+
+    valElem.textContent = '--'; tsElem.textContent = '--'; correctElem.textContent = '--'; totalElem.textContent = '--';
+    if (!aiEnabled) return;
+
+    try {
+        const res = await fetch('/api/ai_big_small_accuracy');
+        const data = await res.json();
+        rawApiResponses['ai_big_small_accuracy'] = data;
+        if (data.status === 'success' && data.accuracy !== undefined) {
+            valElem.textContent = `${data.accuracy.toFixed(2)}%`;
+            correctElem.textContent = data.correct_predictions;
+            totalElem.textContent = data.total_predictions;
+            tsElem.textContent = formatTimestamp(data.timestamp);
+        } else {
+            valElem.textContent = 'N/A';
+        }
+    } catch (err) {
+        showErrorMessage(`Failed to load AI B/S accuracy: ${err.message}`);
+        valElem.textContent = 'Error';
+    }
+  }
+
+  async function loadCombinedInsightsData() {
+    try {
+        const res = await fetch('/api/v2/insights');
+        if (!res.ok) throw new Error(`API Error: ${res.statusText}`);
+        const data = await res.json();
+        rawApiResponses['v2_insights'] = data;
+    } catch (err) {
+        console.error("Failed to load combined insights:", err);
     }
   }
 
   // Main data loading function
   async function loadAllData() {
     try {
-      await Promise.all([
-        loadMainPredictionData(),
-        loadColorInsightsData(),
-        loadSizeInsightsData(),
-        loadAIPredictionData(),
-        loadAIBigSmallAccuracy(),
-        fetchAIStatusAndUpdateBtn()
-      ]);
-      updateRawJsonDisplay();
+        document.getElementById('last-updated-time').textContent = formatTimestamp(new Date().toISOString());
+        
+        await Promise.all([
+            loadMainPredictionData(),           
+            loadColorInsightsData(),
+            loadSizeInsightsData(),
+            loadCombinedInsightsData(),
+            fetchAIStatusAndUpdateBtn().then(() => {
+                return Promise.all([
+                    loadAIPredictionData(),
+                    loadAIBigSmallAccuracy()
+                ]);
+            })
+        ]);
+        
+        updateRawJsonDisplay();
+        
     } catch (err) {
-      console.error("Error loading dashboard data:", err);
-      showErrorMessage("Failed to load some dashboard data");
+        console.error("Error loading data:", err);
+        showErrorMessage(`Error loading dashboard data: ${err.message}`);
     }
   }
 
-  // Initialize dashboard
-  document.addEventListener('DOMContentLoaded', function() {
+  // Initialize and start timers
+  function init() {
     loadAllData();
     
-    // Start timer for auto-refresh
     timerIntervalId = setInterval(() => {
-      checkRefreshTime();
-      updateCountdownDisplay();
+        checkRefreshTime();
     }, 100);
-  });
+
+    setInterval(updateCountdownDisplay, 1000);
+  }
+
+  window.onload = init;
 </script>
 
 </body>
