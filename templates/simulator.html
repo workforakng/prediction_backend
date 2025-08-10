@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lottery Simulator - Wingo30s</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        .container {
+            max-width: 1200px; /* Wider container */
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1, h2, h3 {
+            color: #0056b3;
+        }
+        .section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="number"], input[type="text"], select {
+            width: calc(100% - 12px);
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+            margin-top: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .wallet-display {
+            font-size: 2em;
+            font-weight: bold;
+            color: #28a745;
+            margin-top: 10px;
+        }
+        .message {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .message.success { background-color: #d4edda; color: #155724; border-color: #c3e6cb; }
+        .message.error { background-color: #f8d7da; color: #721c24; border-color: #f5c6cb; }
+        .message.info { background-color: #d1ecf1; color: #0c5460; border-color: #bee5eb; }
+        .message.warning { background-color: #fff3cd; color: #856404; border-color: #ffeeba; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 0.9em;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #007bff;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        .win { color: green; font-weight: bold; }
+        .loss { color: red; font-weight: bold; }
+        .funds-critical { color: darkorange; font-weight: bold; } /* For "Insufficient funds" in history */
+        .stopped-status { color: grey; font-weight: bold; }
+        .running-status { color: green; font-weight: bold; }
+        .not-initialized-status { color: darkred; font-weight: bold; }
+
+        .strategy-settings {
+            border: 1px dashed #ccc;
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: #f0f0f0;
+        }
+        .strategy-toggle {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .strategy-toggle input[type="checkbox"] {
+            width: auto;
+            margin-right: 10px;
+        }
+        .strategy-status-display {
+            display: flex;
+            justify-content: space-around;
+            padding: 10px;
+            background-color: #e9e9e9;
+            margin-top: 10px;
+            border-radius: 4px;
+        }
+        .strategy-status-display div {
+            text-align: center;
+            flex: 1;
+        }
+        .strategy-status-display strong {
+            display: block;
+            margin-bottom: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Wingo30s Simulator</h1>
+
+        <div class="section">
+            <h2>Simulator Control & Settings</h2>
+            <div>
+                <label for="initialWallet">Initial Total Wallet:</label>
+                <input type="number" id="initialWallet" value="1000" min="0" step="10">
+            </div>
+            <div>
+                <label for="simulationMode">Prediction Source:</label>
+                <select id="simulationMode">
+                    <option value="internal_logic">Internal Logic (Small/Big sum logic & fixed target bets)</option>
+                    <option value="main_app_prediction">Main App Prediction (Requires active AI service)</option>
+                </select>
+                <small>Choose whether the simulator uses its own simple logic or the main AI's predictions.</small>
+            </div>
+
+            <h3>Betting Strategies:</h3>
+
+            <div class="strategy-settings">
+                <div class="strategy-toggle">
+                    <input type="checkbox" id="enableColorBet">
+                    <label for="enableColorBet">Enable Color Bet Strategy</label>
+                </div>
+                <div id="colorBetSettings" style="display: none;">
+                    <div>
+                        <label for="colorTarget">Target Color:</label>
+                        <select id="colorTarget">
+                            <option value="Green">Green</option>
+                            <option value="Red">Red</option>
+                            <option value="Violet">Violet</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="colorBaseBet">Base Bet:</label>
+                        <input type="number" id="colorBaseBet" value="10" min="1" step="1">
+                    </div>
+                    <div>
+                        <label for="colorBetMultipliers">Bet Multipliers (comma-separated, e.g., 1,2,4,8):</label>
+                        <input type="text" id="colorBetMultipliers" value="1,2,4,8">
+                    </div>
+                </div>
+            </div>
+
+            <div class="strategy-settings">
+                <div class="strategy-toggle">
+                    <input type="checkbox" id="enableBigSmallBet">
+                    <label for="enableBigSmallBet">Enable Big/Small Bet Strategy</label>
+                </div>
+                <div id="bigSmallBetSettings" style="display: none;">
+                    <div>
+                        <label for="bigSmallTarget">Target Side:</label>
+                        <select id="bigSmallTarget">
+                            <option value="Big">Big</option>
+                            <option value="Small">Small</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="bigSmallBaseBet">Base Bet:</label>
+                        <input type="number" id="bigSmallBaseBet" value="10" min="1" step="1">
+                    </div>
+                    <div>
+                        <label for="bigSmallBetMultipliers">Bet Multipliers (comma-separated, e.g., 1,2,4,8):</label>
+                        <input type="text" id="bigSmallBetMultipliers" value="1,2,4,8">
+                    </div>
+                </div>
+            </div>
+
+            <div class="strategy-settings">
+                <div class="strategy-toggle">
+                    <input type="checkbox" id="enableNumberBet">
+                    <label for="enableNumberBet">Enable Number Bet Strategy</label>
+                </div>
+                <div id="numberBetSettings" style="display: none;">
+                    <div>
+                        <label for="numberTarget">Target Number (0-9):</label>
+                        <select id="numberTarget">
+                            <option value="0">0</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                            <option value="6">6</option>
+                            <option value="7">7</option>
+                            <option value="8">8</option>
+                            <option value="9">9</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="numberBetAmount">Bet Amount (flat bet for numbers):</label>
+                        <input type="number" id="numberBetAmount" value="10" min="1" step="1">
+                    </div>
+                </div>
+            </div>
+
+            <button id="startButton">Start Simulator</button>
+            <button id="stopButton">Stop & Reset Simulator</button>
+            <div id="settingsMessage" class="message info"></div>
+        </div>
+
+        <div class="section">
+            <h2>Current State</h2>
+            <p>Total Wallet: <span class="wallet-display" id="totalWallet">0.00</span></p>
+            <p>Total Simulated Rounds: <span id="totalSimulatedRounds">0</span></p>
+            <p>Simulator Status: <span id="simulatorStatus" class="not-initialized-status">Not Initialized</span></p>
+            <p>Prediction Source: <span id="currentSimulationMode">N/A</span></p>
+            <p>Next update in: <span id="countdown">Loading...</span> seconds</p>
+
+            <h3>Strategy Status:</h3>
+            <div id="strategyStatusContainer">
+                </div>
+            <div id="runMessage" class="message info"></div>
+        </div>
+
+        <div class="section">
+            <h2>Simulation History (Latest 200 Entries)</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Draw ID</th>
+                        <th>Actual Digit</th>
+                        <th>Bet Type</th>
+                        <th>Predicted Value</th>
+                        <th>Bet Amount</th>
+                        <th>Win/Loss ($)</th>
+                        <th>Total Wallet</th>
+                        <th>Result</th>
+                        <th>Strategy</th>
+                    </tr>
+                </thead>
+                <tbody id="historyTableBody">
+                    <tr><td colspan="10">No history yet.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // *** IMPORTANT CHANGE HERE ***
+        // Adjust the API_BASE_URL to include the new blueprint prefix
+        const API_BASE_URL = 'https://prediction.up.railway.app/api/simulator';
+
+        let statusPollingInterval;
+        let countdownInterval;
+        const workerCycleTime = 30; // Your simulator worker runs every 30 seconds
+
+        // Event Listeners for strategy toggles
+        document.getElementById('enableColorBet').addEventListener('change', function() {
+            document.getElementById('colorBetSettings').style.display = this.checked ? 'block' : 'none';
+        });
+        document.getElementById('enableBigSmallBet').addEventListener('change', function() {
+            document.getElementById('bigSmallBetSettings').style.display = this.checked ? 'block' : 'none';
+        });
+        document.getElementById('enableNumberBet').addEventListener('change', function() {
+            document.getElementById('numberBetSettings').style.display = this.checked ? 'block' : 'none';
+        });
+
+
+        document.getElementById('startButton').addEventListener('click', startSimulator);
+        document.getElementById('stopButton').addEventListener('click', stopSimulator);
+
+        async function startSimulator() {
+            const initialWallet = parseFloat(document.getElementById('initialWallet').value);
+            const simulationMode = document.getElementById('simulationMode').value;
+
+            const payload = {
+                initial_wallet: initialWallet,
+                simulation_mode: simulationMode,
+                bet_strategies: {}
+            };
+
+            // Color Bet Strategy
+            if (document.getElementById('enableColorBet').checked) {
+                const multipliers = document.getElementById('colorBetMultipliers').value;
+                if (!validateMultipliers(multipliers)) {
+                    showMessage('settingsMessage', 'Color Bet Multipliers are invalid.', 'error');
+                    return;
+                }
+                payload.bet_strategies.color_bet_strategy = {
+                    is_active: true,
+                    target_color: document.getElementById('colorTarget').value,
+                    base_bet: parseFloat(document.getElementById('colorBaseBet').value),
+                    bet_multipliers: multipliers
+                };
+            }
+
+            // Big/Small Bet Strategy
+            if (document.getElementById('enableBigSmallBet').checked) {
+                const multipliers = document.getElementById('bigSmallBetMultipliers').value;
+                if (!validateMultipliers(multipliers)) {
+                    showMessage('settingsMessage', 'Big/Small Bet Multipliers are invalid.', 'error');
+                    return;
+                }
+                payload.bet_strategies.big_small_bet_strategy = {
+                    is_active: true,
+                    target_side: document.getElementById('bigSmallTarget').value,
+                    base_bet: parseFloat(document.getElementById('bigSmallBaseBet').value),
+                    bet_multipliers: multipliers
+                };
+            }
+
+            // Number Bet Strategy (no multipliers, flat bet amount)
+            if (document.getElementById('enableNumberBet').checked) {
+                payload.bet_strategies.number_bet_strategy = {
+                    is_active: true,
+                    target_number: parseInt(document.getElementById('numberTarget').value),
+                    base_bet: parseFloat(document.getElementById('numberBetAmount').value), // Using base_bet for flat amount
+                    bet_multipliers: '1' // Force 1 for number bets
+                };
+            }
+
+            if (!payload.bet_strategies.color_bet_strategy && !payload.bet_strategies.big_small_bet_strategy && !payload.bet_strategies.number_bet_strategy) {
+                showMessage('settingsMessage', 'At least one betting strategy must be enabled.', 'error');
+                return;
+            }
+
+
+            try {
+                // *** IMPORTANT CHANGE HERE ***
+                // Append the specific endpoint to the adjusted API_BASE_URL
+                const response = await fetch(`${API_BASE_URL}/start`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    showMessage('settingsMessage', data.message, 'success');
+                    updateSimulatorUI(data.state);
+                    startPollingForStatus();
+                } else {
+                    showMessage('settingsMessage', `Error: ${data.message}`, 'error');
+                }
+            } catch (error) {
+                console.error('Error starting simulator:', error);
+                showMessage('settingsMessage', 'Failed to connect to backend.', 'error');
+            }
+        }
+
+        async function stopSimulator() {
+            try {
+                // *** IMPORTANT CHANGE HERE ***
+                // Append the specific endpoint to the adjusted API_BASE_URL
+                const response = await fetch(`${API_BASE_URL}/stop`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    showMessage('settingsMessage', data.message, 'success');
+                    updateSimulatorUI(data.state);
+                    stopPolling();
+                } else {
+                    showMessage('settingsMessage', `Error: ${data.message}`, 'error');
+                }
+            } catch (error) {
+                console.error('Error stopping simulator:', error);
+                showMessage('settingsMessage', 'Failed to connect to backend to stop.', 'error');
+            }
+        }
+
+        async function getSimulatorStatus() {
+            try {
+                // *** IMPORTANT CHANGE HERE ***
+                // Append the specific endpoint to the adjusted API_BASE_URL
+                const response = await fetch(`${API_BASE_URL}/status`);
+                const data = await response.json();
+                if (data.status === 'success') {
+                    updateSimulatorUI(data.state);
+                    return data.state;
+                } else if (data.status === 'not_initialized') {
+                    showMessage('runMessage', data.message, 'info');
+                    updateSimulatorUI(null);
+                } else {
+                    showMessage('runMessage', `Error fetching status: ${data.message}`, 'error');
+                }
+            } catch (error) {
+                console.error('Error fetching simulator status:', error);
+                showMessage('runMessage', 'Failed to connect to backend for status.', 'error');
+            }
+            return null;
+        }
+
+        function updateSimulatorUI(state) {
+            const totalWalletElement = document.getElementById('totalWallet');
+            const totalRoundsElement = document.getElementById('totalSimulatedRounds');
+            const simulatorStatusElement = document.getElementById('simulatorStatus');
+            const currentSimulationModeElement = document.getElementById('currentSimulationMode');
+            const strategyStatusContainer = document.getElementById('strategyStatusContainer');
+
+            if (state) {
+                totalWalletElement.textContent = state.total_wallet.toFixed(2);
+                totalRoundsElement.textContent = state.total_simulated_rounds;
+                currentSimulationModeElement.textContent = state.simulation_mode === 'internal_logic' ? 'Internal Logic' : 'Main App Prediction';
+
+                if (state.is_running) {
+                    simulatorStatusElement.textContent = 'Running (Worker Active)';
+                    simulatorStatusElement.className = 'running-status';
+                } else if (state.total_wallet <= 0) {
+                     simulatorStatusElement.textContent = 'STOPPED (Wallet Depleted)';
+                     simulatorStatusElement.className = 'loss'; /* Use red for depleted */
+                }
+                else {
+                    simulatorStatusElement.textContent = 'STOPPED (Idle)';
+                    simulatorStatusElement.className = 'stopped-status';
+                }
+
+                // Update individual strategy statuses
+                strategyStatusContainer.innerHTML = ''; // Clear previous
+                for (const key in state.bet_strategies) {
+                    const strategy = state.bet_strategies[key];
+                    let strategyName = key.replace(/_bet_strategy/g, '').replace(/_/g, ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+
+                    if (strategy.is_active) {
+                        const strategyDiv = document.createElement('div');
+                        strategyDiv.className = 'strategy-status-display';
+                        strategyDiv.innerHTML = `
+                            <div><strong>${strategyName}</strong></div>
+                            <div>Current Bet: ${strategy.current_bet ? strategy.current_bet.toFixed(2) : 'N/A'}</div>
+                            <div>Progression Step: ${strategy.current_progression_step}</div>
+                            <div>Win Streak: ${strategy.current_win_streak} (Max: ${strategy.max_win_streak})</div>
+                            <div>Loss Streak: ${strategy.current_loss_streak} (Max: ${strategy.max_loss_streak})</div>
+                            <div>Rounds: ${strategy.rounds_played}</div>
+                        `;
+                        strategyStatusContainer.appendChild(strategyDiv);
+                    } else {
+                        const inactiveDiv = document.createElement('div');
+                        inactiveDiv.textContent = `${strategyName}: Inactive`;
+                        inactiveDiv.style.color = 'grey';
+                        strategyStatusContainer.appendChild(inactiveDiv);
+                    }
+                }
+
+
+                updateHistoryTable(state.prediction_history);
+            } else {
+                // Reset UI if state is null (not initialized)
+                totalWalletElement.textContent = '0.00';
+                totalRoundsElement.textContent = '0';
+                currentSimulationModeElement.textContent = 'N/A';
+                simulatorStatusElement.textContent = 'Not Initialized';
+                simulatorStatusElement.className = 'not-initialized-status';
+                strategyStatusContainer.innerHTML = '';
+                document.getElementById('historyTableBody').innerHTML = '<tr><td colspan="10">No history yet.</td></tr>';
+            }
+        }
+
+        function validateMultipliers(multipliersStr) {
+            try {
+                const parsed = multipliersStr.split(',').map(x => parseFloat(x.trim()));
+                return parsed.every(val => !isNaN(val) && val >= 1);
+            } catch (e) {
+                return false;
+            }
+        }
+
+        function showMessage(elementId, msg, type) {
+            const element = document.getElementById(elementId);
+            element.textContent = msg;
+            element.className = `message ${type}`;
+            setTimeout(() => {
+                element.textContent = '';
+                element.className = 'message';
+            }, 5000); // Clear message after 5 seconds
+        }
+
+        let timeToNextUpdate = workerCycleTime;
+
+        function startPollingForStatus() {
+            if (statusPollingInterval) clearInterval(statusPollingInterval);
+            if (countdownInterval) clearInterval(countdownInterval);
+
+            getSimulatorStatus(); // Initial status fetch
+
+            countdownInterval = setInterval(() => {
+                timeToNextUpdate--;
+                if (timeToNextUpdate <= 0) {
+                    timeToNextUpdate = workerCycleTime;
+                }
+                document.getElementById('countdown').textContent = timeToNextUpdate;
+            }, 1000);
+
+            statusPollingInterval = setInterval(async () => {
+                console.log("Polling for simulator status update...");
+                await getSimulatorStatus();
+                timeToNextUpdate = workerCycleTime; // Reset countdown after polling
+            }, workerCycleTime * 1000);
+        }
+
+        function stopPolling() {
+            if (statusPollingInterval) clearInterval(statusPollingInterval);
+            if (countdownInterval) clearInterval(countdownInterval);
+            document.getElementById('countdown').textContent = 'Stopped';
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set initial state of toggles based on default settings (or last saved if implemented)
+            document.getElementById('colorBetSettings').style.display = document.getElementById('enableColorBet').checked ? 'block' : 'none';
+            document.getElementById('bigSmallBetSettings').style.display = document.getElementById('enableBigSmallBet').checked ? 'block' : 'none';
+            document.getElementById('numberBetSettings').style.display = document.getElementById('enableNumberBet').checked ? 'block' : 'none';
+
+            getSimulatorStatus(); // Fetch initial state when page loads
+            startPollingForStatus(); // Start polling automatically
+        });
+
+    </script>
+</body>
+</html>

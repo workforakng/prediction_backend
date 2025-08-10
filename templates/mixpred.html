@@ -1,0 +1,1275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mixed Predictions Dashboard - Color & Size Insights</title>
+
+  <style>
+    /* --- 1. Custom Properties (CSS Variables) --- */
+    :root {
+      /* Colors */
+      --primary-color: #667eea;
+      --secondary-color: #764ba2;
+      --header-bg: rgba(42, 63, 102, 0.95);
+      --text-color: #333;
+      --light-text-color: #e0e0e0;
+      --white: #fff;
+      --black: #000;
+      --section-bg: rgba(255, 255, 255, 0.95);
+      --border-color: rgba(255, 255, 255, 0.2);
+      --table-header-bg: linear-gradient(135deg, #2a3f66, #1a2642);
+      --correct-color: #2e7d32;
+      --incorrect-color: #c62828;
+
+      /* Gradients */
+      --body-gradient: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+      --button-gradient: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+      --highlight-gradient: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      --red-gradient: linear-gradient(135deg, #e53935, #c62828);
+      --green-gradient: linear-gradient(135deg, #4caf50, #2e7d32);
+      --big-gradient: linear-gradient(135deg, #ff9800, #f57c00);
+      --small-gradient: linear-gradient(135deg, #3f51b5, #303f9f);
+      --pending-gradient: linear-gradient(135deg, #9e9e9e, #616161);
+      --code-bg-gradient: linear-gradient(135deg, #23272e, #1a1d23);
+      --table-sub-header-bg-gradient: linear-gradient(135deg, #e3f2fd, #bbdefb);
+
+      /* Spacing & Sizes */
+      --spacing-xs: 0.5rem;
+      --spacing-sm: 1rem;
+      --spacing-md: 1.5rem;
+      --spacing-lg: 2rem;
+      --border-radius-sm: 8px;
+      --border-radius-md: 15px;
+      --box-shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.1);
+      --box-shadow-md: 0 8px 20px rgba(0, 0, 0, 0.2);
+      --box-shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.1);
+
+      /* Fonts */
+      --font-family-base: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      --font-family-mono: 'Consolas', 'Monaco', monospace;
+
+      /* Transitions */
+      --transition-fast: 0.2s ease;
+      --transition-slow: 0.3s ease;
+    }
+
+    /* --- 2. Reset & Base Styles --- */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-family-base);
+      background: var(--body-gradient);
+      color: var(--text-color);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.5;
+    }
+
+    h1, h2 {
+      margin-bottom: var(--spacing-sm);
+      color: var(--white);
+      text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.3);
+    }
+
+    h2 {
+      margin-top: var(--spacing-lg);
+      font-size: 1.3rem;
+      border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+      padding-bottom: var(--spacing-xs);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* --- 3. Layout & Structure --- */
+    header {
+      background: var(--header-bg);
+      color: var(--white);
+      padding: var(--spacing-sm) var(--spacing-md);
+      text-align: center;
+      font-weight: 700;
+      font-size: 1.5rem;
+      letter-spacing: 1.2px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      backdrop-filter: blur(10px);
+    }
+
+    main {
+      flex: 1;
+      padding: var(--spacing-md) var(--spacing-sm);
+      max-width: 1200px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .section {
+      background: var(--section-bg);
+      border-radius: var(--border-radius-md);
+      padding: var(--spacing-md);
+      margin-bottom: var(--spacing-lg);
+      box-shadow: var(--box-shadow-lg);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--border-color);
+    }
+
+    .flex-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--spacing-md);
+      align-items: flex-start;
+    }
+
+    .flex-col {
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* --- 4. Components --- */
+    .status-bar {
+      background: rgba(255, 255, 255, 0.1);
+      padding: var(--spacing-sm);
+      border-radius: var(--border-radius-sm);
+      text-align: center;
+      color: var(--white);
+      margin-bottom: var(--spacing-md);
+      backdrop-filter: blur(10px);
+    }
+
+    #timestamp-display {
+      font-size: var(--spacing-sm);
+      font-weight: 500;
+    }
+
+    .timer {
+      font-weight: 700;
+      font-size: 1.2rem;
+      color: #ffd700;
+      margin-top: var(--spacing-xs);
+    }
+
+    .prediction-display {
+      text-align: center;
+      margin: var(--spacing-sm) 0;
+    }
+
+    .pred-box {
+      font-size: 3rem;
+      font-weight: 700;
+      color: var(--white);
+      padding: var(--spacing-md) var(--spacing-lg);
+      border-radius: var(--border-radius-md);
+      display: inline-block;
+      min-width: 200px;
+      margin: var(--spacing-xs);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+      transition: transform var(--transition-slow), box-shadow var(--transition-slow);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .pred-box:hover {
+      transform: translateY(-5px) scale(1.02);
+      box-shadow: 0 12px 25px rgba(0, 0, 0, 0.4);
+    }
+
+    .pred-box::before {
+      content: '';
+      position: absolute;
+      top: -2px;
+      left: -2px;
+      right: -2px;
+      bottom: -2px;
+      background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+      border-radius: var(--border-radius-md);
+      z-index: -1;
+    }
+
+    .pred-box.Red {
+      background: var(--red-gradient);
+      border: 2px solid var(--border-color);
+    }
+
+    .pred-box.Green {
+      background: var(--green-gradient);
+      border: 2px solid var(--border-color);
+    }
+
+    .pred-box.Big {
+      background: var(--big-gradient);
+      border: 2px solid var(--border-color);
+    }
+
+    .pred-box.Small {
+      background: var(--small-gradient);
+      border: 2px solid var(--border-color);
+    }
+
+    .pred-box.Pending {
+      background: var(--pending-gradient);
+      border: 2px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .prediction-meta {
+      font-size: 0.95rem;
+      color: #555;
+      margin-top: var(--spacing-sm);
+      line-height: 1.6;
+      background: rgba(0, 0, 0, 0.05);
+      padding: var(--spacing-sm);
+      border-radius: var(--border-radius-sm);
+      border-left: 4px solid var(--primary-color);
+    }
+
+    .prediction-meta strong {
+      color: var(--text-color);
+    }
+
+    .pred-sequence {
+      font-family: var(--font-family-mono);
+      font-size: 1.2rem;
+      background: var(--table-sub-header-bg-gradient);
+      padding: var(--spacing-xs) var(--spacing-sm);
+      border-radius: var(--border-radius-sm);
+      letter-spacing: 3px;
+      font-weight: 700;
+      margin: var(--spacing-xs) 0;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .performance-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: var(--spacing-md);
+      margin: var(--spacing-md) 0;
+    }
+
+    .perf-card {
+      background: var(--button-gradient);
+      color: var(--white);
+      padding: var(--spacing-md);
+      border-radius: var(--border-radius-md);
+      text-align: center;
+      box-shadow: var(--box-shadow-md);
+      transition: transform var(--transition-slow), box-shadow var(--transition-slow);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .perf-card:hover {
+      transform: translateY(-3px) scale(1.02);
+      box-shadow: 0 12px 25px rgba(0, 0, 0, 0.3);
+    }
+
+    .perf-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: var(--highlight-gradient);
+      transition: left 0.5s ease;
+    }
+
+    .perf-card:hover::before {
+      left: 100%;
+    }
+
+    .perf-label {
+      font-size: 0.9rem;
+      font-weight: 500;
+      margin-bottom: var(--spacing-xs);
+      opacity: 0.9;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .perf-value {
+      font-size: var(--spacing-lg);
+      font-weight: 700;
+      margin-bottom: 0.3rem;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+    }
+
+    .perf-detail {
+      font-size: 0.8rem;
+      opacity: 0.8;
+      font-weight: 300;
+    }
+
+    /* --- 5. Tables & Grids --- */
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 0.9rem;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: var(--box-shadow-sm);
+      margin: var(--spacing-sm) 0;
+    }
+
+    thead {
+      background: var(--table-header-bg);
+      color: var(--white);
+    }
+
+    th, td {
+      padding: 0.8rem 0.6rem;
+      text-align: center;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+      vertical-align: middle;
+      transition: background-color var(--transition-fast);
+    }
+
+    th:first-child, td:first-child {
+      padding-left: var(--spacing-sm);
+      text-align: left;
+    }
+
+    th:last-child, td:last-child {
+      padding-right: var(--spacing-sm);
+    }
+
+    tbody tr:hover {
+      background: rgba(102, 126, 234, 0.1);
+      cursor: pointer;
+      transform: scale(1.01);
+    }
+
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    .correct {
+      color: var(--correct-color);
+      font-weight: 700;
+      text-shadow: 1px 1px 2px rgba(46, 125, 50, 0.3);
+    }
+
+    .incorrect {
+      color: var(--incorrect-color);
+      font-weight: 700;
+      text-shadow: 1px 1px 2px rgba(198, 40, 40, 0.3);
+    }
+
+    .history-chip {
+      display: inline-block;
+      padding: 0.3rem 0.8rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      vertical-align: middle;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      margin: 0.1rem;
+      transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .history-chip:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+    }
+
+    .history-chip.Red {
+      background: var(--red-gradient);
+      color: var(--white);
+    }
+
+    .history-chip.Green {
+      background: var(--green-gradient);
+      color: var(--white);
+    }
+
+    .history-chip.Big {
+      background: var(--big-gradient);
+      color: var(--white);
+    }
+
+    .history-chip.Small {
+      background: var(--small-gradient);
+      color: var(--white);
+    }
+
+    .history-chip.Pending {
+      background: var(--pending-gradient);
+      color: var(--white);
+    }
+
+    .streak-tables {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--spacing-lg);
+      margin: var(--spacing-md) 0;
+    }
+
+    .streak-table {
+      background: var(--white);
+      border-radius: var(--border-radius-sm);
+      padding: var(--spacing-sm);
+      box-shadow: var(--box-shadow-sm);
+      border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .streak-table h4 {
+      color: #2a3f66;
+      margin-bottom: var(--spacing-xs);
+      font-size: var(--spacing-sm);
+      text-align: center;
+      padding: var(--spacing-xs);
+      background: var(--table-sub-header-bg-gradient);
+      border-radius: 6px;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
+    }
+
+    .streak-table table {
+      font-size: 0.85rem;
+      margin: 0;
+    }
+
+    .streak-table thead {
+      background: linear-gradient(135deg, #b3cde0, #90caf9);
+      color: #2a3f66;
+    }
+
+    /* --- 6. Buttons & Interactive Elements --- */
+    .refresh-btn, .toggle-btn {
+      background: var(--button-gradient);
+      color: var(--white);
+      border: none;
+      border-radius: 25px;
+      padding: 0.8rem 2rem;
+      font-size: var(--spacing-sm);
+      font-weight: 600;
+      cursor: pointer;
+      transition: all var(--transition-slow);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      margin: var(--spacing-sm);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .refresh-btn:hover, .toggle-btn:hover {
+      transform: translateY(-2px) scale(1.05);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+    }
+
+    .refresh-btn:active, .toggle-btn:active {
+      transform: translateY(-1px) scale(1.02);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .refresh-btn::before, .toggle-btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: var(--highlight-gradient);
+      transition: left 0.5s ease;
+    }
+
+    .refresh-btn:hover::before, .toggle-btn:hover::before {
+      left: 100%;
+    }
+
+    .raw-data-container {
+      text-align: center;
+    }
+
+    #raw-data-display {
+      background: var(--code-bg-gradient);
+      color: var(--light-text-color);
+      padding: var(--spacing-md);
+      border-radius: 12px;
+      overflow-x: auto;
+      max-height: 400px;
+      font-family: var(--font-family-mono);
+      font-size: 0.85rem;
+      margin-top: var(--spacing-sm);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .error-message {
+      color: #d32f2f;
+      background: linear-gradient(135deg, rgba(255, 235, 238, 0.9), rgba(255, 205, 210, 0.9));
+      border: 2px solid #d32f2f;
+      border-radius: 10px;
+      padding: var(--spacing-sm);
+      margin: var(--spacing-sm) 0;
+      text-align: center;
+      font-weight: 600;
+      display: none;
+      box-shadow: 0 4px 12px rgba(211, 47, 47, 0.2);
+      animation: shake 0.5s ease-in-out;
+    }
+
+    /* --- 7. Animations & Accessibility --- */
+    @keyframes pulse {
+      0% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.5;
+      }
+      100% {
+        opacity: 1;
+      }
+    }
+
+    .pred-box.Loading {
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes shake {
+      0%, 100% {
+        transform: translateX(0);
+      }
+      25% {
+        transform: translateX(-5px);
+      }
+      75% {
+        transform: translateX(5px);
+      }
+    }
+
+    :focus {
+      outline: 3px solid rgba(102, 126, 234, 0.5);
+      outline-offset: 2px;
+    }
+
+    /* --- 8. Responsive Design --- */
+    @media (max-width: 768px) {
+      main {
+        padding: var(--spacing-sm) var(--spacing-xs);
+      }
+      .section {
+        padding: var(--spacing-sm);
+        margin-bottom: var(--spacing-sm);
+      }
+      .flex-row {
+        flex-direction: column;
+      }
+      .pred-box {
+        font-size: 2.5rem;
+        min-width: 180px;
+        padding: var(--spacing-sm) var(--spacing-md);
+      }
+      .performance-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: var(--spacing-sm);
+      }
+      .streak-tables {
+        grid-template-columns: 1fr;
+        gap: var(--spacing-sm);
+      }
+      table {
+        font-size: 0.8rem;
+      }
+      th, td {
+        padding: 0.5rem 0.3rem;
+      }
+      .perf-value {
+        font-size: 1.5rem;
+      }
+      .refresh-btn, .toggle-btn {
+        padding: 0.6rem 1.5rem;
+        font-size: 0.9rem;
+        margin: var(--spacing-xs);
+      }
+      header {
+        font-size: 1.2rem;
+        padding: 0.8rem var(--spacing-sm);
+      }
+    }
+
+    @media (max-width: 480px) {
+      .pred-box {
+        font-size: 2rem;
+        min-width: 150px;
+      }
+      .performance-grid {
+        grid-template-columns: 1fr;
+      }
+      .perf-value {
+        font-size: 1.2rem;
+      }
+      table {
+        font-size: 0.7rem;
+      }
+      th, td {
+        padding: 0.3rem 0.2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    Mixed Predictions Dashboard 🎯 Color & Size Insights
+  </header>
+
+  <main>
+    <section class="status-bar">
+      <div id="timestamp-display">Last Updated: <span id="last-updated-time">--</span></div>
+      <div class="timer" id="countdown-timer">Next update in: -- seconds ⏳</div>
+      <button class="refresh-btn" onclick="manualRefresh()">Refresh Data 🔄</button>
+    </section>
+
+    <div class="error-message" id="error-message"></div>
+
+    <div class="flex-row">
+      <section class="section" style="flex: 1 1 48%;">
+        <h2>Color Prediction (Red/Green) 🎨</h2>
+        <div class="prediction-display" id="color-prediction-display">
+          <div class="pred-box Pending">Loading...</div>
+          <div class="prediction-meta">Awaiting data...</div>
+        </div>
+        
+        <div class="performance-grid" id="color-performance">
+          <div class="perf-card">
+            <div class="perf-label">Accuracy</div>
+            <div class="perf-value" id="color-accuracy">--</div>
+            <div class="perf-detail" id="color-accuracy-detail">Loading...</div>
+          </div>
+          <div class="perf-card">
+            <div class="perf-label">Current Streak</div>
+            <div class="perf-value" id="color-current-streak">--</div>
+            <div class="perf-detail" id="color-streak-detail">Loading...</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" style="flex: 1 1 48%;">
+        <h2>Size Prediction (Big/Small) 📏</h2>
+        <div class="prediction-display" id="size-prediction-display">
+          <div class="pred-box Pending">Loading...</div>
+          <div class="prediction-meta">Awaiting data...</div>
+        </div>
+        
+        <div class="performance-grid" id="size-performance">
+          <div class="perf-card">
+            <div class="perf-label">Accuracy</div>
+            <div class="perf-value" id="size-accuracy">--</div>
+            <div class="perf-detail" id="size-accuracy-detail">Loading...</div>
+          </div>
+          <div class="perf-card">
+            <div class="perf-label">Current Streak</div>
+            <div class="perf-value" id="size-current-streak">--</div>
+            <div class="perf-detail" id="size-streak-detail">Loading...</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="flex-row">
+      <section class="section" style="flex: 1 1 48%;">
+        <h2>Color Rules Performance 📊</h2>
+        <div style="overflow-x: auto;">
+          <table id="color-rules-table">
+            <thead>
+              <tr>
+                <th>Rule Pattern</th>
+                <th>Accuracy</th>
+                <th>Success Rate</th>
+                <th>Total Uses</th>
+              </tr>
+            </thead>
+            <tbody id="color-rules-tbody">
+              <tr><td colspan="4">Loading color rules...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="section" style="flex: 1 1 48%;">
+        <h2>Size Rules Performance 📊</h2>
+        <div style="overflow-x: auto;">
+          <table id="size-rules-table">
+            <thead>
+              <tr>
+                <th>Rule Pattern</th>
+                <th>Accuracy</th>
+                <th>Success Rate</th>
+                <th>Total Uses</th>
+              </tr>
+            </thead>
+            <tbody id="size-rules-tbody">
+              <tr><td colspan="4">Loading size rules...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <div class="flex-row">
+      <section class="section" style="flex: 1 1 48%;">
+        <h2>Color Prediction History 📜</h2>
+        <div style="overflow-x: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Issue #</th>
+                <th>Predicted</th>
+                <th>Rule</th>
+                <th>Actual</th>
+                <th>Result</th>
+              </tr>
+            </thead>
+            <tbody id="color-history-tbody">
+              <tr><td colspan="5">Loading history...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="section" style="flex: 1 1 48%;">
+        <h2>Size Prediction History 📜</h2>
+        <div style="overflow-x: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Issue #</th>
+                <th>Predicted</th>
+                <th>Rule</th>
+                <th>Actual</th>
+                <th>Result</th>
+              </tr>
+            </thead>
+            <tbody id="size-history-tbody">
+              <tr><td colspan="5">Loading history...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <section class="section">
+      <h2>Streak Analysis 📈</h2>
+      <div class="flex-row">
+        <div style="flex: 1 1 48%;">
+          <h3 style="color: #2a3f66; margin-bottom: 1rem;">Color Streaks</h3>
+          <div class="streak-tables" id="color-streak-tables">
+            <div class="streak-table">
+              <h4>Win Streaks</h4>
+              <table>
+                <thead><tr><th>Length</th><th>Count</th></tr></thead>
+                <tbody id="color-win-streaks">
+                  <tr><td colspan="2">Loading...</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="streak-table">
+              <h4>Loss Streaks</h4>
+              <table>
+                <thead><tr><th>Length</th><th>Count</th></tr></thead>
+                <tbody id="color-loss-streaks">
+                  <tr><td colspan="2">Loading...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        
+        <div style="flex: 1 1 48%;">
+          <h3 style="color: #2a3f66; margin-bottom: 1rem;">Size Streaks</h3>
+          <div class="streak-tables" id="size-streak-tables">
+            <div class="streak-table">
+              <h4>Win Streaks</h4>
+              <table>
+                <thead><tr><th>Length</th><th>Count</th></tr></thead>
+                <tbody id="size-win-streaks">
+                  <tr><td colspan="2">Loading...</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="streak-table">
+              <h4>Loss Streaks</h4>
+              <table>
+                <thead><tr><th>Length</th><th>Count</th></tr></thead>
+                <tbody id="size-loss-streaks">
+                  <tr><td colspan="2">Loading...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>Raw API Data 📋</h2>
+      <div class="raw-data-container">
+        <button class="toggle-btn" id="raw-data-toggle" onclick="toggleRawData()">Show Raw Data</button>
+        <pre id="raw-data-display" style="display: none;">Loading...</pre>
+      </div>
+    </section>
+  </main>
+<script>
+// Global variables
+let lastApiTimestamp = null;
+let refreshGate = { '1': false, '5': false, '10': false };
+let rawDataVisible = false;
+
+// Utility Functions
+function formatTimestamp(isoString) {
+  try {
+    if (!isoString) return '--';
+    const date = new Date(isoString);
+    if (isNaN(date.getTime())) return '--';
+    return date.toLocaleString('en-US', {
+      month: 'short', 
+      day: 'numeric', 
+      hour: '2-digit', 
+      minute: '2-digit', 
+      second: '2-digit', 
+      hour12: true
+    });
+  } catch (e) {
+    console.error('Error formatting timestamp:', e);
+    return '--';
+  }
+}
+
+function createHistoryChip(text, type) {
+  const safeText = text || 'Pending';
+  return `<span class="history-chip ${safeText}">${safeText}</span>`;
+}
+
+function showErrorMessage(message) {
+  const errorDiv = document.getElementById('error-message');
+  errorDiv.textContent = message;
+  errorDiv.style.display = "block";
+  setTimeout(() => errorDiv.style.display = "none", 5000);
+}
+
+// Enhanced Auto-Refresh System
+function checkRefreshTime() {
+  const now = new Date();
+  const currentSecond = now.getSeconds();
+  const currentMs = now.getMilliseconds();
+  
+  // Check for 1, 5, or 10 seconds
+  const targetSeconds = [1, 5, 10];
+  for (const second of targetSeconds) {
+    if (currentSecond === second && currentMs >= 0 && currentMs <= 200 && !refreshGate[second]) {
+      console.log(`🔄 Auto-refresh triggered at 0${second} seconds`);
+      loadAllData();
+      refreshGate[second] = true;
+      break; 
+    }
+  }
+
+  // Reset gates when not at target seconds
+  if (currentMs < 200) {
+    targetSeconds.forEach(second => {
+      if (currentSecond !== second) {
+        refreshGate[second] = false;
+      }
+    });
+  }
+}
+
+function updateCountdownDisplay() {
+  const countdownElement = document.getElementById('countdown-timer');
+  if (!lastApiTimestamp) {
+    countdownElement.textContent = "Next update in: -- seconds ⏳";
+    return;
+  }
+  
+  const now = new Date();
+  const currentSecond = now.getSeconds();
+  
+  // Calculate next refresh point (1, 5, or 10 seconds)
+  let nextRefresh;
+  if (currentSecond < 1) nextRefresh = 1;
+  else if (currentSecond < 5) nextRefresh = 5; 
+  else if (currentSecond < 10) nextRefresh = 10;
+  else nextRefresh = 61; // Next minute at 1 second
+  
+  const remaining = nextRefresh - currentSecond;
+  const emoji = remaining <= 3 ? '⚡' : '⏳';
+  countdownElement.textContent = `Next update in: ${remaining}s ${emoji}`;
+  
+  // Add pulsing effect when close to refresh
+  if (remaining <= 3) {
+    countdownElement.style.animation = 'pulse 0.5s ease-in-out infinite';
+  } else {
+    countdownElement.style.animation = '';
+  }
+}
+
+function manualRefresh() {
+  const countdownElement = document.getElementById('countdown-timer');
+  countdownElement.textContent = 'Refreshing... 🔄';
+  console.log('🔄 Manual refresh triggered');
+  loadAllData();
+}
+
+// Main Data Loading Function
+async function loadAllData() {
+  try {
+    // Update last updated timestamp
+    document.getElementById('last-updated-time').textContent = formatTimestamp(new Date().toISOString());
+    
+    // Show loading states
+    showLoadingStates();
+    
+    const res = await fetch('/api/v2/insights?t=' + Date.now());
+    if (!res.ok) throw new Error(`API Error: ${res.statusText} (${res.status})`);
+    
+    const data = await res.json();
+    console.log('✅ Data loaded successfully.');
+    
+    // Update all sections
+    updateColorPrediction(data.color_prediction, data.color_accuracy, data.color_streaks);
+    updateSizePrediction(data.size_prediction, data.size_accuracy, data.size_streaks);
+    updateRuleTables(data.color_accuracy?.per_rule, data.size_accuracy?.per_rule);
+    updateHistoryTables(data.color_prediction_history, data.size_prediction_history);
+    updateStreakTables(data.color_streaks, data.size_streaks);
+    
+    // Update raw data if visible
+    if (rawDataVisible) {
+      document.getElementById('raw-data-display').textContent = JSON.stringify(data, null, 2);
+    }
+    
+    lastApiTimestamp = new Date().toISOString();
+    
+    // Hide error message if it was showing
+    document.getElementById('error-message').style.display = 'none';
+    
+  } catch (err) {
+    console.error("❌ Failed to load data:", err);
+    showErrorMessage(`Failed to load data: ${err.message}`);
+    showErrorStates();
+  }
+}
+
+function showLoadingStates() {
+  // Add loading class to prediction boxes
+  const colorBox = document.querySelector('#color-prediction-display .pred-box');
+  const sizeBox = document.querySelector('#size-prediction-display .pred-box');
+  
+  if (colorBox) {
+    colorBox.className = 'pred-box Loading';
+    colorBox.textContent = 'Loading...';
+  }
+  
+  if (sizeBox) {
+    sizeBox.className = 'pred-box Loading';
+    sizeBox.textContent = 'Loading...';
+  }
+}
+
+function showErrorStates() {
+  const colorBox = document.querySelector('#color-prediction-display .pred-box');
+  const sizeBox = document.querySelector('#size-prediction-display .pred-box');
+  
+  if (colorBox) {
+    colorBox.className = 'pred-box Pending';
+    colorBox.textContent = 'Error';
+  }
+  
+  if (sizeBox) {
+    sizeBox.className = 'pred-box Pending';
+    sizeBox.textContent = 'Error';
+  }
+}
+
+// Color Prediction Update Function
+function updateColorPrediction(prediction, accuracy, streaks) {
+  const display = document.getElementById('color-prediction-display');
+  
+  if (prediction && prediction.next_color) {
+    display.innerHTML = `
+      <div class="pred-box ${prediction.next_color}">${prediction.next_color}</div>
+      <div class="prediction-meta">
+        <strong>Issue #${String(prediction.issue).slice(-4)}</strong> based on rule <strong>${prediction.rule_name}</strong>
+        <br>Score: <strong>${prediction.rule_score?.toFixed(1) || 0}%</strong>
+        <div class="pred-sequence">${prediction.observed_sequence || 'N/A'}</div>
+        Updated: ${formatTimestamp(prediction.last_updated)}
+      </div>
+    `;
+  } else {
+    display.innerHTML = `
+      <div class="pred-box Pending">No Data</div>
+      <div class="prediction-meta">No active color prediction available.</div>
+    `;
+  }
+  
+  // Update performance cards
+  if (accuracy) {
+    document.getElementById('color-accuracy').textContent = `${accuracy.accuracy_percentage?.toFixed(1) || 0}%`;
+    document.getElementById('color-accuracy-detail').textContent = `${accuracy.correct_predictions || 0}/${accuracy.total_predictions || 0} correct`;
+  }
+  
+  if (streaks) {
+    const isWinning = streaks.current_win_streak > 0;
+    document.getElementById('color-current-streak').textContent = isWinning ? streaks.current_win_streak : streaks.current_lose_streak;
+    document.getElementById('color-streak-detail').textContent = isWinning ? `Win Streak (Max: ${streaks.max_win_streak})` : `Loss Streak (Max: ${streaks.max_lose_streak})`;
+  }
+}
+
+// Size Prediction Update Function
+function updateSizePrediction(prediction, accuracy, streaks) {
+  const display = document.getElementById('size-prediction-display');
+  
+  if (prediction && prediction.next_size) {
+    display.innerHTML = `
+      <div class="pred-box ${prediction.next_size}">${prediction.next_size}</div>
+      <div class="prediction-meta">
+        <strong>Issue #${String(prediction.issue).slice(-4)}</strong> based on rule <strong>${prediction.rule_name}</strong>
+        <br>Score: <strong>${prediction.rule_score?.toFixed(1) || 0}%</strong>
+        <div class="pred-sequence">${prediction.observed_sequence || 'N/A'}</div>
+        Updated: ${formatTimestamp(prediction.last_updated)}
+      </div>
+    `;
+  } else {
+    display.innerHTML = `
+      <div class="pred-box Pending">No Data</div>
+      <div class="prediction-meta">No active size prediction available.</div>
+    `;
+  }
+  
+  // Update performance cards
+  if (accuracy) {
+    document.getElementById('size-accuracy').textContent = `${accuracy.accuracy_percentage?.toFixed(1) || 0}%`;
+    document.getElementById('size-accuracy-detail').textContent = `${accuracy.correct_predictions || 0}/${accuracy.total_predictions || 0} correct`;
+  }
+  
+  if (streaks) {
+    const isWinning = streaks.current_win_streak > 0;
+    document.getElementById('size-current-streak').textContent = isWinning ? streaks.current_win_streak : streaks.current_lose_streak;
+    document.getElementById('size-streak-detail').textContent = isWinning ? `Win Streak (Max: ${streaks.max_win_streak})` : `Loss Streak (Max: ${streaks.max_lose_streak})`;
+  }
+}
+
+// Rule Tables Update Function
+function updateRuleTables(colorRules, sizeRules) {
+  // Color Rules
+  const colorTbody = document.getElementById('color-rules-tbody');
+  if (colorRules && Object.keys(colorRules).length > 0) {
+    colorTbody.innerHTML = Object.entries(colorRules)
+      .sort(([,a],[,b]) => b.accuracy_pct - a.accuracy_pct)
+      .slice(0, 10) // Top 10 rules
+      .map(([rule, stats]) => `
+        <tr>
+          <td><strong>${rule}</strong></td>
+          <td class="${stats.accuracy_pct >= 60 ? 'correct' : stats.accuracy_pct <= 40 ? 'incorrect' : ''}">${stats.accuracy_pct.toFixed(1)}%</td>
+          <td>${stats.correct}/${stats.total}</td>
+          <td><span style="font-size: 0.8em; opacity: 0.7;">${stats.total} uses</span></td>
+        </tr>
+      `).join('');
+  } else {
+    colorTbody.innerHTML = '<tr><td colspan="4">No color rules data available.</td></tr>';
+  }
+  
+  // Size Rules
+  const sizeTbody = document.getElementById('size-rules-tbody');
+  if (sizeRules && Object.keys(sizeRules).length > 0) {
+    sizeTbody.innerHTML = Object.entries(sizeRules)
+      .sort(([,a],[,b]) => b.accuracy_pct - a.accuracy_pct)
+      .slice(0, 10) // Top 10 rules
+      .map(([rule, stats]) => `
+        <tr>
+          <td><strong>${rule}</strong></td>
+          <td class="${stats.accuracy_pct >= 60 ? 'correct' : stats.accuracy_pct <= 40 ? 'incorrect' : ''}">${stats.accuracy_pct.toFixed(1)}%</td>
+          <td>${stats.correct}/${stats.total}</td>
+          <td><span style="font-size: 0.8em; opacity: 0.7;">${stats.total} uses</span></td>
+        </tr>
+      `).join('');
+  } else {
+    sizeTbody.innerHTML = '<tr><td colspan="4">No size rules data available.</td></tr>';
+  }
+}
+
+// History Tables Update Function
+function updateHistoryTables(colorHistory, sizeHistory) {
+  // Color History
+  const colorTbody = document.getElementById('color-history-tbody');
+  if (colorHistory && colorHistory.length > 0) {
+    colorTbody.innerHTML = colorHistory.slice(0, 15).map(item => {
+      const actualColor = item.actual_color;
+      const isCorrect = actualColor !== null && item.predicted_color === actualColor;
+      return `
+        <tr>
+          <td>${String(item.issue).slice(-4)}</td>
+          <td>${createHistoryChip(item.predicted_color)}</td>
+          <td title="${item.rule_name}">${(item.rule_name || 'N/A').substring(0, 8)}${item.rule_name?.length > 8 ? '...' : ''}</td>
+          <td>${createHistoryChip(actualColor)}</td>
+          <td class="${actualColor ? (isCorrect ? 'correct' : 'incorrect') : ''}">
+            ${actualColor ? (isCorrect ? '✔' : '✘') : '?'}
+          </td>
+        </tr>
+      `;
+    }).join('');
+  } else {
+    colorTbody.innerHTML = '<tr><td colspan="5">No color history available.</td></tr>';
+  }
+  
+  // Size History
+  const sizeTbody = document.getElementById('size-history-tbody');
+  if (sizeHistory && sizeHistory.length > 0) {
+    sizeTbody.innerHTML = sizeHistory.slice(0, 15).map(item => {
+      const actualSize = item.actual_size;
+      const isCorrect = actualSize !== null && item.predicted_size === actualSize;
+      return `
+        <tr>
+          <td>${String(item.issue).slice(-4)}</td>
+          <td>${createHistoryChip(item.predicted_size)}</td>
+          <td title="${item.rule_name}">${(item.rule_name || 'N/A').substring(0, 8)}${item.rule_name?.length > 8 ? '...' : ''}</td>
+          <td>${createHistoryChip(actualSize)}</td>
+          <td class="${actualSize ? (isCorrect ? 'correct' : 'incorrect') : ''}">
+            ${actualSize ? (isCorrect ? '✔' : '✘') : '?'}
+          </td>
+        </tr>
+      `;
+    }).join('');
+  } else {
+    sizeTbody.innerHTML = '<tr><td colspan="5">No size history available.</td></tr>';
+  }
+}
+
+// Streak Tables Update Function
+function updateStreakTables(colorStreaks, sizeStreaks) {
+  // Color Win Streaks
+  if (colorStreaks?.win_streak_distribution) {
+    const colorWinTbody = document.getElementById('color-win-streaks');
+    const winEntries = Object.entries(colorStreaks.win_streak_distribution)
+      .sort((a, b) => parseInt(a[0]) - parseInt(b[0]));
+    
+    if (winEntries.length > 0) {
+      colorWinTbody.innerHTML = winEntries
+        .map(([length, count]) => `<tr><td>${length}</td><td>${count}</td></tr>`)
+        .join('');
+    } else {
+      colorWinTbody.innerHTML = '<tr><td colspan="2">No win streaks</td></tr>';
+    }
+  }
+  
+  // Color Loss Streaks
+  if (colorStreaks?.lose_streak_distribution) {
+    const colorLossTbody = document.getElementById('color-loss-streaks');
+    const loseEntries = Object.entries(colorStreaks.lose_streak_distribution)
+      .sort((a, b) => parseInt(a[0]) - parseInt(b[0]));
+    
+    if (loseEntries.length > 0) {
+      colorLossTbody.innerHTML = loseEntries
+        .map(([length, count]) => `<tr><td>${length}</td><td>${count}</td></tr>`)
+        .join('');
+    } else {
+      colorLossTbody.innerHTML = '<tr><td colspan="2">No loss streaks</td></tr>';
+    }
+  }
+  
+  // Size Win Streaks
+  if (sizeStreaks?.win_streak_distribution) {
+    const sizeWinTbody = document.getElementById('size-win-streaks');
+    const winEntries = Object.entries(sizeStreaks.win_streak_distribution)
+      .sort((a, b) => parseInt(a[0]) - parseInt(b[0]));
+    
+    if (winEntries.length > 0) {
+      sizeWinTbody.innerHTML = winEntries
+        .map(([length, count]) => `<tr><td>${length}</td><td>${count}</td></tr>`)
+        .join('');
+    } else {
+      sizeWinTbody.innerHTML = '<tr><td colspan="2">No win streaks</td></tr>';
+    }
+  }
+  
+  // Size Loss Streaks
+  if (sizeStreaks?.lose_streak_distribution) {
+    const sizeLossTbody = document.getElementById('size-loss-streaks');
+    const loseEntries = Object.entries(sizeStreaks.lose_streak_distribution)
+      .sort((a, b) => parseInt(a[0]) - parseInt(b[0]));
+    
+    if (loseEntries.length > 0) {
+      sizeLossTbody.innerHTML = loseEntries
+        .map(([length, count]) => `<tr><td>${length}</td><td>${count}</td></tr>`)
+        .join('');
+    } else {
+      sizeLossTbody.innerHTML = '<tr><td colspan="2">No loss streaks</td></tr>';
+    }
+  }
+}
+
+// Raw Data Toggle Function
+function toggleRawData() {
+  const display = document.getElementById('raw-data-display');
+  const toggleBtn = document.getElementById('raw-data-toggle');
+  
+  rawDataVisible = !rawDataVisible;
+  
+  if (rawDataVisible) {
+    display.style.display = 'block';
+    toggleBtn.textContent = 'Hide Raw Data';
+    // Load current data if available
+    loadAllData();
+  } else {
+    display.style.display = 'none';
+    toggleBtn.textContent = 'Show Raw Data';
+  }
+}
+
+// Initialize Application
+function init() {
+  console.log('🚀 Initializing Mixed Predictions Dashboard...');
+  
+  // Initial data load
+  loadAllData();
+  
+  // Set up precise refresh timing (01, 05, 10 seconds)
+  setInterval(() => {
+    updateCountdownDisplay();
+    checkRefreshTime();
+  }, 100); // Check every 100ms for precise timing
+  
+  // Backup refresh every 60 seconds as failsafe
+  setInterval(() => {
+    console.log('🔄 Backup 60-second refresh triggered');
+    loadAllData();
+  }, 60000);
+  
+  console.log('✅ Dashboard initialized successfully');
+}
+
+// Start when page loads
+window.addEventListener('load', init);
+
+// Handle page visibility changes
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) {
+    console.log('👁️ Page became visible, refreshing data...');
+    loadAllData();
+  }
+});
+
+// Handle network status changes
+window.addEventListener('online', () => {
+  console.log('🌐 Network back online, refreshing data...');
+  showErrorMessage('Network connection restored. Refreshing data...');
+  setTimeout(loadAllData, 1000);
+});
+
+window.addEventListener('offline', () => {
+  console.log('📴 Network went offline');
+  showErrorMessage('Network connection lost. Data updates paused.');
+});
+</script>
+
+</body>
+</html>

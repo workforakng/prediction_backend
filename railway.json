@@ -1,0 +1,118 @@
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": {
+    "builder": "NIXPACKS",
+    "buildCommand": "pip install --no-cache-dir -r requirements.txt && python -c \"import sys; print(f'Python: {sys.version}')\"",
+    "watchPatterns": [
+      "**/*.py",
+      "requirements.txt",
+      ".env.example",
+      "templates/**/*.html"
+    ]
+  },
+  "deploy": {
+    "numReplicas": 1,
+    "sleepApplication": false,
+    "restartPolicyType": "ON_FAILURE",
+    "healthcheckPath": "/health",
+    "healthcheckTimeout": 300,
+    "startCommand": "python -m gunicorn --bind 0.0.0.0:$PORT app:app --log-file - --access-logfile - --error-logfile - --workers $WORKERS --worker-class sync --timeout 120 --keepalive 5 --max-requests 1000 --max-requests-jitter 100"
+  },
+  "environments": {
+    "production": {
+      "variables": {
+        "FLASK_ENV": "production",
+        "PYTHONPATH": "/app",
+        "WORKERS": "3",
+        "RAILWAY_ENVIRONMENT": "production",
+        "LOG_LEVEL": "INFO"
+      }
+    },
+    "staging": {
+      "variables": {
+        "FLASK_ENV": "development", 
+        "PYTHONPATH": "/app",
+        "WORKERS": "2",
+        "RAILWAY_ENVIRONMENT": "staging",
+        "LOG_LEVEL": "DEBUG"
+      }
+    }
+  },
+  "services": [
+    {
+      "name": "web",
+      "type": "web",
+      "startCommand": "python -m gunicorn --bind 0.0.0.0:$PORT app:app --log-file - --access-logfile - --error-logfile - --workers $WORKERS --worker-class sync --timeout 120 --keepalive 5 --max-requests 1000 --max-requests-jitter 100 --preload",
+      "healthcheckPath": "/health",
+      "healthcheckTimeout": 300,
+      "port": "$PORT",
+      "restartPolicyType": "ON_FAILURE",
+      "variables": {
+        "SERVICE_NAME": "web",
+        "SERVICE_TYPE": "flask_app"
+      }
+    },
+    {
+      "name": "main-worker",
+      "type": "worker",
+      "startCommand": "python worker.py",
+      "restartPolicyType": "ALWAYS",
+      "healthcheckPath": null,
+      "variables": {
+        "SERVICE_NAME": "main-worker",
+        "SERVICE_TYPE": "prediction_worker",
+        "WORKER_TYPE": "main_prediction"
+      }
+    },
+    {
+      "name": "ai-worker", 
+      "type": "worker",
+      "startCommand": "python ai_worker.py",
+      "restartPolicyType": "ALWAYS",
+      "healthcheckPath": null,
+      "variables": {
+        "SERVICE_NAME": "ai-worker",
+        "SERVICE_TYPE": "ai_worker",
+        "WORKER_TYPE": "ai_prediction"
+      }
+    },
+    {
+      "name": "color-worker",
+      "type": "worker", 
+      "startCommand": "python color_worker_monitor.py",
+      "restartPolicyType": "ALWAYS",
+      "healthcheckPath": null,
+      "variables": {
+        "SERVICE_NAME": "color-worker",
+        "SERVICE_TYPE": "color_worker",
+        "WORKER_TYPE": "color_size_prediction"
+      }
+    },
+    {
+      "name": "simulator-worker",
+      "type": "worker",
+      "startCommand": "python simulator_worker.py", 
+      "restartPolicyType": "ALWAYS",
+      "healthcheckPath": null,
+      "variables": {
+        "SERVICE_NAME": "simulator-worker",
+        "SERVICE_TYPE": "simulator_worker",
+        "WORKER_TYPE": "betting_simulation"
+      }
+    }
+  ],
+  "regions": ["us-west1"],
+  "networking": {
+    "serviceDomains": true
+  },
+  "experimental": {
+    "configAsCode": true,
+    "nixpacksConfigPath": "nixpacks.toml"
+  },
+  "volumes": [
+    {
+      "name": "lottery-data",
+      "mountPath": "/data"
+    }
+  ]
+}
