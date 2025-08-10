@@ -6,7 +6,7 @@
     "watchPatterns": [
       "**/*.py",
       "requirements.txt",
-      ".env.example",
+      ".env",
       "templates/**/*.html"
     ]
   },
@@ -16,7 +16,7 @@
     "restartPolicyType": "ON_FAILURE",
     "healthcheckPath": "/health",
     "healthcheckTimeout": 300,
-    "startCommand": "python -m gunicorn --bind 0.0.0.0:$PORT app:app --log-file - --access-logfile - --error-logfile - --workers $WORKERS --worker-class sync --timeout 120 --keepalive 5 --max-requests 1000 --max-requests-jitter 100"
+    "startCommand": "/bin/sh -c 'gunicorn --bind 0.0.0.0:$PORT app:app --workers $WORKERS --worker-class sync --timeout 120 --keepalive 5 --max-requests 100 --max-requests-jitter 50'"
   },
   "environments": {
     "production": {
@@ -30,8 +30,8 @@
     },
     "staging": {
       "variables": {
-        "FLASK_ENV": "development", 
-        "PYTHONPATH": "/app",
+        "FLASK_ENV": "development",
+        "PYTHONPATH": "/app", 
         "WORKERS": "2",
         "RAILWAY_ENVIRONMENT": "staging",
         "LOG_LEVEL": "DEBUG"
@@ -42,7 +42,7 @@
     {
       "name": "web",
       "type": "web",
-      "startCommand": "python -m gunicorn --bind 0.0.0.0:$PORT app:app --log-file - --access-logfile - --error-logfile - --workers $WORKERS --worker-class sync --timeout 120 --keepalive 5 --max-requests 1000 --max-requests-jitter 100 --preload",
+      "startCommand": "/bin/sh -c 'gunicorn --bind 0.0.0.0:$PORT app:app --workers $WORKERS --worker-class sync --timeout 120 --keepalive 5 --max-requests 100 --max-requests-jitter 50'",
       "healthcheckPath": "/health",
       "healthcheckTimeout": 300,
       "port": "$PORT",
@@ -65,7 +65,7 @@
       }
     },
     {
-      "name": "ai-worker", 
+      "name": "ai-worker",
       "type": "worker",
       "startCommand": "python ai_worker.py",
       "restartPolicyType": "ALWAYS",
@@ -78,7 +78,7 @@
     },
     {
       "name": "color-worker",
-      "type": "worker", 
+      "type": "worker",
       "startCommand": "python color_worker_monitor.py",
       "restartPolicyType": "ALWAYS",
       "healthcheckPath": null,
@@ -91,7 +91,7 @@
     {
       "name": "simulator-worker",
       "type": "worker",
-      "startCommand": "python simulator_worker.py", 
+      "startCommand": "python simulator_worker.py",
       "restartPolicyType": "ALWAYS",
       "healthcheckPath": null,
       "variables": {
@@ -101,13 +101,12 @@
       }
     }
   ],
-  "regions": ["us-west1"],
+  "regions": ["asia-southeast1"],
   "networking": {
     "serviceDomains": true
   },
   "experimental": {
-    "configAsCode": true,
-    "nixpacksConfigPath": "nixpacks.toml"
+    "configAsCode": true
   },
   "volumes": [
     {

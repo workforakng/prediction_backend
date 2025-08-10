@@ -7,8 +7,7 @@ WORKDIR /app
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PYTHONPATH=/app \
-    PORT=8000
+    PYTHONPATH=/app
 
 # Install system dependencies for compilation
 RUN apt-get update && apt-get install -y \
@@ -48,5 +47,5 @@ EXPOSE $PORT
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
   CMD curl -f http://localhost:$PORT/health || exit 1
 
-# Start application with Gunicorn
-CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:$PORT app:app --workers ${WORKERS:-3} --worker-class sync --timeout 120 --keepalive 5 --max-requests 1000 --max-requests-jitter 100 --preload --log-file - --access-logfile - --error-logfile -"]
+# Use shell form for proper variable expansion
+CMD gunicorn --bind 0.0.0.0:$PORT app:app --workers $WORKERS --worker-class sync --timeout 120 --keepalive 5 --max-requests 1000 --max-requests-jitter 100 --preload --log-file - --access-logfile - --error-logfile -
