@@ -16,7 +16,7 @@
     "restartPolicyType": "ON_FAILURE",
     "healthcheckPath": "/health",
     "healthcheckTimeout": 300,
-    "startCommand": "/bin/sh -c 'gunicorn --bind 0.0.0.0:$PORT app:app --workers $WORKERS --worker-class sync --timeout 120 --keepalive 5 --max-requests 100 --max-requests-jitter 50'"
+    "startCommand": "/bin/sh -c 'gunicorn --bind 0.0.0.0:$PORT app:app --workers $WORKERS --worker-class sync --timeout 120 --keep-alive 5 --max-requests 100 --max-requests-jitter 50 --log-file -'"
   },
   "environments": {
     "production": {
@@ -42,7 +42,7 @@
     {
       "name": "web",
       "type": "web",
-      "startCommand": "/bin/sh -c 'gunicorn --bind 0.0.0.0:$PORT app:app --workers $WORKERS --worker-class sync --timeout 120 --keepalive 5 --max-requests 100 --max-requests-jitter 50'",
+      "startCommand": "/bin/sh -c 'gunicorn --bind 0.0.0.0:$PORT app:app --workers $WORKERS --worker-class sync --timeout 120 --keep-alive 5 --max-requests 100 --max-requests-jitter 50 --log-file -'",
       "healthcheckPath": "/health",
       "healthcheckTimeout": 300,
       "port": "$PORT",
