@@ -3,12 +3,7 @@
   "build": {
     "builder": "NIXPACKS",
     "buildCommand": "pip install --no-cache-dir -r requirements.txt && python -c \"import sys; print(f'Python: {sys.version}')\"",
-    "watchPatterns": [
-      "**/*.py",
-      "requirements.txt",
-      ".env",
-      "templates/**/*.html"
-    ]
+    "watchPatterns": ["**/*"]
   },
   "deploy": {
     "numReplicas": 1,
@@ -26,15 +21,6 @@
         "WORKERS": "3",
         "RAILWAY_ENVIRONMENT": "production",
         "LOG_LEVEL": "INFO"
-      }
-    },
-    "staging": {
-      "variables": {
-        "FLASK_ENV": "development",
-        "PYTHONPATH": "/app", 
-        "WORKERS": "2",
-        "RAILWAY_ENVIRONMENT": "staging",
-        "LOG_LEVEL": "DEBUG"
       }
     }
   },
@@ -57,11 +43,9 @@
       "type": "worker",
       "startCommand": "python worker.py",
       "restartPolicyType": "ALWAYS",
-      "healthcheckPath": null,
       "variables": {
         "SERVICE_NAME": "main-worker",
-        "SERVICE_TYPE": "prediction_worker",
-        "WORKER_TYPE": "main_prediction"
+        "SERVICE_TYPE": "prediction_worker"
       }
     },
     {
@@ -69,11 +53,9 @@
       "type": "worker",
       "startCommand": "python ai_worker.py",
       "restartPolicyType": "ALWAYS",
-      "healthcheckPath": null,
       "variables": {
         "SERVICE_NAME": "ai-worker",
-        "SERVICE_TYPE": "ai_worker",
-        "WORKER_TYPE": "ai_prediction"
+        "SERVICE_TYPE": "ai_worker"
       }
     },
     {
@@ -81,11 +63,9 @@
       "type": "worker",
       "startCommand": "python color_worker_monitor.py",
       "restartPolicyType": "ALWAYS",
-      "healthcheckPath": null,
       "variables": {
         "SERVICE_NAME": "color-worker",
-        "SERVICE_TYPE": "color_worker",
-        "WORKER_TYPE": "color_size_prediction"
+        "SERVICE_TYPE": "color_worker"
       }
     },
     {
@@ -93,20 +73,15 @@
       "type": "worker",
       "startCommand": "python simulator_worker.py",
       "restartPolicyType": "ALWAYS",
-      "healthcheckPath": null,
       "variables": {
         "SERVICE_NAME": "simulator-worker",
-        "SERVICE_TYPE": "simulator_worker",
-        "WORKER_TYPE": "betting_simulation"
+        "SERVICE_TYPE": "simulator_worker"
       }
     }
   ],
   "regions": ["asia-southeast1"],
   "networking": {
     "serviceDomains": true
-  },
-  "experimental": {
-    "configAsCode": true
   },
   "volumes": [
     {
