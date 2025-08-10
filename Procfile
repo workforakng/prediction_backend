@@ -1,4 +1,4 @@
-web: python -m gunicorn --bind 0.0.0.0:$PORT app:app --log-file - --workers $WORKERS
+web: gunicorn --bind 0.0.0.0:$PORT app:app --workers 3 --log-file -
 worker: python worker.py
 ai-worker: python ai_worker.py  
 color-worker: python color_worker_monitor.py

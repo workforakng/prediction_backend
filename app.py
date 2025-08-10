@@ -6,6 +6,7 @@ import json
 from datetime import datetime
 from dotenv import load_dotenv
 import redis
+import time
 
 # Load environment variables from .env file
 load_dotenv()
@@ -104,20 +105,27 @@ app.logger.addHandler(stream_handler)
 app.redis_client = None
 
 def initialize_redis():
-    """Initialize Redis connection"""
+    """Initialize Redis connection with enhanced compatibility"""
     global app
     try:
         redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+        
+        # Add family=0 for Railway IPv6 compatibility if needed
+        if "railway.internal" in redis_url and "family=" not in redis_url:
+            separator = "&" if "?" in redis_url else "?"
+            redis_url = f"{redis_url}{separator}family=0"
+        
         app.redis_client = redis.from_url(
             redis_url, 
             decode_responses=True, 
-            socket_connect_timeout=10, 
-            socket_timeout=10,
+            socket_connect_timeout=15,  # Increased timeout
+            socket_timeout=15,          # Increased timeout
             retry_on_timeout=True,
-            health_check_interval=30
+            health_check_interval=30,
+            max_connections=20          # Connection pool for multiple workers
         )
         app.redis_client.ping()
-        app.logger.info(f"✅ Successfully connected to Redis: {redis_url[:25]}...")
+        app.logger.info(f"✅ Successfully connected to Redis: {redis_url[:30]}...")
         return True
     except redis.exceptions.ConnectionError as e:
         app.logger.critical(f"❌ Could not connect to Redis: {e}")
@@ -131,6 +139,35 @@ def initialize_redis():
         app.logger.critical(f"❌ Unexpected Redis error: {e}")
         app.redis_client = None
         return False
+
+def safe_redis_operation(operation_func, *args, **kwargs):
+    """Execute Redis operations with retry logic"""
+    max_retries = 3
+    retry_count = 0
+    
+    while retry_count < max_retries:
+        try:
+            if not app.redis_client:
+                if not initialize_redis():
+                    raise redis.exceptions.ConnectionError("Redis client not available")
+            
+            return operation_func(*args, **kwargs)
+            
+        except (redis.exceptions.ConnectionError, redis.exceptions.TimeoutError) as e:
+            retry_count += 1
+            app.logger.warning(f"Redis operation failed (attempt {retry_count}/{max_retries}): {e}")
+            
+            if retry_count < max_retries:
+                time.sleep(2 ** retry_count)  # Exponential backoff
+                app.redis_client = None  # Force reconnection
+            else:
+                app.logger.error("Redis operation failed after all retries")
+                raise e
+        except Exception as e:
+            app.logger.error(f"Unexpected error in Redis operation: {e}")
+            raise e
+    
+    return None
 
 # --- AI Flag Management Functions ---
 def is_ai_enabled_app():
@@ -234,6 +271,44 @@ def health_check():
             "error": str(e),
             "timestamp": datetime.now().isoformat()
         }), 500
+
+@app.route('/api/redis/status')
+def redis_status():
+    """Get detailed Redis connection status"""
+    try:
+        if not app.redis_client:
+            return jsonify({
+                "status": "disconnected",
+                "connected": False,
+                "timestamp": datetime.now().isoformat()
+            }), 503
+        
+        # Test connection with timing
+        start_time = datetime.now()
+        app.redis_client.ping()
+        end_time = datetime.now()
+        latency = (end_time - start_time).total_seconds() * 1000
+        
+        # Get Redis info
+        info = app.redis_client.info()
+        
+        return jsonify({
+            "status": "connected",
+            "connected": True,
+            "latency_ms": round(latency, 2),
+            "redis_version": info.get("redis_version", "unknown"),
+            "connected_clients": info.get("connected_clients", 0),
+            "used_memory_human": info.get("used_memory_human", "unknown"),
+            "timestamp": datetime.now().isoformat()
+        }), 200
+        
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "connected": False,
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }), 503
 
 @app.route('/api/prediction', methods=['GET'])
 def get_current_prediction():
@@ -693,6 +768,7 @@ def not_found(error):
             "/",
             "/mixpred/",
             "/health",
+            "/api/redis/status",
             "/api/prediction",
             "/api/ai_prediction",
             "/api/ai_big_small_accuracy",
