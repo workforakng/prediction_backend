@@ -226,12 +226,11 @@ def debug_redis_data():
             main_pred = redis_client.get(REDIS_MAIN_PREDICTION_KEY)
             logger.info(f"🔍 Main prediction data ({REDIS_MAIN_PREDICTION_KEY}):")
             if main_pred:
-                logger.info(f"    📄 Raw data: {main_pred}")
+                logger.info(f"    📄 Raw data length: {len(main_pred)}")
                 try:
                     main_pred_json = json.loads(main_pred)
                     logger.info(f"    📋 Next issue: {main_pred_json.get('next_issue')}")
                     logger.info(f"    📋 Keys: {list(main_pred_json.keys())}")
-                    logger.info(f"    📋 Full data: {main_pred_json}")
                 except json.JSONDecodeError as e:
                     logger.error(f"    ❌ JSON decode error: {e}")
             else:
@@ -246,33 +245,20 @@ def debug_redis_data():
                     logger.info(f"    📊 Total entries: {len(history_data)}")
                     if history_data:
                         sorted_keys = sorted(history_data.keys(), key=int)
-                        logger.info(f"    📋 First 5 keys: {sorted_keys[:5]}")
                         logger.info(f"    📋 Last 5 keys: {sorted_keys[-5:]}")
                         logger.info(f"    📋 Last 5 values: {[history_data[k] for k in sorted_keys[-5:]]}")
-                        logger.info(f"    📋 Sample entry: {sorted_keys[-1]} -> {history_data[sorted_keys[-1]]}")
-                    else:
-                        logger.warning(f"    ❌ History data is empty")
                 except json.JSONDecodeError as e:
                     logger.error(f"🔍 History JSON decode error: {e}")
-                    logger.error(f"🔍 Raw history data: {history[:200]}...")
             else:
                 logger.warning(f"🔍 History data ({REDIS_HISTORY_KEY}): ❌ None")
             
             # Check AI enabled flag
             ai_flag = redis_client.get(REDIS_AI_FLAG_KEY)
-            logger.info(f"🔍 AI enabled flag ({REDIS_AI_FLAG_KEY}): {ai_flag} (Type: {type(ai_flag)})")
+            logger.info(f"🔍 AI enabled flag ({REDIS_AI_FLAG_KEY}): {ai_flag}")
             
             # Check all relevant Redis keys
             all_keys = redis_client.keys("lottery:*")
             logger.info(f"🔍 All lottery keys in Redis: {len(all_keys)} keys")
-            for key in sorted(all_keys):
-                logger.info(f"    🔑 {key}")
-            
-            # Check latest_prediction_data specifically
-            latest_pred = redis_client.get("latest_prediction_data")
-            logger.info(f"🔍 Latest prediction data key exists: {latest_pred is not None}")
-            if latest_pred:
-                logger.info(f"    📄 Content: {latest_pred[:200]}...")
             
         logger.info("🔍 ===== END REDIS DEBUG =====")
         
@@ -317,9 +303,7 @@ def validate_api_response(response_data):
 
 # --- Enhanced Perplexity AI Prediction Function ---
 def get_perplexity_ai_prediction(history_numbers, api_key, current_issue_id, last_issue_info=None):
-    """
-    Enhanced AI prediction with comprehensive error handling and detailed logging
-    """
+    """Enhanced AI prediction with comprehensive error handling and detailed logging"""
     try:
         logger.info(f"🧠 ===== STARTING AI PREDICTION =====")
         logger.info(f"🧠 Getting AI prediction for issue: {current_issue_id}")
@@ -417,10 +401,6 @@ Your task is to predict the next single digit (0–9) in a sequence based on the
         # Log the prompt for debugging (truncated)
         logger.info(f"📝 Generated prompt for Perplexity AI (issue {current_issue_id}):")
         logger.info(f"📝 Prompt length: {len(prompt_text)} characters")
-        if len(prompt_text) > 1000:
-            logger.info(f"📝 Prompt preview: {prompt_text[:500]}...[truncated]...{prompt_text[-200:]}")
-        else:
-            logger.info(f"📝 Full prompt: {prompt_text}")
 
         # Prepare API request data
         data = {
@@ -440,10 +420,8 @@ Your task is to predict the next single digit (0–9) in a sequence based on the
             "top_p": 0.9
         }
 
-        logger.info(f"🔍 API request data prepared - model: {data['model']}, temp: {data['temperature']}")
         logger.info(f"🔍 Making API request to Perplexity AI...")
         logger.info(f"🔍 Request timeout: 30 seconds")
-        logger.info(f"🔍 API endpoint: https://api.perplexity.ai/chat/completions")
         
         # Make API request with enhanced error handling
         start_time = time.time()
@@ -464,7 +442,6 @@ Your task is to predict the next single digit (0–9) in a sequence based on the
         # Parse response
         response_json = response.json()
         logger.info(f"📡 Perplexity AI response structure: {list(response_json.keys())}")
-        logger.info(f"📡 Perplexity AI raw response: {json.dumps(response_json, indent=2)}")
 
         # Validate response structure
         if not validate_api_response(response_json):
@@ -614,17 +591,10 @@ def calculate_ai_big_small_accuracy():
         logger.error(f"❌ Error calculating AI accuracy: {e}")
 
 def process_ai_prediction(trigger_issue):
-    """
-    Enhanced AI prediction processing with comprehensive error handling and detailed logging
-    """
+    """Enhanced AI prediction processing with comprehensive error handling"""
     try:
         logger.info(f"🚀 ===== AI PREDICTION PROCESSING START =====")
         logger.info(f"🚀 AI prediction triggered for issue: {trigger_issue}")
-        
-        # Force flush logs immediately
-        for handler in logger.handlers:
-            if hasattr(handler, 'flush'):
-                handler.flush()
         
         update_ai_worker_status("processing", f"Processing prediction for issue {trigger_issue}")
         send_ai_worker_heartbeat()
@@ -638,7 +608,6 @@ def process_ai_prediction(trigger_issue):
             return
 
         logger.info("✅ AI is ENABLED. Running prediction cycle...")
-        
         logger.info("🔍 Step 2: Checking for shutdown signal...")
 
         # Check for shutdown signal
@@ -658,13 +627,9 @@ def process_ai_prediction(trigger_issue):
             main_prediction_str = redis_client.get(REDIS_MAIN_PREDICTION_KEY)
         
         logger.info(f"🔍 Step 4 Result: main_prediction_str exists = {main_prediction_str is not None}")
-        if main_prediction_str:
-            logger.info(f"🔍 Step 4 Result: main_prediction_str length = {len(main_prediction_str)}")
-            logger.info(f"🔍 Step 4 Result: main_prediction_str content = {main_prediction_str}")
         
         if not main_prediction_str:
             logger.warning(f"⚠️ No main prediction data found in Redis key '{REDIS_MAIN_PREDICTION_KEY}'. Skipping AI prediction.")
-            logger.warning(f"⚠️ This usually means the main worker hasn't run yet or failed to create predictions.")
             update_ai_worker_status("warning", "No main prediction data available")
             return
 
@@ -675,11 +640,9 @@ def process_ai_prediction(trigger_issue):
             actual_target_next_issue = main_prediction_data.get("next_issue")
             
             logger.info(f"🔍 Step 5 Result: target issue = {actual_target_next_issue}")
-            logger.info(f"🔍 Step 5 Result: main prediction keys = {list(main_prediction_data.keys())}")
-            logger.info(f"🔍 Step 5 Result: full main prediction data = {main_prediction_data}")
             
             if not actual_target_next_issue:
-                logger.error(f"❌ Main prediction data missing 'next_issue' field. Data: {main_prediction_data}")
+                logger.error(f"❌ Main prediction data missing 'next_issue' field.")
                 update_ai_worker_status("error", "Invalid main prediction data")
                 return
 
@@ -715,12 +678,9 @@ def process_ai_prediction(trigger_issue):
             raw_history_str = redis_client.get(REDIS_HISTORY_KEY)
         
         logger.info(f"🔍 Step 7 Result: history data exists = {raw_history_str is not None}")
-        if raw_history_str:
-            logger.info(f"🔍 Step 7 Result: history data length = {len(raw_history_str)}")
         
         if not raw_history_str:
             logger.warning(f"⚠️ No history found in Redis key '{REDIS_HISTORY_KEY}'. Skipping prediction.")
-            logger.warning(f"⚠️ This means there's no lottery history data to base predictions on.")
             update_ai_worker_status("warning", "No history data available")
             return
 
@@ -744,8 +704,6 @@ def process_ai_prediction(trigger_issue):
             with redis_lock:
                 last_prediction_data = redis_client.hget(REDIS_AI_PREDICTIONS_HISTORY_HASH, str(last_prediction_issue))
             
-            logger.info(f"🔍 Step 9: last_prediction_data for issue {last_prediction_issue} exists = {last_prediction_data is not None}")
-            
             if last_prediction_data:
                 last_prediction_data_json = json.loads(last_prediction_data)
                 last_prediction = last_prediction_data_json.get('ai_prediction')
@@ -758,10 +716,6 @@ def process_ai_prediction(trigger_issue):
                         "outcome": last_outcome
                     }
                     logger.info(f"📝 Previous prediction feedback: Issue {last_prediction_issue} - Predicted: {last_prediction}, Actual: {last_outcome}")
-                else:
-                    logger.info(f"🔍 Step 9: Incomplete feedback data - prediction: {last_prediction}, outcome: {last_outcome}")
-            else:
-                logger.info(f"🔍 Step 9: No previous prediction data found for issue {last_prediction_issue}")
                     
         except Exception as e:
             logger.warning(f"⚠️ Could not retrieve previous prediction data: {e}")
@@ -773,7 +727,6 @@ def process_ai_prediction(trigger_issue):
         consecutive_history_issues_for_ai = []
         
         logger.info(f"🔍 Step 10: Available issues count: {len(available_issues)}")
-        logger.info(f"🔍 Step 10: Last 10 available issues: {available_issues[-10:] if len(available_issues) >= 10 else available_issues}")
         
         current_expected_issue = int(ai_prediction_issue) - 1
         logger.info(f"🔍 Step 10: Starting from expected issue: {current_expected_issue}")
@@ -877,8 +830,6 @@ def process_ai_prediction(trigger_issue):
             "history_length": len(history_numbers_for_ai)
         }
         
-        logger.info(f"🔍 Step 13: prediction_data = {prediction_data}")
-        
         try:
             with redis_lock:
                 # Save current prediction
@@ -910,16 +861,9 @@ def process_ai_prediction(trigger_issue):
     except Exception as e:
         logger.error(f"💥 Unexpected error in AI prediction processing: {e}", exc_info=True)
         update_ai_worker_status("error", f"Processing error: {str(e)}")
-    finally:
-        # Force flush logs at the end
-        for handler in logger.handlers:
-            if hasattr(handler, 'flush'):
-                handler.flush()
 
 def ai_listener_loop():
-    """
-    Enhanced main loop with graceful shutdown and comprehensive error handling
-    """
+    """Enhanced main loop with graceful shutdown and comprehensive error handling"""
     logger.info("🚀 AI Worker started. Listening for triggers on Redis Pub/Sub channel...")
     update_ai_worker_status("starting", "AI Worker initializing")
     
@@ -961,10 +905,16 @@ def ai_listener_loop():
                 # Process message if received
                 if message and message['type'] == 'message':
                     try:
-                        logger.info(f"📨 Raw message received: {message}")
+                        logger.info(f"📨 ===== AI TRIGGER RECEIVED =====")
+                        logger.info(f"📨 Raw message: {message}")
+                        logger.info(f"📨 Message data: {message['data']}")
+                        logger.info(f"📨 Message type: {message['type']}")
+                        
                         data = json.loads(message['data'])
                         trigger_issue = data.get('issue')
                         trigger_type = data.get('trigger_type', 'unknown')
+                        
+                        logger.info(f"📨 Parsed trigger - Type: {trigger_type}, Issue: {trigger_issue}")
                         
                         if trigger_issue:
                             logger.info(f"📨 Received AI trigger: {trigger_type} for issue {trigger_issue}")
