@@ -123,6 +123,14 @@
     gap: 1rem;
   }
 
+  /* --- Special 3-box layout for predictions --- */
+  .prediction-trio {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
   /* --- Main Prediction Display --- */
   .prediction-display {
     text-align: center;
@@ -177,6 +185,10 @@
     border-radius: 15px;
     text-align: center;
     box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
   }
 
   .prediction-value {
@@ -460,6 +472,11 @@
     transform: translateY(-1px);
   }
 
+  /* --- Hidden Elements --- */
+  .hidden {
+    display: none !important;
+  }
+
   /* --- Responsive Design --- */
   @media (max-width: 768px) {
     .header-title {
@@ -481,7 +498,8 @@
     }
 
     .grid-2,
-    .grid-3 {
+    .grid-3,
+    .prediction-trio {
       grid-template-columns: 1fr;
       gap: 1rem;
     }
@@ -546,11 +564,23 @@
       flex-direction: column;
       align-items: stretch;
     }
-  }
 
-  /* --- Hidden Elements (Simulator & Refresh) --- */
-  .hidden {
-    display: none !important;
+    .prediction-trio {
+      grid-template-columns: 1fr;
+      gap: 0.8rem;
+    }
+
+    .prediction-card {
+      padding: 1rem;
+    }
+
+    .prediction-value {
+      font-size: 1.8rem;
+    }
+
+    .section-header {
+      font-size: 1.1rem;
+    }
   }
 </style>
 </head>
@@ -597,10 +627,10 @@
     </div>
   </div>
 
-  <!-- Color and Size Pattern Predictions -->
-  <div class="grid-2">
+  <!-- 3-Box Prediction Layout: Color, Size, AI -->
+  <div class="prediction-trio">
     <div class="dashboard-section">
-      <div class="section-header">🎨 Color Pattern Prediction (Red/Green)</div>
+      <div class="section-header">🎨 Color Pattern</div>
       <div class="pattern-display" id="color-prediction-display">
         <div class="pattern-box Pending">Loading...</div>
         <div id="color-prediction-meta" style="margin-top: 1rem; font-size: 0.9rem;">
@@ -609,11 +639,27 @@
       </div>
     </div>
     <div class="dashboard-section">
-      <div class="section-header">📏 Size Pattern Prediction (Big/Small)</div>
+      <div class="section-header">📏 Size Pattern</div>
       <div class="pattern-display" id="size-prediction-display">
         <div class="pattern-box Pending">Loading...</div>
         <div id="size-prediction-meta" style="margin-top: 1rem; font-size: 0.9rem;">
           Awaiting data...
+        </div>
+      </div>
+    </div>
+    <div class="dashboard-section ai-section">
+      <div class="section-header">
+        🧠 AI Number
+        <button class="ai-toggle-btn" id="ai-toggle-btn" onclick="toggleAI()">
+          <span id="ai-toggle-btn-label">Start AI 🤖</span>
+        </button>
+      </div>
+      <div class="prediction-card">
+        <div class="prediction-value" id="ai-prediction-value">--</div>
+        <div id="ai-prediction-display-badge"></div>
+        <div class="prediction-meta" id="ai-prediction-meta">
+          Issue: <span id="ai-issue">--</span><br>
+          Last Run: <span id="ai-timestamp">--</span>
         </div>
       </div>
     </div>
@@ -624,37 +670,6 @@
     <div class="section-header">📈 Sequence Pattern Analysis</div>
     <div id="sequence-analysis">
       <p>Loading sequence analysis...</p>
-    </div>
-  </div>
-
-  <!-- AI Prediction Section -->
-  <div class="grid-2">
-    <div class="dashboard-section ai-section">
-      <div class="section-header">
-        🧠 AI Predicted Number
-        <button class="ai-toggle-btn" id="ai-toggle-btn" onclick="toggleAI()">
-          <span id="ai-toggle-btn-label">Start AI 🤖</span>
-        </button>
-      </div>
-      <div class="prediction-card">
-        <div class="prediction-value" id="ai-prediction-value">--</div>
-        <div id="ai-prediction-display-badge"></div>
-        <div class="prediction-meta" id="ai-prediction-meta">
-          Issue: <span id="ai-issue">--</span><br>
-          Last AI Run: <span id="ai-timestamp">--</span>
-        </div>
-      </div>
-    </div>
-    <div class="dashboard-section">
-      <div class="section-header">📊 AI Big/Small Accuracy</div>
-      <div class="prediction-card">
-        <div class="prediction-value" id="ai-big-small-accuracy-value">--</div>
-        <div class="prediction-meta" id="ai-big-small-accuracy-meta">
-          Calculated: <span id="ai-accuracy-timestamp">--</span><br>
-          Correct: <span id="ai-accuracy-correct">--</span> | 
-          Total: <span id="ai-accuracy-total">--</span>
-        </div>
-      </div>
     </div>
   </div>
 
@@ -770,7 +785,6 @@
         <option value="size_insights">Size Insights</option>
         <option value="v2_insights">Combined Insights</option>
         <option value="ai_prediction">AI Prediction</option>
-        <option value="ai_big_small_accuracy">AI B/S Accuracy</option>
         <option value="status">Status</option>
       </select>
     </div>
@@ -783,13 +797,13 @@
   <!-- Hidden Elements (Simulator & Manual Refresh - functionality preserved but hidden) -->
   <div class="hidden">
     <button onclick="manualRefresh()">Hidden Refresh</button>
-    <button onclick="window.location.href='/api/simulator/'">Hidden Simulator</button>
+    <button onclick="window.location.href='/mixpred/'">Hidden MixPred</button>
   </div>
 
 </div>
 
 <script>
-  // All JavaScript functions remain the same - just the UI layout has changed
+  // Color mapping for numbers
   const NUM_TO_COLOR_MAP = {
     0: 'Red', 1: 'Green', 2: 'Red', 3: 'Green', 4: 'Red',
     5: 'Green', 6: 'Red', 7: 'Green', 8: 'Red', 9: 'Green'
@@ -904,7 +918,6 @@
     prediction: null, 
     ai_prediction: null, 
     status: null, 
-    ai_big_small_accuracy: null, 
     color_insights: null,
     size_insights: null,
     v2_insights: null
@@ -916,11 +929,7 @@
     const selected = dropdown.value;
     const content = rawApiResponses[selected] ? JSON.stringify(rawApiResponses[selected], null, 2) : `No data for ${selected}.`;
     
-    if (!display.querySelector('#copy-json-btn')) {
-        display.innerHTML = `<button class="copy-btn" id="copy-json-btn">Copy</button>${content}`;
-    } else {
-        display.innerHTML = `<button class="copy-btn" id="copy-json-btn">Copy</button>${content}`;
-    }
+    display.innerHTML = `<button class="copy-btn" id="copy-json-btn">Copy</button>${content}`;
 
     const copyBtn = document.getElementById('copy-json-btn');
     copyBtn.onclick = () => {
@@ -976,7 +985,6 @@
       aiEnabled = !!data.ai_enabled_flag;
       updateAIToggleBtn();
       loadAIPredictionData();
-      loadAIBigSmallAccuracy();
     } catch (e) {
       showErrorMessage('Failed to toggle AI: ' + e.message);
     } finally {
@@ -991,10 +999,10 @@
       setTimeout(() => errorDiv.style.display = "none", 5000);
   }
 
-  // Main Prediction Data Loading
+  // Main Prediction Data Loading - FIXED ENDPOINT
   async function loadMainPredictionData() {
     try {
-        const res = await fetch('/api/prediction');
+        const res = await fetch('/api/prediction'); // ✅ CORRECT ENDPOINT
         const data = await res.json();
         rawApiResponses['prediction'] = data;
 
@@ -1181,10 +1189,10 @@
     }
   }
 
-  // AI Prediction Functions
+  // AI Prediction Functions - FIXED ENDPOINT
   async function loadAIPredictionData() {
     try {
-      const res = await fetch('/api/ai/prediction');
+      const res = await fetch('/api/ai_prediction'); // ✅ CORRECT ENDPOINT (underscore, not slash)
       const data = await res.json();
       rawApiResponses['ai_prediction'] = data;
 
@@ -1216,38 +1224,10 @@
     }
   }
 
-  async function loadAIBigSmallAccuracy() {
-    try {
-      const res = await fetch('/api/ai/big-small-accuracy');
-      const data = await res.json();
-      rawApiResponses['ai_big_small_accuracy'] = data;
-
-      const valueElem = document.getElementById('ai-big-small-accuracy-value');
-      const timestampElem = document.getElementById('ai-accuracy-timestamp');
-      const correctElem = document.getElementById('ai-accuracy-correct');
-      const totalElem = document.getElementById('ai-accuracy-total');
-
-      if (data.status === 'success' && data.overall_accuracy_percentage !== undefined) {
-        valueElem.textContent = `${data.overall_accuracy_percentage}%`;
-        timestampElem.textContent = formatTimestamp(data.timestamp);
-        correctElem.textContent = data.correct_predictions || 0;
-        totalElem.textContent = data.total_predictions || 0;
-      } else {
-        valueElem.textContent = '--';
-        timestampElem.textContent = '--';
-        correctElem.textContent = '--';
-        totalElem.textContent = '--';
-      }
-    } catch (err) {
-      console.error("Failed to load AI accuracy:", err);
-      document.getElementById('ai-big-small-accuracy-value').textContent = '❌';
-    }
-  }
-
-  // Color and Size Predictions
+  // Color and Size Predictions - FIXED ENDPOINTS
   async function loadColorInsights() {
     try {
-      const res = await fetch('/api/color-insights');
+      const res = await fetch('/api/color_insights'); // ✅ CORRECT ENDPOINT (underscore, not dash)
       const data = await res.json();
       rawApiResponses['color_insights'] = data;
 
@@ -1269,8 +1249,8 @@
         const analysis = data.analysis || {};
         meta.innerHTML = `
           <strong>Pattern Analysis:</strong><br>
-          Recent Sequence: <span style="font-family: monospace; background: rgba(102,126,234,0.1); padding: 2px 6px; border-radius: 4px;">${analysis.recent_sequence || 'Loading...'}</span><br>
-          <strong>Rule:</strong> ${analysis.applied_rule || 'Analyzing patterns...'}<br>
+          Recent: <span style="font-family: monospace; background: rgba(102,126,234,0.1); padding: 2px 6px; border-radius: 4px;">${analysis.recent_sequence || 'Loading...'}</span><br>
+          <strong>Rule:</strong> ${analysis.applied_rule || 'Analyzing...'}<br>
           <strong>Confidence:</strong> ${analysis.confidence || '--'}%
         `;
       } else {
@@ -1287,7 +1267,7 @@
 
   async function loadSizeInsights() {
     try {
-      const res = await fetch('/api/size-insights');
+      const res = await fetch('/api/size_insights'); // ✅ CORRECT ENDPOINT (underscore, not dash)
       const data = await res.json();
       rawApiResponses['size_insights'] = data;
 
@@ -1309,8 +1289,8 @@
         const analysis = data.analysis || {};
         meta.innerHTML = `
           <strong>Pattern Analysis:</strong><br>
-          Recent Sequence: <span style="font-family: monospace; background: rgba(102,126,234,0.1); padding: 2px 6px; border-radius: 4px;">${analysis.recent_sequence || 'Loading...'}</span><br>
-          <strong>Rule:</strong> ${analysis.applied_rule || 'Analyzing patterns...'}<br>
+          Recent: <span style="font-family: monospace; background: rgba(102,126,234,0.1); padding: 2px 6px; border-radius: 4px;">${analysis.recent_sequence || 'Loading...'}</span><br>
+          <strong>Rule:</strong> ${analysis.applied_rule || 'Analyzing...'}<br>
           <strong>Confidence:</strong> ${analysis.confidence || '--'}%
         `;
       } else {
@@ -1375,11 +1355,11 @@
     });
   }
 
-  // Performance Stats Loading
+  // Performance Stats Loading - FIXED ENDPOINTS
   async function loadPerformanceStats() {
     try {
       // Load color performance
-      const colorRes = await fetch('/api/color-insights');
+      const colorRes = await fetch('/api/color_insights'); // ✅ CORRECT ENDPOINT
       const colorData = await colorRes.json();
       const colorPerf = document.getElementById('color-performance-stats');
       
@@ -1405,7 +1385,7 @@
       }
 
       // Load size performance
-      const sizeRes = await fetch('/api/size-insights');
+      const sizeRes = await fetch('/api/size_insights'); // ✅ CORRECT ENDPOINT
       const sizeData = await sizeRes.json();
       const sizePerf = document.getElementById('size-performance-stats');
       
@@ -1443,7 +1423,6 @@
         loadColorInsights(),
         loadSizeInsights(),
         loadAIPredictionData(),
-        loadAIBigSmallAccuracy(),
         loadPerformanceStats(),
         fetchAIStatusAndUpdateBtn()
       ]);
