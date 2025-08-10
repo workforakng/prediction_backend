@@ -230,10 +230,90 @@ def send_heartbeat():
     except Exception as e:
         logger.error(f"Failed to send heartbeat: {e}")
 
+def debug_redis_state():
+    """Debug function to check Redis state and required keys"""
+    try:
+        logger.info("🔍 ===== DEBUGGING REDIS STATE =====")
+        
+        def _check_keys():
+            # Check if prediction key exists
+            prediction_exists = redis_client.exists(REDIS_PREDICTION_KEY)
+            logger.info(f"🔍 {REDIS_PREDICTION_KEY} exists: {prediction_exists}")
+            
+            if prediction_exists:
+                prediction_data = redis_client.get(REDIS_PREDICTION_KEY)
+                logger.info(f"🔍 Prediction data length: {len(prediction_data) if prediction_data else 0}")
+                if prediction_data:
+                    try:
+                        parsed = json.loads(prediction_data)
+                        logger.info(f"🔍 Prediction keys: {list(parsed.keys())}")
+                        logger.info(f"🔍 Next issue: {parsed.get('next_issue')}")
+                    except json.JSONDecodeError as e:
+                        logger.error(f"🔍 Failed to parse prediction data: {e}")
+            
+            # Check lottery history
+            history_exists = redis_client.exists("lottery:history")
+            logger.info(f"🔍 lottery:history exists: {history_exists}")
+            
+            if history_exists:
+                history_data = redis_client.get("lottery:history")
+                if history_data:
+                    try:
+                        parsed_history = json.loads(history_data)
+                        logger.info(f"🔍 History entries count: {len(parsed_history)}")
+                    except json.JSONDecodeError as e:
+                        logger.error(f"🔍 Failed to parse history data: {e}")
+            
+            # Check AI enabled flag
+            ai_enabled = redis_client.get("lottery:ai_enabled")
+            logger.info(f"🔍 AI enabled flag: {ai_enabled}")
+            
+            # List all lottery keys
+            all_keys = redis_client.keys("lottery:*")
+            logger.info(f"🔍 All lottery keys ({len(all_keys)}): {sorted(all_keys)}")
+            
+            # Check if anyone is listening to AI trigger channel
+            pubsub_channels = redis_client.pubsub_channels()
+            logger.info(f"🔍 Active pub/sub channels: {pubsub_channels}")
+            
+            # Get pub/sub info
+            pubsub_numsub = redis_client.pubsub_numsub(REDIS_AI_TRIGGER_CHANNEL)
+            logger.info(f"🔍 Subscribers to {REDIS_AI_TRIGGER_CHANNEL}: {pubsub_numsub}")
+            
+        safe_redis_operation(_check_keys)
+        logger.info("🔍 ===== END REDIS DEBUG =====")
+        
+    except Exception as e:
+        logger.error(f"❌ Error debugging Redis state: {e}")
+
+def test_ai_trigger():
+    """Test function to manually trigger AI worker"""
+    try:
+        logger.info("🧪 Testing AI trigger mechanism...")
+        
+        test_message = {
+            "trigger_type": "manual_test_trigger",
+            "issue": "20250810100099999",  # Test issue
+            "timestamp": datetime.now(pytz.utc).isoformat(),
+            "source": "main_worker_test"
+        }
+        
+        def _publish_test():
+            return redis_client.publish(REDIS_AI_TRIGGER_CHANNEL, json.dumps(test_message))
+        
+        result = safe_redis_operation(_publish_test)
+        logger.info(f"🧪 Test trigger published. Subscribers notified: {result}")
+        
+        return result > 0  # True if at least one subscriber received the message
+        
+    except Exception as e:
+        logger.error(f"❌ Error testing AI trigger: {e}")
+        return False
+
 def run_prediction_cycle(predictor, token_manager):
     """
     Runs a single prediction cycle: fetch, update, predict, write to Redis.
-    Enhanced with better error handling and Railway support.
+    Enhanced with better error handling, Railway support, and AI trigger debugging.
     """
     cycle_start = time.time()
     report = None
@@ -284,6 +364,9 @@ def run_prediction_cycle(predictor, token_manager):
         if not report:
             raise Exception("Generated report is None or empty")
         
+        logger.info(f"🔍 Generated report keys: {list(report.keys())}")
+        logger.info(f"🔍 Next issue in report: {report.get('next_issue')}")
+        
         # Enhance report with metadata
         report["status"] = "success"
         report["timestamp"] = datetime.now(pytz.utc).isoformat()
@@ -295,8 +378,23 @@ def run_prediction_cycle(predictor, token_manager):
             def _save_prediction():
                 return redis_client.set(REDIS_PREDICTION_KEY, json.dumps(report))
             
-            safe_redis_operation(_save_prediction)
+            result = safe_redis_operation(_save_prediction)
             logger.info("✅ Main prediction data successfully saved to Redis")
+            logger.info(f"🔍 Redis SET result: {result}")
+            
+            # Verify the data was saved
+            def _verify_save():
+                saved_data = redis_client.get(REDIS_PREDICTION_KEY)
+                if saved_data:
+                    try:
+                        parsed = json.loads(saved_data)
+                        return parsed.get('next_issue')
+                    except json.JSONDecodeError:
+                        return None
+                return None
+            
+            verified_issue = safe_redis_operation(_verify_save)
+            logger.info(f"🔍 Verified saved data - next_issue: {verified_issue}")
             
         except Exception as redis_error:
             logger.error(f"❌ Failed to save prediction to Redis: {redis_error}")
@@ -310,28 +408,50 @@ def run_prediction_cycle(predictor, token_manager):
             logger.error(f"⚠️  Failed to save persistent data: {save_error}")
             # Don't raise - this is not critical for current prediction
         
-        # Trigger AI worker via pub/sub with safe operation
+        # Debug Redis state before triggering AI
+        debug_redis_state()
+        
+        # Trigger AI worker via pub/sub with enhanced debugging
         if "next_issue" in report:
             try:
                 next_issue = report["next_issue"]
-                ai_trigger_message = json.dumps({
+                logger.info(f"🤖 Preparing to trigger AI worker for issue: {next_issue}")
+                
+                ai_trigger_message = {
                     "trigger_type": "new_issue_prediction_needed",
                     "issue": next_issue,
                     "timestamp": datetime.now(pytz.utc).isoformat(),
-                    "source": "main_worker"
-                })
+                    "source": "main_worker",
+                    "worker_environment": "railway" if is_railway_environment() else "local"
+                }
+                
+                logger.info(f"🤖 AI trigger message: {json.dumps(ai_trigger_message, indent=2)}")
                 
                 def _publish_ai_trigger():
-                    return redis_client.publish(REDIS_AI_TRIGGER_CHANNEL, ai_trigger_message)
+                    return redis_client.publish(REDIS_AI_TRIGGER_CHANNEL, json.dumps(ai_trigger_message))
                 
-                safe_redis_operation(_publish_ai_trigger)
-                logger.info(f"🤖 AI trigger published for issue {next_issue}")
+                subscribers_notified = safe_redis_operation(_publish_ai_trigger)
+                logger.info(f"🤖 AI trigger published to channel '{REDIS_AI_TRIGGER_CHANNEL}'")
+                logger.info(f"🤖 Subscribers notified: {subscribers_notified}")
+                
+                if subscribers_notified == 0:
+                    logger.warning("⚠️  No subscribers found for AI trigger channel!")
+                    logger.warning("⚠️  AI worker might not be running or not subscribed properly")
+                    
+                    # Test the trigger mechanism
+                    logger.info("🧪 Testing trigger mechanism...")
+                    test_result = test_ai_trigger()
+                    if not test_result:
+                        logger.warning("⚠️  Test trigger also failed - no AI workers listening")
+                else:
+                    logger.info(f"✅ AI trigger successfully sent to {subscribers_notified} subscriber(s)")
                 
             except Exception as ai_error:
-                logger.error(f"⚠️  Failed to publish AI trigger: {ai_error}")
+                logger.error(f"⚠️  Failed to publish AI trigger: {ai_error}", exc_info=True)
                 # Don't raise - this is not critical for main prediction
         else:
             logger.warning("⚠️  No 'next_issue' in report - cannot trigger AI")
+            logger.warning(f"⚠️  Report keys: {list(report.keys())}")
         
         update_worker_status("idle", "Prediction cycle completed successfully")
         logger.info(f"✅ Prediction cycle completed successfully in {time.time() - cycle_start:.2f} seconds")
@@ -488,6 +608,17 @@ if __name__ == "__main__":
         logger.critical("💥 Failed to initialize Redis connection. Exiting.")
         sys.exit(1)
     
+    # Test Redis pub/sub functionality on startup
+    logger.info("🧪 Testing Redis pub/sub functionality...")
+    try:
+        test_result = test_ai_trigger()
+        if test_result:
+            logger.info("✅ Redis pub/sub test successful - AI workers are listening")
+        else:
+            logger.warning("⚠️  Redis pub/sub test shows no AI workers listening")
+    except Exception as e:
+        logger.error(f"❌ Redis pub/sub test failed: {e}")
+    
     # Initialize prediction components
     try:
         logger.info("🔧 Initializing prediction components...")
@@ -514,11 +645,16 @@ if __name__ == "__main__":
         logger.critical(f"💥 Failed to initialize components: {e}", exc_info=True)
         sys.exit(1)
     
+    # Debug Redis state on startup
+    logger.info("🔍 Checking Redis state on startup...")
+    debug_redis_state()
+    
     # Start main worker loop 
     logger.info("🎯 Starting main worker loop...")
     logger.info(f"📅 Scheduled to run every minute at 58th second")
     logger.info(f"🌍 Environment: {'Railway' if is_railway_environment() else 'Local'}")
     logger.info(f"🔗 Redis: Connected to {REDIS_URL[:30]}...")
+    logger.info(f"📡 AI Trigger Channel: {REDIS_AI_TRIGGER_CHANNEL}")
     
     try:
         main_worker_loop()
