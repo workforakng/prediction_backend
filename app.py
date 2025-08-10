@@ -102,21 +102,35 @@ app.logger.addHandler(stream_handler)
 
 # --- Enhanced Redis Connection for Railway ---
 app.redis_client = None
-try:
-    redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
-    app.redis_client = redis.from_url(redis_url, decode_responses=True, 
-                                     socket_connect_timeout=10, socket_timeout=10)
-    app.redis_client.ping()
-    app.logger.info(f"✅ Successfully connected to Redis: {redis_url[:25]}...")
-except redis.exceptions.ConnectionError as e:
-    app.logger.critical(f"❌ Could not connect to Redis: {e}")
-    app.redis_client = None
-except redis.exceptions.TimeoutError as e:
-    app.logger.critical(f"❌ Redis connection timeout: {e}")
-    app.redis_client = None
-except Exception as e:
-    app.logger.critical(f"❌ Unexpected Redis error: {e}")
-    app.redis_client = None
+
+def initialize_redis():
+    """Initialize Redis connection"""
+    global app
+    try:
+        redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+        app.redis_client = redis.from_url(
+            redis_url, 
+            decode_responses=True, 
+            socket_connect_timeout=10, 
+            socket_timeout=10,
+            retry_on_timeout=True,
+            health_check_interval=30
+        )
+        app.redis_client.ping()
+        app.logger.info(f"✅ Successfully connected to Redis: {redis_url[:25]}...")
+        return True
+    except redis.exceptions.ConnectionError as e:
+        app.logger.critical(f"❌ Could not connect to Redis: {e}")
+        app.redis_client = None
+        return False
+    except redis.exceptions.TimeoutError as e:
+        app.logger.critical(f"❌ Redis connection timeout: {e}")
+        app.redis_client = None
+        return False
+    except Exception as e:
+        app.logger.critical(f"❌ Unexpected Redis error: {e}")
+        app.redis_client = None
+        return False
 
 # --- AI Flag Management Functions ---
 def is_ai_enabled_app():
@@ -191,9 +205,17 @@ def health_check():
             except Exception as e:
                 redis_status = "error"
                 redis_error = str(e)
+                # Try to reconnect if Redis fails
+                if initialize_redis():
+                    redis_status = "reconnected"
+                    redis_error = None
+        else:
+            # Try to initialize Redis if not connected
+            if initialize_redis():
+                redis_status = "connected"
         
         health_data = {
-            "status": "healthy" if redis_status == "connected" else "degraded",
+            "status": "healthy" if redis_status in ["connected", "reconnected"] else "degraded",
             "redis": redis_status,
             "environment": "railway" if is_railway_environment() else "local",
             "port": app.config.get('PORT', 5000),
@@ -203,7 +225,7 @@ def health_check():
         if redis_error:
             health_data["redis_error"] = redis_error
         
-        status_code = 200 if redis_status == "connected" else 503
+        status_code = 200 if redis_status in ["connected", "reconnected"] else 503
         return jsonify(health_data), status_code
         
     except Exception as e:
@@ -218,12 +240,13 @@ def get_current_prediction():
     """Get main prediction data"""
     try:
         if not app.redis_client:
-            app.logger.error("Redis client not available for prediction fetch")
-            return jsonify({
-                "status": "error",
-                "message": "Database connection not available",
-                "ai_enabled": False
-            }), 503
+            if not initialize_redis():
+                app.logger.error("Redis client not available for prediction fetch")
+                return jsonify({
+                    "status": "error",
+                    "message": "Database connection not available",
+                    "ai_enabled": False
+                }), 503
 
         raw_data = app.redis_client.get(REDIS_PREDICTION_KEY)
         if not raw_data:
@@ -268,10 +291,11 @@ def api_ai_prediction():
     """Get AI prediction data"""
     try:
         if not app.redis_client:
-            return jsonify({
-                "status": "error",
-                "message": "Database connection not available"
-            }), 503
+            if not initialize_redis():
+                return jsonify({
+                    "status": "error",
+                    "message": "Database connection not available"
+                }), 503
 
         raw_ai_prediction = app.redis_client.get(REDIS_AI_PREDICTION_KEY)
         if raw_ai_prediction:
@@ -310,10 +334,11 @@ def api_ai_big_small_accuracy():
     """Get AI Big/Small accuracy data"""
     try:
         if not app.redis_client:
-            return jsonify({
-                "status": "error",
-                "message": "Database connection not available"
-            }), 503
+            if not initialize_redis():
+                return jsonify({
+                    "status": "error",
+                    "message": "Database connection not available"
+                }), 503
 
         raw_accuracy_data = app.redis_client.get(REDIS_AI_BIG_SMALL_ACCURACY_KEY)
         if raw_accuracy_data:
@@ -355,9 +380,11 @@ def get_status():
 
     try:
         if not app.redis_client:
-            data_status = "redis_unavailable"
-            message = "Redis client not available"
-        else:
+            if not initialize_redis():
+                data_status = "redis_unavailable"
+                message = "Redis client not available"
+        
+        if app.redis_client:
             json_data_str = app.redis_client.get(REDIS_PREDICTION_KEY)
             if json_data_str:
                 data = json.loads(json_data_str)
@@ -403,11 +430,12 @@ def api_ai_start():
     """Start AI prediction"""
     try:
         if not app.redis_client:
-            return jsonify({
-                "status": "error",
-                "message": "Database connection not available",
-                "ai_enabled_flag": False
-            }), 503
+            if not initialize_redis():
+                return jsonify({
+                    "status": "error",
+                    "message": "Database connection not available",
+                    "ai_enabled_flag": False
+                }), 503
 
         success = set_ai_enabled_app(True)
         if success:
@@ -436,11 +464,12 @@ def api_ai_stop():
     """Stop AI prediction"""
     try:
         if not app.redis_client:
-            return jsonify({
-                "status": "error",
-                "message": "Database connection not available",
-                "ai_enabled_flag": False
-            }), 503
+            if not initialize_redis():
+                return jsonify({
+                    "status": "error",
+                    "message": "Database connection not available",
+                    "ai_enabled_flag": False
+                }), 503
 
         success = set_ai_enabled_app(False)
         if success:
@@ -469,10 +498,11 @@ def get_color_insights():
     """Get color prediction insights"""
     try:
         if not app.redis_client:
-            return jsonify({
-                "status": "error",
-                "message": "Database connection not available"
-            }), 503
+            if not initialize_redis():
+                return jsonify({
+                    "status": "error",
+                    "message": "Database connection not available"
+                }), 503
 
         raw_pred = app.redis_client.get(REDIS_COLOR_PREDICTION_KEY)
         color_prediction = json.loads(raw_pred) if raw_pred else None
@@ -516,10 +546,11 @@ def get_size_insights():
     """Get size prediction insights"""
     try:
         if not app.redis_client:
-            return jsonify({
-                "status": "error",
-                "message": "Database connection not available"
-            }), 503
+            if not initialize_redis():
+                return jsonify({
+                    "status": "error",
+                    "message": "Database connection not available"
+                }), 503
 
         raw_pred = app.redis_client.get(REDIS_SIZE_PREDICTION_KEY)
         size_prediction = json.loads(raw_pred) if raw_pred else None
@@ -562,10 +593,11 @@ def get_v2_insights():
     """Get combined color and size insights"""
     try:
         if not app.redis_client:
-            return jsonify({
-                "status": "error",
-                "message": "Database connection not available"
-            }), 503
+            if not initialize_redis():
+                return jsonify({
+                    "status": "error",
+                    "message": "Database connection not available"
+                }), 503
 
         # Fetch color data
         color_response, color_status = get_color_insights()
@@ -595,10 +627,11 @@ def reset_all_streaks():
     """Reset all streak and accuracy data"""
     try:
         if not app.redis_client:
-            return jsonify({
-                "status": "error",
-                "message": "Database connection not available"
-            }), 503
+            if not initialize_redis():
+                return jsonify({
+                    "status": "error",
+                    "message": "Database connection not available"
+                }), 503
 
         latest_pred_raw = app.redis_client.get(REDIS_COLOR_PREDICTION_KEY)
         latest_issue = json.loads(latest_pred_raw).get("issue") if latest_pred_raw else None
@@ -684,13 +717,14 @@ def internal_error(error):
         "timestamp": datetime.now().isoformat()
     }), 500
 
-# Initialize app configuration
-@app.before_first_request
-def initialize_app():
-    """Initialize app configuration on first request"""
+# Initialize the application with app context (Flask 2.3+ compatible)
+with app.app_context():
     app.logger.info(f"🚀 Lottery Prediction App initialized")
     app.logger.info(f"Environment: {'Railway' if is_railway_environment() else 'Local'}")
-    app.logger.info(f"Redis Status: {'Connected' if app.redis_client else 'Disconnected'}")
+    
+    # Initialize Redis connection
+    redis_initialized = initialize_redis()
+    app.logger.info(f"Redis Status: {'Connected' if redis_initialized else 'Disconnected'}")
     app.logger.info(f"Port: {app.config.get('PORT', 5000)}")
 
 # Entry point for Railway deployment
