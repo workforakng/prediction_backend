@@ -86,7 +86,7 @@ def initialize_redis():
             working_redis_url = redis_url
             if "railway.internal" in redis_url and "family=" not in redis_url:
                 separator = "&" if "?" in redis_url else "?"
-                working_redis_url = f"{redis_url}{separator}family=0"
+                working_redis_url = f"{redis_url}"
             
             redis_client = redis.from_url(
                 working_redis_url, 
