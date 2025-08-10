@@ -68,7 +68,8 @@ redis_client = None
 def initialize_redis():
     """Initialize Redis connection with retry logic"""
     global redis_client
-    redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+    # Use improved fallback logic based on conversation history
+    redis_url = os.getenv("REDIS_URL_UPSTASH") or os.getenv("REDIS_URL") or "redis://localhost:6379/0"
     max_retries = 5
     retry_delay = 5  # seconds
     
@@ -317,9 +318,7 @@ def validate_api_response(response_data):
 
 # --- Enhanced Perplexity AI Prediction Function ---
 def get_perplexity_ai_prediction(history_numbers, api_key, current_issue_id, last_issue_info=None):
-    """
-    Enhanced AI prediction with comprehensive error handling and detailed logging
-    """
+    """Enhanced AI prediction with comprehensive error handling and detailed logging"""
     try:
         logger.info(f"🧠 ===== STARTING AI PREDICTION =====")
         logger.info(f"🧠 Getting AI prediction for issue: {current_issue_id}")
@@ -614,9 +613,7 @@ def calculate_ai_big_small_accuracy():
         logger.error(f"❌ Error calculating AI accuracy: {e}")
 
 def process_ai_prediction(trigger_issue):
-    """
-    Enhanced AI prediction processing with comprehensive error handling and detailed logging
-    """
+    """Enhanced AI prediction processing with comprehensive error handling and detailed logging"""
     try:
         logger.info(f"🚀 ===== AI PREDICTION PROCESSING START =====")
         logger.info(f"🚀 AI prediction triggered for issue: {trigger_issue}")
@@ -910,16 +907,9 @@ def process_ai_prediction(trigger_issue):
     except Exception as e:
         logger.error(f"💥 Unexpected error in AI prediction processing: {e}", exc_info=True)
         update_ai_worker_status("error", f"Processing error: {str(e)}")
-    finally:
-        # Force flush logs at the end
-        for handler in logger.handlers:
-            if hasattr(handler, 'flush'):
-                handler.flush()
 
 def ai_listener_loop():
-    """
-    Enhanced main loop with graceful shutdown and comprehensive error handling
-    """
+    """Enhanced main loop with graceful shutdown and comprehensive error handling"""
     logger.info("🚀 AI Worker started. Listening for triggers on Redis Pub/Sub channel...")
     update_ai_worker_status("starting", "AI Worker initializing")
     
@@ -961,10 +951,16 @@ def ai_listener_loop():
                 # Process message if received
                 if message and message['type'] == 'message':
                     try:
-                        logger.info(f"📨 Raw message received: {message}")
+                        logger.info(f"📨 ===== AI TRIGGER RECEIVED =====")
+                        logger.info(f"📨 Raw message: {message}")
+                        logger.info(f"📨 Message data: {message['data']}")
+                        logger.info(f"📨 Message type: {message['type']}")
+                        
                         data = json.loads(message['data'])
                         trigger_issue = data.get('issue')
                         trigger_type = data.get('trigger_type', 'unknown')
+                        
+                        logger.info(f"📨 Parsed trigger - Type: {trigger_type}, Issue: {trigger_issue}")
                         
                         if trigger_issue:
                             logger.info(f"📨 Received AI trigger: {trigger_type} for issue {trigger_issue}")
@@ -1045,7 +1041,7 @@ if __name__ == "__main__":
     
     logger.info(f"🌍 Environment: {'Railway' if is_railway_environment() else 'Local'}")
     logger.info(f"📁 Data directory: {DATA_DIR}")
-    logger.info(f"🔗 Redis: {'Connected' if redis_client else 'Disconnected'}")
+    logger.info(f"🔗 Redis: Connected")
     logger.info(f"🔑 API Keys: {len(PERPLEXITY_API_KEYS)} configured")
     logger.info(f"🤖 AI Model: {PERPLEXITY_AI_MODEL}")
     logger.info(f"📡 Trigger Channel: {REDIS_AI_TRIGGER_CHANNEL}")
