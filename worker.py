@@ -514,7 +514,7 @@ if __name__ == "__main__":
         logger.critical(f"💥 Failed to initialize components: {e}", exc_info=True)
         sys.exit(1)
     
-    # Start main worker loop
+    # Start main worker loop 
     logger.info("🎯 Starting main worker loop...")
     logger.info(f"📅 Scheduled to run every minute at 58th second")
     logger.info(f"🌍 Environment: {'Railway' if is_railway_environment() else 'Local'}")
