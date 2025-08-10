@@ -113,7 +113,7 @@ def initialize_redis():
         # Add family=0 for Railway IPv6 compatibility if needed
         if "railway.internal" in redis_url and "family=" not in redis_url:
             separator = "&" if "?" in redis_url else "?"
-            redis_url = f"{redis_url}{separator}family=0"
+            redis_url = f"{redis_url}"
         
         app.redis_client = redis.from_url(
             redis_url, 
