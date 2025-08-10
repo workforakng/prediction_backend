@@ -185,16 +185,31 @@ def send_ai_worker_heartbeat():
 
 # --- Enhanced Helper Functions ---
 def is_ai_enabled():
-    """Enhanced AI enabled check with error handling"""
+    """Enhanced AI enabled check with proper value validation"""
     try:
         if not redis_client:
             logger.warning("⚠️ Redis client not available for AI enabled check")
             return False
         
         with redis_lock:
-            enabled = redis_client.exists(REDIS_AI_FLAG_KEY)
+            # Get the actual value instead of just checking existence
+            ai_flag_value = redis_client.get(REDIS_AI_FLAG_KEY)
         
-        logger.debug(f"🤖 AI enabled status: {enabled}")
+        if ai_flag_value is None:
+            logger.debug(f"🤖 AI flag key '{REDIS_AI_FLAG_KEY}' does not exist")
+            return False
+        
+        # Convert to boolean - handle both string and integer values
+        enabled = False
+        if isinstance(ai_flag_value, str):
+            enabled = ai_flag_value.lower() in ['1', 'true', 'yes', 'on', 'enabled']
+        elif isinstance(ai_flag_value, (int, float)):
+            enabled = bool(ai_flag_value)
+        else:
+            # Try to convert to string and check
+            enabled = str(ai_flag_value).lower() in ['1', 'true', 'yes', 'on', 'enabled']
+        
+        logger.debug(f"🤖 AI flag value: '{ai_flag_value}' -> enabled: {enabled}")
         return enabled
         
     except Exception as e:
@@ -735,6 +750,7 @@ def ai_listener_loop():
     
     pubsub = None
     last_heartbeat = time.time()
+    last_ai_status_check = time.time()
     reconnection_attempts = 0
     max_reconnection_attempts = 10
     
@@ -756,12 +772,17 @@ def ai_listener_loop():
                     send_ai_worker_heartbeat()
                     last_heartbeat = current_time
                 
-                # Check AI enabled status periodically
-                if not is_ai_enabled():
-                    if current_time % 30 < 1:  # Log every 30 seconds
-                        logger.debug("🤖 AI is currently disabled. Continuing to listen...")
-                    update_ai_worker_status("disabled", "AI predictions disabled")
-                    continue
+                # Check AI enabled status periodically and log changes
+                if current_time - last_ai_status_check >= 10:  # Check every 10 seconds
+                    current_ai_status = is_ai_enabled()
+                    # Only log if we haven't checked before or status changed
+                    logger.info(f"🤖 AI Status Check: {'ENABLED' if current_ai_status else 'DISABLED'}")
+                    last_ai_status_check = current_time
+                    
+                    if not current_ai_status:
+                        update_ai_worker_status("disabled", "AI predictions disabled")
+                    else:
+                        update_ai_worker_status("listening", "AI enabled - listening for triggers")
 
                 # Process message if received
                 if message and message['type'] == 'message':
@@ -854,9 +875,17 @@ if __name__ == "__main__":
     logger.info(f"🤖 AI Model: {PERPLEXITY_AI_MODEL}")
     logger.info(f"📡 Trigger Channel: {REDIS_AI_TRIGGER_CHANNEL}")
     
-    # Test AI status on startup
+    # Test AI status on startup with detailed logging
     ai_status = is_ai_enabled()
     logger.info(f"🎯 AI Status: {'ENABLED' if ai_status else 'DISABLED'}")
+    
+    # Debug the AI flag value
+    try:
+        with redis_lock:
+            ai_flag_raw = redis_client.get(REDIS_AI_FLAG_KEY)
+        logger.info(f"🔍 AI Flag Debug - Key: '{REDIS_AI_FLAG_KEY}', Raw Value: '{ai_flag_raw}', Type: {type(ai_flag_raw)}")
+    except Exception as e:
+        logger.error(f"❌ Error debugging AI flag: {e}")
     
     try:
         # Start the main listener loop
