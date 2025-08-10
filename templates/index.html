@@ -629,6 +629,19 @@
                 Awaiting data...
             </div>
         </div>
+        <table id="color-rule-accuracy-table">
+            <thead>
+                <tr>
+                    <th>Rule</th>
+                    <th>Correct</th>
+                    <th>Total</th>
+                    <th>Accuracy</th>
+                </tr>
+            </thead>
+            <tbody id="color-rule-accuracy-body">
+                <tr><td colspan="4">Loading rule accuracy...</td></tr>
+            </tbody>
+        </table>
     </section>
     <section class="section" id="size-prediction-section" style="flex: 1 1 48%;">
         <h2>Size Pattern Prediction (Big/Small) 📏</h2>
@@ -638,6 +651,19 @@
                 Awaiting data...
             </div>
         </div>
+        <table id="size-rule-accuracy-table">
+            <thead>
+                <tr>
+                    <th>Rule</th>
+                    <th>Correct</th>
+                    <th>Total</th>
+                    <th>Accuracy</th>
+                </tr>
+            </thead>
+            <tbody id="size-rule-accuracy-body">
+                <tr><td colspan="4">Loading rule accuracy...</td></tr>
+            </tbody>
+        </table>
     </section>
   </div>
 
@@ -665,11 +691,41 @@
         <div id="color-performance-stats" class="performance-streaks-container">
             <p>Loading performance data...</p>
         </div>
+        <div class="full-width-section">
+            <h3>Streak Distribution</h3>
+            <table class="streak-distribution-table" id="color-streak-distribution">
+                <thead>
+                    <tr>
+                        <th>Streak Length</th>
+                        <th>Win Count</th>
+                        <th>Loss Count</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td colspan="3">Loading streak distribution...</td></tr>
+                </tbody>
+            </table>
+        </div>
     </section>
     <section class="section" id="size-performance-section" style="flex: 1 1 48%;">
         <h2>Size Prediction Performance 📊</h2>
         <div id="size-performance-stats" class="performance-streaks-container">
             <p>Loading performance data...</p>
+        </div>
+        <div class="full-width-section">
+            <h3>Streak Distribution</h3>
+            <table class="streak-distribution-table" id="size-streak-distribution">
+                <thead>
+                    <tr>
+                        <th>Streak Length</th>
+                        <th>Win Count</th>
+                        <th>Loss Count</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td colspan="3">Loading streak distribution...</td></tr>
+                </tbody>
+            </table>
         </div>
     </section>
   </div>
@@ -924,7 +980,7 @@
 
   async function fetchAIStatusAndUpdateBtn() {
     try {
-      const res = await fetch('/api/ai/status');
+      const res = await fetch('/api/ai/status'); // ✅ CORRECT
       if (!res.ok) throw new Error('Failed to fetch AI status');
       const data = await res.json();
       aiEnabled = !!data.ai_enabled_flag;
@@ -953,7 +1009,7 @@
   }
 
   async function toggleAI() {
-    const endpoint = aiEnabled ? '/api/ai/stop' : '/api/ai/start';
+    const endpoint = aiEnabled ? '/api/ai/stop' : '/api/ai/start'; // ✅ CORRECT
     document.getElementById('ai-toggle-btn').disabled = true;
     try {
       const res = await fetch(endpoint, { method: 'POST' });
@@ -977,7 +1033,7 @@
       setTimeout(() => errorDiv.style.display = "none", 5000);
   }
 
-  // ✅ FIXED: Main Prediction Data Loading - using correct endpoint
+  // ✅ FIXED: Main Prediction Data Loading
   async function loadMainPredictionData() {
     try {
         const res = await fetch('/api/prediction'); // ✅ CORRECT
@@ -1153,10 +1209,10 @@
     }
   }
 
-  // ✅ FIXED: AI Prediction Data Loading - using correct endpoint
+  // ✅ FIXED: AI Prediction Data Loading
   async function loadAIPredictionData() {
     try {
-      const res = await fetch('/api/ai_prediction'); // ✅ CORRECT - underscore not slash
+      const res = await fetch('/api/ai_prediction'); // ✅ CORRECT underscore
       const data = await res.json();
       rawApiResponses['ai_prediction'] = data;
 
@@ -1188,10 +1244,10 @@
     }
   }
 
-  // ✅ FIXED: AI Big/Small Accuracy - using correct endpoint
+  // ✅ FIXED: AI Big/Small Accuracy
   async function loadAIBigSmallAccuracy() {
     try {
-      const res = await fetch('/api/ai_big_small_accuracy'); // ✅ CORRECT - underscore not slash
+      const res = await fetch('/api/ai_big_small_accuracy'); // ✅ CORRECT underscore
       const data = await res.json();
       rawApiResponses['ai_big_small_accuracy'] = data;
 
@@ -1217,14 +1273,16 @@
     }
   }
 
-  // ✅ FIXED: Color Insights Data Loading - using correct endpoint
+  // ✅ FIXED: Color Insights Data Loading
   async function loadColorInsightsData() {
     const predDisplay = document.getElementById('color-prediction-display');
     const perfStats = document.getElementById('color-performance-stats');
     const historyBody = document.getElementById('color-history-table-body');
+    const ruleAccuracyBody = document.getElementById('color-rule-accuracy-body');
+    const streakDistribution = document.getElementById('color-streak-distribution').querySelector('tbody');
 
     try {
-        const res = await fetch('/api/color_insights'); // ✅ CORRECT - underscore not dash
+        const res = await fetch('/api/color_insights'); // ✅ CORRECT underscore
         if (!res.ok) throw new Error(`API Error: ${res.statusText}`);
         const data = await res.json();
         rawApiResponses['color_insights'] = data;
@@ -1251,8 +1309,24 @@
                     <strong>Confidence:</strong> ${data.analysis.confidence || '--'}%
                 `;
             }
+        }
+
+        // Update rule accuracy table
+        if (data.rule_accuracy && Object.keys(data.rule_accuracy).length > 0) {
+            ruleAccuracyBody.innerHTML = '';
+            Object.entries(data.rule_accuracy).forEach(([rule, stats]) => {
+                const tr = document.createElement('tr');
+                const accuracy = stats.total > 0 ? ((stats.correct / stats.total) * 100).toFixed(1) : '0.0';
+                tr.innerHTML = `
+                    <td style="text-align: left; font-size: 0.75rem;">${rule}</td>
+                    <td>${stats.correct}</td>
+                    <td>${stats.total}</td>
+                    <td>${accuracy}%</td>
+                `;
+                ruleAccuracyBody.appendChild(tr);
+            });
         } else {
-            predDisplay.innerHTML = '<div class="color-pred-box Pending">Pending</div><div id="color-prediction-meta">Awaiting data...</div>';
+            ruleAccuracyBody.innerHTML = '<tr><td colspan="4">No rule accuracy data available.</td></tr>';
         }
 
         // Update performance stats
@@ -1276,8 +1350,20 @@
                     </div>
                 </div>
             `;
-        } else {
-            perfStats.innerHTML = '<p>Loading color performance data...</p>';
+        }
+
+        // Update streak distribution
+        if (data.streak_distribution && Object.keys(data.streak_distribution).length > 0) {
+            streakDistribution.innerHTML = '';
+            Object.entries(data.streak_distribution).forEach(([length, counts]) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${length}</td>
+                    <td>${counts.win || 0}</td>
+                    <td>${counts.loss || 0}</td>
+                `;
+                streakDistribution.appendChild(tr);
+            });
         }
 
         // Update history table
@@ -1310,14 +1396,16 @@
     }
   }
 
-  // ✅ FIXED: Size Insights Data Loading - using correct endpoint
+  // ✅ FIXED: Size Insights Data Loading
   async function loadSizeInsightsData() {
     const predDisplay = document.getElementById('size-prediction-display');
     const perfStats = document.getElementById('size-performance-stats');
     const historyBody = document.getElementById('size-history-table-body');
+    const ruleAccuracyBody = document.getElementById('size-rule-accuracy-body');
+    const streakDistribution = document.getElementById('size-streak-distribution').querySelector('tbody');
 
     try {
-        const res = await fetch('/api/size_insights'); // ✅ CORRECT - underscore not dash
+        const res = await fetch('/api/size_insights'); // ✅ CORRECT underscore
         if (!res.ok) throw new Error(`API Error: ${res.statusText}`);
         const data = await res.json();
         rawApiResponses['size_insights'] = data;
@@ -1344,8 +1432,24 @@
                     <strong>Confidence:</strong> ${data.analysis.confidence || '--'}%
                 `;
             }
+        }
+
+        // Update rule accuracy table
+        if (data.rule_accuracy && Object.keys(data.rule_accuracy).length > 0) {
+            ruleAccuracyBody.innerHTML = '';
+            Object.entries(data.rule_accuracy).forEach(([rule, stats]) => {
+                const tr = document.createElement('tr');
+                const accuracy = stats.total > 0 ? ((stats.correct / stats.total) * 100).toFixed(1) : '0.0';
+                tr.innerHTML = `
+                    <td style="text-align: left; font-size: 0.75rem;">${rule}</td>
+                    <td>${stats.correct}</td>
+                    <td>${stats.total}</td>
+                    <td>${accuracy}%</td>
+                `;
+                ruleAccuracyBody.appendChild(tr);
+            });
         } else {
-            predDisplay.innerHTML = '<div class="size-pred-box Pending">Pending</div><div id="size-prediction-meta">Awaiting data...</div>';
+            ruleAccuracyBody.innerHTML = '<tr><td colspan="4">No rule accuracy data available.</td></tr>';
         }
 
         // Update performance stats
@@ -1369,8 +1473,20 @@
                     </div>
                 </div>
             `;
-        } else {
-            perfStats.innerHTML = '<p>Loading size performance data...</p>';
+        }
+
+        // Update streak distribution
+        if (data.streak_distribution && Object.keys(data.streak_distribution).length > 0) {
+            streakDistribution.innerHTML = '';
+            Object.entries(data.streak_distribution).forEach(([length, counts]) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${length}</td>
+                    <td>${counts.win || 0}</td>
+                    <td>${counts.loss || 0}</td>
+                `;
+                streakDistribution.appendChild(tr);
+            });
         }
 
         // Update history table
