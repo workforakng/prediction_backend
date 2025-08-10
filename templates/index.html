@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>WinGo 1 Min Lottery Prediction Dashboard</title>
+<title>WinGo Lottery Prediction Dashboard</title>
 <style>
-  /* --- Reset & Base Styles --- */
+  /* --- Reset & base styles --- */
   * {
     box-sizing: border-box;
     margin: 0;
@@ -14,717 +14,711 @@
 
   body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #f1f5fb;
     color: #333;
     min-height: 100vh;
+    display: flex;
+    flex-direction: column;
     line-height: 1.5;
   }
 
-  /* --- Sticky Header --- */
-  .sticky-header {
-    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+  /* --- Header --- */
+  header {
+    background: #2a3f66;
     color: white;
-    padding: 0.8rem 1rem;
+    padding: 1rem 1.5rem;
     text-align: center;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    font-weight: 700;
+    font-size: 1.5rem;
+    letter-spacing: 1.2px;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.3);
     position: sticky;
     top: 0;
     z-index: 1000;
-    backdrop-filter: blur(10px);
   }
 
-  .header-title {
-    font-size: 1.6rem;
-    font-weight: 800;
-    margin-bottom: 0.3rem;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-    letter-spacing: 1px;
+  main {
+    flex: 1;
+    padding: 1.2rem 0.8rem;
+    max-width: 960px;
+    margin: 0 auto;
+    width: 100%;
   }
 
-  .header-info {
+  h2 {
+    margin-top: 1.5rem;
+    margin-bottom: 0.8rem;
+    color: #2a3f66;
+    border-bottom: 2px solid #2a3f66;
+    padding-bottom: 0.3rem;
+    font-size: 1.2rem;
+    letter-spacing: 0.6px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 0.9rem;
-    margin-top: 0.5rem;
+  }
+
+  .section {
+    background: white;
+    border-radius: 10px;
+    padding: 1.2rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 12px rgba(42,63,102,0.08);
+  }
+
+  .flex-row {
+    display: flex;
     flex-wrap: wrap;
     gap: 1rem;
-  }
-
-  .timestamp-info {
-    background: rgba(255,255,255,0.2);
-    padding: 0.3rem 0.8rem;
-    border-radius: 20px;
-    backdrop-filter: blur(5px);
-  }
-
-  .countdown-timer {
-    background: rgba(255,193,7,0.9);
-    color: #1e3c72;
-    padding: 0.4rem 1rem;
-    border-radius: 25px;
-    font-weight: 700;
-    font-size: 1rem;
-    box-shadow: 0 2px 10px rgba(255,193,7,0.4);
-    animation: pulse 2s ease-in-out infinite alternate;
-  }
-
-  @keyframes pulse {
-    from { transform: scale(1); }
-    to { transform: scale(1.05); }
-  }
-
-  /* --- Main Container --- */
-  .main-container {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 1rem;
-  }
-
-  /* --- Section Styles --- */
-  .dashboard-section {
-    background: rgba(255,255,255,0.95);
-    backdrop-filter: blur(10px);
-    border-radius: 15px;
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.1);
-    border: 1px solid rgba(255,255,255,0.2);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-  }
-
-  .dashboard-section:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 12px 40px rgba(0,0,0,0.15);
-  }
-
-  .section-header {
-    font-size: 1.3rem;
-    font-weight: 700;
-    color: #1e3c72;
-    margin-bottom: 1rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 3px solid #667eea;
-    display: flex;
-    justify-content: space-between;
     align-items: center;
   }
 
-  /* --- Grid Layouts --- */
-  .grid-2 {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 1.5rem;
+  .flex-col {
+    display: flex;
+    flex-direction: column;
   }
 
-  .grid-3 {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1rem;
-  }
-
-  /* --- Special 3-box layout for predictions --- */
-  .prediction-trio {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-  }
-
-  /* --- Main Prediction Display --- */
-  .prediction-display {
-    text-align: center;
-    padding: 1rem;
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    border-radius: 15px;
-    color: white;
-    margin-bottom: 1rem;
-  }
-
+  /* --- Prediction numbers bubbles --- */
   .prediction-numbers {
     display: flex;
+    gap: 0.8rem;
+    margin-top: 0.4rem;
     justify-content: center;
-    gap: 1rem;
-    margin: 1rem 0;
-    flex-wrap: wrap;
   }
 
   .number-bubble {
-    width: 60px;
-    height: 60px;
+    background: #2a3f66;
+    color: white;
+    font-weight: 700;
+    font-size: 2rem;
+    width: 55px;
+    height: 55px;
     border-radius: 50%;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    font-size: 1.8rem;
-    font-weight: 800;
-    color: white;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-    transition: all 0.3s ease;
-    cursor: pointer;
+    box-shadow: 0 3px 6px rgba(42,63,102,0.4);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
   }
 
   .number-bubble:hover {
-    transform: scale(1.1) rotate(5deg);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(42,63,102,0.5);
   }
 
   .bubble-pct {
-    font-size: 0.7rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #f0f0f0;
     margin-top: 2px;
-    background: rgba(0,0,0,0.3);
-    padding: 1px 4px;
-    border-radius: 8px;
+    letter-spacing: 0.3px;
+    display: block;
+    background: rgba(0,0,0,0.2);
+    padding: 0 3px;
+    border-radius: 3px;
   }
 
-  /* --- Prediction Cards --- */
-  .prediction-card {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 1.5rem;
-    border-radius: 15px;
-    text-align: center;
-    box-shadow: 0 8px 25px rgba(0,0,0,0.2);
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-  }
-
-  .prediction-value {
-    font-size: 2.5rem;
-    font-weight: 800;
-    margin: 0.5rem 0;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-  }
-
-  .prediction-meta {
-    font-size: 0.9rem;
-    opacity: 0.9;
-    margin-top: 0.5rem;
-  }
-
-  /* --- Pattern Prediction Boxes --- */
-  .pattern-display {
-    text-align: center;
-    padding: 1rem;
-  }
-
-  .pattern-box {
-    font-size: 2rem;
-    font-weight: 800;
-    padding: 1rem 2rem;
-    border-radius: 15px;
-    display: inline-block;
-    min-width: 150px;
-    margin: 0.5rem;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.2);
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-    transition: all 0.3s ease;
-  }
-
-  .pattern-box:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.3);
-  }
-
-  .pattern-box.Red { background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%); color: white; }
-  .pattern-box.Green { background: linear-gradient(135deg, #51cf66 0%, #40c057 100%); color: white; }
-  .pattern-box.Big { background: linear-gradient(135deg, #ff8c42 0%, #ff6b35 100%); color: white; }
-  .pattern-box.Small { background: linear-gradient(135deg, #4c6ef5 0%, #364fc7 100%); color: white; }
-  .pattern-box.Pending { background: linear-gradient(135deg, #868e96 0%, #6c757d 100%); color: white; }
-
-  /* --- AI Section Styles --- */
-  .ai-section {
-    background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
-    border: 2px solid #ff8c42;
-  }
-
-  .ai-toggle-btn {
-    background: linear-gradient(135deg, #ff8c42 0%, #ff6b35 100%);
-    color: white;
-    border: none;
-    border-radius: 25px;
-    padding: 0.6rem 1.5rem;
-    font-size: 1rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(255,140,66,0.4);
-  }
-
-  .ai-toggle-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(255,140,66,0.6);
-  }
-
-  .ai-toggle-btn.active {
-    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
-  }
-
-  .ai-badge {
-    background: #ff8c42;
-    color: white;
-    padding: 0.3rem 0.8rem;
-    border-radius: 15px;
-    font-size: 0.9rem;
-    font-weight: 700;
-    display: inline-block;
-    margin-top: 0.5rem;
-  }
-
-  /* --- Chip Styles --- */
+  /* Chips styles */
   .chip {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 0.3rem 0.8rem;
+    padding: 0.2em 0.8em;
     border-radius: 20px;
     font-size: 0.85rem;
     font-weight: 600;
-    margin: 0.2rem;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    transition: all 0.2s ease;
+    margin-right: 0.4em;
+    margin-bottom: 0.2em;
+    vertical-align: middle;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
   }
-
-  .chip:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-  }
-
   .chip.red { background: #e53935; color: #fff; }
   .chip.green { background: #4caf50; color: #fff; }
   .chip.violet { background: #9c27b0; color: #fff; }
-  .chip.gray { background: #9e9e9e; color: #fff; }
+  .chip.gray { background: #bdbdbd; color: #333; }
   .chip.blue { background: #2196f3; color: #fff; }
   .chip.gold { background: #ffc107; color: #333; }
+  
+  .chip.Result-Green { background-color: #4caf50; color: #fff; }
+  .chip.Result-Red { background-color: #e53935; color: #fff; }
+  .chip.Result-Violet { background-color: #9c27b0; color: #fff; }
+  .chip.Result-Pending { background-color: #bdbdbd; color: #333; }
+  .chip.Result-Big { background-color: #ff9800; color: #fff; }
+  .chip.Result-Small { background-color: #3f51b5; color: #fff; }
 
-  .chip.Result-Green { background: #4caf50; color: #fff; }
-  .chip.Result-Red { background: #e53935; color: #fff; }
-  .chip.Result-Violet { background: #9c27b0; color: #fff; }
-  .chip.Result-Pending { background: #9e9e9e; color: #fff; }
-  .chip.Result-Big { background: #ff9800; color: #fff; }
-  .chip.Result-Small { background: #3f51b5; color: #fff; }
+  /* Prediction details and percentages */
+  .prediction-detail {
+    font-weight: 600;
+    font-size: 1.1rem;
+    margin-bottom: 0.2rem;
+    color: #444;
+  }
+  .percentages {
+    font-size: 0.9rem;
+    color: #555;
+    margin-top: 0.1rem;
+    font-weight: 500;
+  }
+  .percentages span {
+    margin-right: 0.6rem;
+  }
 
-  /* --- Table Styles --- */
-  .data-table {
+  /* Previous draw styles */
+  .previous-draw {
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: #2a3f66;
+  }
+  .previous-draw strong {
+    font-size: 1.2rem;
+    color: #d32f2f;
+  }
+
+  /* Table Styles */
+  table {
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
-    border-radius: 10px;
+    font-size: 0.8rem;
+    border-radius: 8px;
     overflow: hidden;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    font-size: 0.85rem;
   }
 
-  .data-table thead {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  thead {
+    background: #2a3f66;
     color: white;
   }
 
-  .data-table th,
-  .data-table td {
-    padding: 0.6rem 0.4rem;
+  th, td {
+    padding: 0.4rem 0.2rem;
     text-align: center;
-    border-bottom: 1px solid rgba(0,0,0,0.05);
+    border-bottom: 1px solid #e1e6ef;
+    vertical-align: middle;
   }
-
-  .data-table tbody tr {
-    background: rgba(255,255,255,0.8);
-    transition: all 0.2s ease;
+  th:first-child, td:first-child {
+    padding-left: 0.6rem;
   }
-
-  .data-table tbody tr:hover {
-    background: rgba(102,126,234,0.1);
-    transform: scale(1.01);
+  th:last-child, td:last-child {
+    padding-right: 0.6rem;
   }
-
-  .data-table tbody tr:nth-child(even) {
-    background: rgba(255,255,255,0.5);
-  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: #eef4ff; cursor: pointer; }
 
   .correct { color: #2e7d32; font-weight: 700; }
   .incorrect { color: #c62828; font-weight: 700; }
 
-  /* --- Statistics Cards --- */
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-    gap: 1rem;
-    margin-top: 1rem;
-  }
-
-  .stat-card {
-    background: linear-gradient(135deg, #f8f9ff 0%, #e8f0fe 100%);
-    padding: 1rem;
-    border-radius: 10px;
+  /* Timestamp and timer styles */
+  #timestamp-display {
     text-align: center;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    border: 1px solid rgba(102,126,234,0.2);
-    transition: all 0.3s ease;
+    font-size: 0.9rem;
+    color: #555;
+    margin-top: 0.4rem;
+    margin-bottom: 0.4rem;
   }
-
-  .stat-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
-  }
-
-  .stat-label {
-    color: #667eea;
-    font-weight: 600;
-    font-size: 0.85rem;
-    margin-bottom: 0.3rem;
-  }
-
-  .stat-value {
-    color: #1e3c72;
-    font-weight: 800;
-    font-size: 1.3rem;
-  }
-
-  /* --- Previous Draw Display --- */
-  .previous-draw {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 1rem;
-    border-radius: 15px;
-    text-align: center;
+  .timer {
+    font-weight: 700;
     font-size: 1.1rem;
-    font-weight: 600;
-    margin-bottom: 1rem;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    color: #2a3f66;
+    text-align: center;
+    margin-bottom: 1.2rem;
+    padding: 0.6rem;
+    background: #e8f0fe;
+    border-radius: 6px;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
   }
 
-  .previous-draw strong {
-    font-size: 1.4rem;
-    color: #ffc107;
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
-  }
-
-  /* --- Error Message --- */
+  /* Error message */
   .error-message {
+    color: #d32f2f;
     background: #ffebee;
-    color: #c62828;
-    border: 2px solid #e57373;
-    border-radius: 10px;
-    padding: 1rem;
-    margin: 1rem 0;
+    border: 1px solid #d32f2f;
+    border-radius: 6px;
+    padding: 0.8em 1em;
+    margin: 1em 0;
     text-align: center;
     font-weight: 600;
     display: none;
-    box-shadow: 0 4px 15px rgba(229,115,115,0.3);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   }
 
-  /* --- Raw JSON Section --- */
-  .json-controls {
+  /* Combined performance streaks */
+  .performance-streaks-container {
     display: flex;
-    align-items: center;
+    flex-wrap: wrap;
     gap: 1rem;
-    margin-bottom: 1rem;
+    margin-bottom: 0.8rem;
+  }
+
+  .performance-streaks-container > .inner-section {
+    flex: 1 1 calc(50% - 0.5rem);
+    background: #f8faff;
+    border: 1px solid #e1e6ef;
+    padding: 0.8rem;
+    border-radius: 8px;
+  }
+  
+  .performance-streaks-container > .full-width-section {
+      flex: 1 1 100%;
+      background: #f8faff;
+      border: 1px solid #e1e6ef;
+      padding: 0.8rem;
+      border-radius: 8px;
+  }
+
+  .performance-streaks-container h3 {
+    font-size: 1rem;
+    color: #3f51b5;
+    margin: 0 0 0.5rem 0;
+    border-bottom: 1px dashed #c5cae9;
+    padding-bottom: 0.3rem;
+  }
+
+  .accuracy-grid, .streaks-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    gap: 0.5rem;
+  }
+
+  .stat-card {
+    background: #fff;
+    border: 1px solid #e1e6ef;
+    border-radius: 8px;
+    padding: 0.4rem 0.2rem;
+    text-align: center;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+    font-size: 1rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 55px;
+  }
+
+  .stat-label {
+    color: #555;
+    font-weight: 500;
+    margin-bottom: 0.2em;
+    font-size: 0.85em;
+    line-height: 1.2;
+  }
+
+  .stat-value {
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: #2a3f66;
+    line-height: 1.1;
+  }
+
+  .stat-card.streak-card .stat-value {
+    color: #ef6c00;
+  }
+
+  .streak-detail-row {
+    font-size: 0.9em;
+    color: #777;
+    margin-top: 0.2em;
+    line-height: 1.2;
+  }
+  .streak-detail-row strong { color: #333; font-weight: 600; }
+
+  /* Button bar and buttons */
+  .button-bar {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.6rem;
+    margin-top: 0.8rem;
+    margin-bottom: 1.2rem;
     flex-wrap: wrap;
   }
-
-  .json-dropdown {
-    background: #f8f9ff;
-    border: 2px solid #667eea;
-    border-radius: 8px;
-    padding: 0.5rem 1rem;
-    font-size: 0.9rem;
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-
-  .json-dropdown:hover {
-    border-color: #4c63d2;
-  }
-
-  .json-display {
-    background: #1a1a1a;
-    color: #e0e0e0;
-    padding: 1.5rem;
-    border-radius: 10px;
-    overflow-x: auto;
-    max-height: 300px;
-    font-family: 'Fira Code', 'Monaco', 'Consolas', monospace;
-    font-size: 0.8rem;
-    position: relative;
-    box-shadow: inset 0 4px 15px rgba(0,0,0,0.3);
-    white-space: pre-wrap;
-    word-break: break-all;
-  }
-
-  .copy-btn {
-    background: #667eea;
+  .dashboard-btn {
+    background: #1976d2;
     color: white;
     border: none;
     border-radius: 6px;
-    padding: 0.4rem 1rem;
+    padding: 0.5em 1em;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.1s ease;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  }
+  .dashboard-btn:hover { background: #1253a2; transform: translateY(-1px); }
+  .dashboard-btn:active { transform: translateY(0); box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+
+  /* Raw JSON display */
+  #raw-json-section { margin-top: 1.5rem; }
+  #raw-json-dropdown {
+    font-size: 0.85rem;
+    padding: 0.3rem 0.5rem;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    background-color: #f8f8f8;
+    cursor: pointer;
+    margin-left: 0.8rem;
+  }
+  #raw-json-display {
+    background: #23272e;
+    color: #e0e0e0;
+    padding: 1rem;
+    border-radius: 8px;
+    overflow-x: auto;
+    max-height: 250px;
+    font-family: 'Fira Code', 'Cascadia Code', 'Consolas', 'Monaco', monospace;
+    font-size: 0.85em;
+    margin-top: 0.8em;
+    margin-bottom: 0.5em;
+    position: relative;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+  #copy-json-btn {
+    background: #1976d2;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 0.3rem 0.8rem;
     cursor: pointer;
     position: absolute;
-    top: 10px;
-    right: 10px;
-    font-size: 0.8rem;
-    transition: all 0.2s ease;
+    top: 8px;
+    right: 8px;
+    font-size: 0.75em;
+    transition: background 0.2s;
+  }
+  #copy-json-btn:hover { background: #1253a2; }
+
+  /* AI TOGGLE BUTTON AND BADGE */
+  .ai-toggle-btn {
+    background: #fffde7;
+    color: #1976d2;
+    border: 1px solid #ffd600;
+    border-radius: 50px;
+    padding: 0.3em 1em;
+    font-size: 0.92rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-left: 0.1em;
+    margin-right: 0.1em;
+    transition: background 0.2s, color 0.2s, border 0.2s;
+    box-shadow: 0 1px 2px rgba(255,214,0,0.10);
+    outline: none;
+  }
+  .ai-toggle-btn.active { background: #ffd600; color: #2a3f66; border: 1px solid #1976d2; }
+  .ai-badge {
+    display: inline-block;
+    background: #ffd600;
+    color: #2a3f66;
+    border-radius: 12px;
+    font-size: 0.98em;
+    font-weight: 700;
+    padding: 0.1em 0.7em;
+    margin-left: 0.7em;
+    margin-bottom: 0.2em;
+    vertical-align: middle;
+    box-shadow: 0 1px 4px rgba(255,214,0,0.10);
+    letter-spacing: 1px;
+  }
+  .ai-badge[disabled] { background: #eee; color: #aaa; }
+
+  /* AI Prediction Section */
+  #ai-prediction-section {
+    background: #e8f0fe;
+    border: 1px solid #b3cde0;
+    text-align: center;
+  }
+  #ai-prediction-section h2, #ai-big-small-accuracy-section h2 { color: #1a4d8d; border-bottom-color: #1a4d8d; margin-top: 0; }
+  #ai-prediction-value { font-size: 3rem; font-weight: 700; color: #007bff; margin-bottom: 0.2rem; display: flex; justify-content: center; align-items: center; gap: 0.5em; }
+  #ai-prediction-meta { font-size: 0.9em; color: #555; margin-top: 0.5em; }
+
+  /* AI Big/Small Accuracy Section */
+  #ai-big-small-accuracy-section { background: #e8f0fe; border: 1px solid #b3cde0; text-align: center; }
+  #ai-big-small-accuracy-value { font-size: 2.2rem; font-weight: 700; color: #28a745; margin-bottom: 0.2rem; }
+  #ai-big-small-accuracy-meta { font-size: 0.9em; color: #555; margin-top: 0.5em; }
+
+  /* --- Color Prediction Section --- */
+  #color-prediction-section {
+    background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+    border: 1px solid #ddd;
+  }
+  #color-prediction-display { text-align: center; }
+  .color-pred-box {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: 10px;
+    display: inline-block;
+    min-width: 150px;
+    margin: 0.5rem auto;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.4);
+  }
+  .color-pred-box.Red { background-color: #e53935; }
+  .color-pred-box.Green { background-color: #4caf50; }
+  .color-pred-box.Pending { background-color: #9e9e9e; }
+  #color-prediction-meta {
+    font-size: 0.9em;
+    color: #666;
+    margin-top: 0.8rem;
+    line-height: 1.4;
+  }
+  #color-prediction-meta strong { color: #333; }
+  #color-pred-sequence {
+    font-family: monospace;
+    font-size: 1.1em;
+    background: #eef4ff;
+    padding: 2px 6px;
+    border-radius: 4px;
+    letter-spacing: 2px;
   }
 
-  .copy-btn:hover {
-    background: #4c63d2;
-    transform: translateY(-1px);
+  /* --- Size Prediction Section --- */
+  #size-prediction-section {
+    background: linear-gradient(135deg, #fff9c4 0%, #f7e98e 100%);
+    border: 1px solid #ddd;
+  }
+  #size-prediction-display { text-align: center; }
+  .size-pred-box {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: 10px;
+    display: inline-block;
+    min-width: 150px;
+    margin: 0.5rem auto;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.4);
+  }
+  .size-pred-box.Big { background-color: #ff9800; }
+  .size-pred-box.Small { background-color: #3f51b5; }
+  .size-pred-box.Pending { background-color: #9e9e9e; }
+  #size-prediction-meta {
+    font-size: 0.9em;
+    color: #666;
+    margin-top: 0.8rem;
+    line-height: 1.4;
+  }
+  #size-prediction-meta strong { color: #333; }
+  #size-pred-sequence {
+    font-family: monospace;
+    font-size: 1.1em;
+    background: #eef4ff;
+    padding: 2px 6px;
+    border-radius: 4px;
+    letter-spacing: 2px;
   }
 
-  /* --- Hidden Elements --- */
-  .hidden {
-    display: none !important;
+  /* Rule accuracy tables */
+  #color-rule-accuracy-table, #size-rule-accuracy-table {
+    width: 100%;
+    margin-top: 0.5rem;
+    font-size: 0.9em;
+  }
+  #color-rule-accuracy-table th, #color-rule-accuracy-table td,
+  #size-rule-accuracy-table th, #size-rule-accuracy-table td {
+    padding: 0.3rem;
+    font-size: 0.75rem;
+    border-color: #e1e6ef;
+  }
+  #color-rule-accuracy-table thead, #size-rule-accuracy-table thead { background-color: #3f51b5; }
+  #color-rule-accuracy-table td:nth-child(2), #color-rule-accuracy-table td:nth-child(3),
+  #size-rule-accuracy-table td:nth-child(2), #size-rule-accuracy-table td:nth-child(3) {
+      font-weight: 600;
+  }
+  
+  .history-chip {
+    display: inline-block;
+    padding: 0.2em 0.8em;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    vertical-align: middle;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  }
+  .history-chip.Red { background-color: #e53935; color: #fff; }
+  .history-chip.Green { background-color: #4caf50; color: #fff; }
+  .history-chip.Big { background-color: #ff9800; color: #fff; }
+  .history-chip.Small { background-color: #3f51b5; color: #fff; }
+  .history-chip.Pending { background-color: #bdbdbd; color: #333; }
+  .history-chip.Violet { background-color: #9c27b0; color: #fff; }
+
+  .streak-distribution-table {
+      width: 100%;
+      margin-top: 0.5rem;
+      font-size: 0.8em;
+      border-collapse: collapse;
+  }
+  .streak-distribution-table th, .streak-distribution-table td {
+      border: 1px solid #e1e6ef;
+      padding: 0.3rem;
+      text-align: center;
+  }
+  .streak-distribution-table thead {
+      background-color: #b3cde0;
+      color: #2a3f66;
+      font-weight: 600;
+  }
+  .streak-distribution-table tbody tr:hover {
+      background-color: #eef4ff;
   }
 
-  /* --- Responsive Design --- */
-  @media (max-width: 768px) {
-    .header-title {
-      font-size: 1.3rem;
-    }
-
-    .header-info {
-      flex-direction: column;
-      gap: 0.5rem;
-    }
-
-    .main-container {
-      padding: 0.5rem;
-    }
-
-    .dashboard-section {
-      padding: 1rem;
-      margin-bottom: 1rem;
-    }
-
-    .grid-2,
-    .grid-3,
-    .prediction-trio {
-      grid-template-columns: 1fr;
-      gap: 1rem;
-    }
-
-    .number-bubble {
-      width: 50px;
-      height: 50px;
-      font-size: 1.5rem;
-    }
-
-    .prediction-value {
-      font-size: 2rem;
-    }
-
-    .pattern-box {
-      font-size: 1.5rem;
-      padding: 0.8rem 1.5rem;
-      min-width: 120px;
-    }
-
-    .stats-grid {
-      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-    }
-
-    .data-table {
-      font-size: 0.75rem;
-    }
-
-    .data-table th,
-    .data-table td {
-      padding: 0.4rem 0.2rem;
-    }
-  }
-
-  @media (max-width: 480px) {
-    .header-title {
-      font-size: 1.1rem;
-    }
-
-    .countdown-timer {
-      font-size: 0.9rem;
-      padding: 0.3rem 0.8rem;
-    }
-
-    .prediction-numbers {
-      gap: 0.5rem;
-    }
-
-    .number-bubble {
-      width: 45px;
-      height: 45px;
-      font-size: 1.3rem;
-    }
-
-    .pattern-box {
-      font-size: 1.3rem;
-      padding: 0.6rem 1rem;
-      min-width: 100px;
-    }
-
-    .json-controls {
-      flex-direction: column;
-      align-items: stretch;
-    }
-
-    .prediction-trio {
-      grid-template-columns: 1fr;
-      gap: 0.8rem;
-    }
-
-    .prediction-card {
-      padding: 1rem;
-    }
-
-    .prediction-value {
-      font-size: 1.8rem;
-    }
-
-    .section-header {
-      font-size: 1.1rem;
-    }
+  /* Responsive adjustments */
+  @media (max-width: 600px) {
+    header { font-size: 1.2rem; padding: 0.8rem; }
+    h2 { font-size: 1.05rem; margin-top: 1rem; margin-bottom: 0.6rem; }
+    .section { padding: 0.8rem; margin-bottom: 1rem; border-radius: 6px; }
+    .button-bar { flex-direction: column; align-items: stretch; gap: 0.5rem; margin-top: 0.6rem; margin-bottom: 1rem; }
+    .number-bubble { width: 45px; height: 45px; font-size: 1.6rem; }
+    table { font-size: 0.7rem; }
+    .performance-streaks-container { flex-direction: column; }
+    .performance-streaks-container > .inner-section,
+    .performance-streaks-container > .full-width-section { flex: 1 1 100%; }
+    .color-pred-box, .size-pred-box { font-size: 2rem; padding: 0.8rem 1.5rem; }
   }
 </style>
 </head>
 <body>
+<header>
+  WinGo Lottery Prediction Dashboard 🎲
+</header>
 
-<!-- Sticky Header -->
-<div class="sticky-header">
-  <div class="header-title">🎲 WinGo 1 Min Lottery Prediction Dashboard</div>
-  <div class="header-info">
-    <div class="timestamp-info">
-      Last Updated: <span id="last-updated-time">--</span>
-    </div>
-    <div class="countdown-timer" id="countdown-timer">
-      Next update in: -- seconds ⏳
-    </div>
-  </div>
-</div>
-
-<!-- Main Container -->
-<div class="main-container">
-  
-  <!-- Error Message -->
+<main>
+  <div id="timestamp-display">Last Updated: <span id="last-updated-time">--</span></div>
+  <div class="timer" id="countdown-timer">Next update in: -- seconds ⏳</div>
   <div class="error-message" id="error-message"></div>
 
-  <!-- Main Prediction Draw -->
-  <div class="dashboard-section">
-    <div class="section-header">
-      🎯 Main Prediction Draw #<span id="draw-number">--</span>
-    </div>
-    <div class="prediction-display">
-      <div class="prediction-numbers" id="predicted-numbers">
-        <div class="number-bubble" style="background: #999;">Loading...</div>
-      </div>
-      <div class="grid-2" style="margin-top: 1rem;">
-        <div>
-          <strong>Big/Small:</strong> <span id="predicted-big-small">--</span>
-          <div id="big-small-percentages" style="font-size: 0.9rem; margin-top: 0.3rem;"></div>
-        </div>
-        <div>
-          <strong>Color:</strong> <span id="predicted-color">--</span>
-          <div id="color-percentages" style="font-size: 0.9rem; margin-top: 0.3rem;"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 3-Box Prediction Layout: Color, Size, AI -->
-  <div class="prediction-trio">
-    <div class="dashboard-section">
-      <div class="section-header">🎨 Color Pattern</div>
-      <div class="pattern-display" id="color-prediction-display">
-        <div class="pattern-box Pending">Loading...</div>
-        <div id="color-prediction-meta" style="margin-top: 1rem; font-size: 0.9rem;">
-          Awaiting data...
-        </div>
-      </div>
-    </div>
-    <div class="dashboard-section">
-      <div class="section-header">📏 Size Pattern</div>
-      <div class="pattern-display" id="size-prediction-display">
-        <div class="pattern-box Pending">Loading...</div>
-        <div id="size-prediction-meta" style="margin-top: 1rem; font-size: 0.9rem;">
-          Awaiting data...
-        </div>
-      </div>
-    </div>
-    <div class="dashboard-section ai-section">
-      <div class="section-header">
-        🧠 AI Number
-        <button class="ai-toggle-btn" id="ai-toggle-btn" onclick="toggleAI()">
+  <section class="section">
+    <h2 style="border-bottom: none; margin: 0;">Actions & Status 🎯
+      <div class="button-bar" style="margin-top: 0; margin-bottom: 0;">
+        <button class="dashboard-btn" onclick="manualRefresh()">Refresh 🔄</button>
+        <button class="dashboard-btn" onclick="window.location.href='/mixpred/'">MixPred 🎮</button>
+        <button class="dashboard-btn ai-toggle-btn" id="ai-toggle-btn" onclick="toggleAI()" aria-pressed="false" title="Enable or disable AI prediction">
           <span id="ai-toggle-btn-label">Start AI 🤖</span>
         </button>
       </div>
-      <div class="prediction-card">
-        <div class="prediction-value" id="ai-prediction-value">--</div>
-        <div id="ai-prediction-display-badge"></div>
-        <div class="prediction-meta" id="ai-prediction-meta">
-          Issue: <span id="ai-issue">--</span><br>
-          Last Run: <span id="ai-timestamp">--</span>
+    </h2>
+    <div class="previous-draw" id="previous-draw" style="margin-top: 0.8rem; text-align: center;">Loading...</div>
+  </section>
+
+  <div class="flex-row">
+    <section class="section" id="ai-prediction-section" style="flex: 1 1 48%;">
+      <h2>AI Predicted Number 🧠</h2>
+      <div id="ai-prediction-value">--</div>
+      <div id="ai-prediction-display-badge"></div>
+      <div id="ai-prediction-meta">
+        Issue: <span id="ai-issue">--</span> | Last AI Run: <span id="ai-timestamp">--</span>
+      </div>
+    </section>
+    <section class="section" id="ai-big-small-accuracy-section" style="flex: 1 1 48%;">
+      <h2>AI Big/Small Accuracy 📊</h2>
+      <div id="ai-big-small-accuracy-value">--</div>
+      <div id="ai-big-small-accuracy-meta">
+          Calculated on <span id="ai-accuracy-timestamp">--</span> |
+          Correct: <span id="ai-accuracy-correct">--</span> |
+          Total: <span id="ai-accuracy-total">--</span>
+      </div>
+    </section>
+  </div>
+
+  <div class="flex-row">
+    <section class="section" id="color-prediction-section" style="flex: 1 1 48%;">
+        <h2>Color Pattern Prediction (Red/Green) 🎨</h2>
+        <div id="color-prediction-display">
+            <div class="color-pred-box Pending">Pending</div>
+            <div id="color-prediction-meta">
+                Awaiting data...
+            </div>
         </div>
+    </section>
+    <section class="section" id="size-prediction-section" style="flex: 1 1 48%;">
+        <h2>Size Pattern Prediction (Big/Small) 📏</h2>
+        <div id="size-prediction-display">
+            <div class="size-pred-box Pending">Pending</div>
+            <div id="size-prediction-meta">
+                Awaiting data...
+            </div>
+        </div>
+    </section>
+  </div>
+
+  <section class="section" id="current-prediction">
+    <h2>Main Prediction (Draw #<span id="draw-number">--</span>) ✨</h2>
+    <div class="flex-row" style="justify-content: space-around; text-align: center;">
+      <div>
+        <div style="font-weight: 500; color: #555;">Predicted Numbers:</div>
+        <div class="prediction-numbers" id="predicted-numbers"></div>
+      </div>
+      <div class="flex-col" style="flex-grow: 1;">
+        <div class="prediction-detail">Big/Small: <span id="predicted-big-small">--</span></div>
+        <div class="percentages" id="big-small-percentages"></div>
+      </div>
+      <div class="flex-col" style="flex-grow: 1;">
+        <div class="prediction-detail">Color: <span id="predicted-color">--</span></div>
+        <div class="percentages" id="color-percentages"></div>
       </div>
     </div>
+  </section>
+
+  <div class="flex-row">
+    <section class="section" id="color-performance-section" style="flex: 1 1 48%;">
+        <h2>Color Prediction Performance 🚀</h2>
+        <div id="color-performance-stats" class="performance-streaks-container">
+            <p>Loading performance data...</p>
+        </div>
+    </section>
+    <section class="section" id="size-performance-section" style="flex: 1 1 48%;">
+        <h2>Size Prediction Performance 📊</h2>
+        <div id="size-performance-stats" class="performance-streaks-container">
+            <p>Loading performance data...</p>
+        </div>
+    </section>
   </div>
 
-  <!-- Sequence Pattern Analysis -->
-  <div class="dashboard-section">
-    <div class="section-header">📈 Sequence Pattern Analysis</div>
-    <div id="sequence-analysis">
-      <p>Loading sequence analysis...</p>
-    </div>
+  <div class="flex-row">
+    <section class="section" id="color-history-section" style="flex: 1 1 48%;">
+        <h2>Color Prediction History 📜</h2>
+        <div style="overflow-x: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Issue #</th>
+                <th>Predicted</th>
+                <th>Rule</th>
+                <th>Actual</th>
+                <th>Result</th>
+              </tr>
+            </thead>
+            <tbody id="color-history-table-body">
+                <tr><td colspan="5">Loading history...</td></tr>
+            </tbody>
+          </table>
+        </div>
+    </section>
+    <section class="section" id="size-history-section" style="flex: 1 1 48%;">
+        <h2>Size Prediction History 📊</h2>
+        <div style="overflow-x: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Issue #</th>
+                <th>Predicted</th>
+                <th>Rule</th>
+                <th>Actual</th>
+                <th>Result</th>
+              </tr>
+            </thead>
+            <tbody id="size-history-table-body">
+                <tr><td colspan="5">Loading history...</td></tr>
+            </tbody>
+          </table>
+        </div>
+    </section>
   </div>
 
-  <!-- Previous Draw Number -->
-  <div class="previous-draw" id="previous-draw">
-    Loading previous draw information...
-  </div>
-
-  <!-- History Tables -->
-  <div class="grid-2">
-    <div class="dashboard-section">
-      <div class="section-header">📜 Color Prediction History</div>
-      <div style="overflow-x: auto;">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Issue #</th>
-              <th>Predicted</th>
-              <th>Rule</th>
-              <th>Actual</th>
-              <th>Result</th>
-            </tr>
-          </thead>
-          <tbody id="color-history-table-body">
-            <tr><td colspan="5">Loading color history...</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-    <div class="dashboard-section">
-      <div class="section-header">📊 Size Prediction History</div>
-      <div style="overflow-x: auto;">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Issue #</th>
-              <th>Predicted</th>
-              <th>Rule</th>
-              <th>Actual</th>
-              <th>Result</th>
-            </tr>
-          </thead>
-          <tbody id="size-history-table-body">
-            <tr><td colspan="5">Loading size history...</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  <!-- Main Statistics Prediction History -->
-  <div class="dashboard-section">
-    <div class="section-header">📜 Main Statistics Prediction History</div>
+  <section class="section" id="history-predictions">
+    <h2>Main Prediction History 📜</h2>
     <div style="overflow-x: auto;">
-      <table class="data-table">
+      <table>
         <thead>
           <tr>
             <th>Draw #</th>
@@ -736,74 +730,52 @@
           </tr>
         </thead>
         <tbody id="history-table-body">
-          <tr><td colspan="6">Loading main prediction history...</td></tr>
+          <tr><td colspan="6">Loading main prediction data...</td></tr>
         </tbody>
       </table>
     </div>
-  </div>
+  </section>
 
-  <!-- Performance and Streaks -->
-  <div class="grid-3">
-    <div class="dashboard-section">
-      <div class="section-header">🚀 Color Performance & Streaks</div>
-      <div id="color-performance-stats">
-        <p>Loading color performance data...</p>
-      </div>
-    </div>
-    <div class="dashboard-section">
-      <div class="section-header">📊 Size Performance & Streaks</div>
-      <div id="size-performance-stats">
-        <p>Loading size performance data...</p>
-      </div>
-    </div>
-    <div class="dashboard-section">
-      <div class="section-header">📈 Main Performance & Streaks</div>
-      <div id="main-performance-stats">
-        <div class="stats-grid" id="accuracy-stats">
-          <div class="stat-card">
-            <div class="stat-label">Loading...</div>
-            <div class="stat-value">--</div>
-          </div>
+  <section class="section" id="past-performance-streaks">
+    <h2>Main Prediction Performance & Streaks 📊📈</h2>
+    <div class="performance-streaks-container">
+      <div class="inner-section" id="past-performance">
+        <h3>Accuracy</h3>
+        <div class="accuracy-grid" id="accuracy-stats">
+          <div class="stat-card"><div class="stat-label">Loading...</div><div class="stat-value">--</div></div>
         </div>
-        <div class="stats-grid" id="streaks-stats" style="margin-top: 1rem;">
-          <div class="stat-card">
-            <div class="stat-label">Loading...</div>
-            <div class="stat-value">--</div>
-          </div>
+      </div>
+      <div class="inner-section" id="streaks-section">
+        <h3>Streaks</h3>
+        <div class="streaks-grid" id="streaks-stats">
+          <div class="stat-card"><div class="stat-label">Loading...</div><div class="stat-value">--</div></div>
         </div>
       </div>
     </div>
-  </div>
+  </section>
 
-  <!-- Raw API Responses -->
-  <div class="dashboard-section">
-    <div class="section-header">🔧 Raw API Responses</div>
-    <div class="json-controls">
-      <select id="raw-json-dropdown" class="json-dropdown" onchange="updateRawJsonDisplay()">
+  <section class="section" id="sequence-analysis-section">
+    <h2>Sequence Pattern Analysis 📈</h2>
+    <div id="sequence-analysis">Loading sequence analysis...</div>
+  </section>
+
+  <section class="section" id="raw-json-section">
+    <h2>Raw API Responses
+      <select id="raw-json-dropdown" onchange="updateRawJsonDisplay()">
         <option value="prediction">Main Prediction</option>
         <option value="color_insights">Color Insights</option>
         <option value="size_insights">Size Insights</option>
         <option value="v2_insights">Combined Insights</option>
         <option value="ai_prediction">AI Prediction</option>
+        <option value="ai_big_small_accuracy">AI B/S Accuracy</option>
         <option value="status">Status</option>
       </select>
-    </div>
-    <div class="json-display" id="raw-json-display">
-      <button class="copy-btn" id="copy-json-btn">Copy</button>
-      No data loaded yet.
-    </div>
-  </div>
-
-  <!-- Hidden Elements (Simulator & Manual Refresh - functionality preserved but hidden) -->
-  <div class="hidden">
-    <button onclick="manualRefresh()">Hidden Refresh</button>
-    <button onclick="window.location.href='/mixpred/'">Hidden MixPred</button>
-  </div>
-
-</div>
+    </h2>
+    <pre id="raw-json-display"><button id="copy-json-btn">Copy</button>No data loaded yet.</pre>
+  </section>
+</main>
 
 <script>
-  // Color mapping for numbers
   const NUM_TO_COLOR_MAP = {
     0: 'Red', 1: 'Green', 2: 'Red', 3: 'Green', 4: 'Red',
     5: 'Green', 6: 'Red', 7: 'Green', 8: 'Red', 9: 'Green'
@@ -918,6 +890,7 @@
     prediction: null, 
     ai_prediction: null, 
     status: null, 
+    ai_big_small_accuracy: null, 
     color_insights: null,
     size_insights: null,
     v2_insights: null
@@ -929,7 +902,11 @@
     const selected = dropdown.value;
     const content = rawApiResponses[selected] ? JSON.stringify(rawApiResponses[selected], null, 2) : `No data for ${selected}.`;
     
-    display.innerHTML = `<button class="copy-btn" id="copy-json-btn">Copy</button>${content}`;
+    if (!display.querySelector('#copy-json-btn')) {
+        display.innerHTML = `<button id="copy-json-btn">Copy</button>${content}`;
+    } else {
+        display.firstChild.nextSibling.textContent = content;
+    }
 
     const copyBtn = document.getElementById('copy-json-btn');
     copyBtn.onclick = () => {
@@ -971,7 +948,7 @@
     } else {
       btn.classList.remove('active');
       label.textContent = 'Start AI 🤖';
-      aiDisplayBadge.innerHTML = `<span class="ai-badge" style="background: #999;" title="AI is OFF">AI OFF</span>`;
+      aiDisplayBadge.innerHTML = `<span class="ai-badge" disabled title="AI is OFF">AI OFF</span>`;
     }
   }
 
@@ -985,6 +962,7 @@
       aiEnabled = !!data.ai_enabled_flag;
       updateAIToggleBtn();
       loadAIPredictionData();
+      loadAIBigSmallAccuracy();
     } catch (e) {
       showErrorMessage('Failed to toggle AI: ' + e.message);
     } finally {
@@ -999,26 +977,23 @@
       setTimeout(() => errorDiv.style.display = "none", 5000);
   }
 
-  // Main Prediction Data Loading - FIXED ENDPOINT
+  // ✅ FIXED: Main Prediction Data Loading - using correct endpoint
   async function loadMainPredictionData() {
     try {
-        const res = await fetch('/api/prediction'); // ✅ CORRECT ENDPOINT
+        const res = await fetch('/api/prediction'); // ✅ CORRECT
         const data = await res.json();
         rawApiResponses['prediction'] = data;
 
         if (data.timestamp) {
             lastApiTimestamp = data.timestamp;
+            document.getElementById('last-updated-time').textContent = formatTimestamp(data.timestamp);
         }
 
-        // Update last updated time
-        document.getElementById('last-updated-time').textContent = formatTimestamp(data.timestamp);
-
-        // Update previous draw info
         const prevDrawElem = document.getElementById('previous-draw');
         if (data.status === 'initializing') {
-            prevDrawElem.innerHTML = `<span style="color: #ffc107;">⏳ Main prediction system initializing...</span>`;
+            prevDrawElem.innerHTML = `<span style="color: #888;">⏳ Main prediction system initializing...</span>`;
         } else if (data.status === 'error') {
-            prevDrawElem.innerHTML = `<span style="color: #e74c3c;">❌ Error: ${data.message}</span>`;
+            prevDrawElem.innerHTML = `<span style="color: #d32f2f;">❌ Error: ${data.message}</span>`;
         } else {
             const drawNumber = data.next_issue || data.issue || '--';
             const prediction = data.prediction || {};
@@ -1036,18 +1011,9 @@
                     const bubble = document.createElement('div');
                     bubble.className = 'number-bubble';
                     bubble.textContent = item.number;
-                    
-                    // Color coding for numbers
-                    if ([0, 2, 4, 6, 8].includes(item.number)) {
-                        bubble.style.background = 'linear-gradient(135deg, #e53935 0%, #c62828 100%)';
-                    }
-                    if ([1, 3, 5, 7, 9].includes(item.number)) {
-                        bubble.style.background = 'linear-gradient(135deg, #4caf50 0%, #388e3c 100%)';
-                    }
-                    if ([0, 5].includes(item.number)) {
-                        bubble.style.boxShadow = '0 0 15px 3px #9c27b0';
-                    }
-                    
+                    if ([0, 2, 4, 6, 8].includes(item.number)) bubble.style.backgroundColor = '#d32f2f';
+                    if ([1, 3, 5, 7, 9].includes(item.number)) bubble.style.backgroundColor = '#388e3c';
+                    if ([0, 5].includes(item.number)) bubble.style.boxShadow = '0 0 10px 3px #8e24aa';
                     const pctDiv = document.createElement('div');
                     pctDiv.className = 'bubble-pct';
                     pctDiv.textContent = `${item.likelihood.toFixed(1)}%`;
@@ -1055,7 +1021,7 @@
                     numbersContainer.appendChild(bubble);
                 });
             } else {
-                numbersContainer.innerHTML = '<div class="number-bubble" style="background: linear-gradient(135deg, #999 0%, #666 100%);">--</div>';
+                numbersContainer.innerHTML = '<div class="number-bubble" style="background: #999;">--</div>';
             }
 
             // Update big/small prediction
@@ -1063,7 +1029,7 @@
             const bigSmallPercentages = document.getElementById('big-small-percentages');
             if (prediction.big_small_percentages) {
                 bigSmallPercentages.innerHTML = Object.entries(prediction.big_small_percentages)
-                    .map(([k, v]) => `<span style="margin-right: 1rem;">${k.replace('_percentage', '')}: ${v.toFixed(1)}%</span>`).join('');
+                    .map(([k, v]) => `<span>${k.replace('_percentage', '')}: ${v.toFixed(1)}%</span>`).join('');
             }
 
             // Update color prediction
@@ -1071,7 +1037,7 @@
             const colorPercentages = document.getElementById('color-percentages');
             if (prediction.color_percentages) {
                 colorPercentages.innerHTML = Object.entries(prediction.color_percentages)
-                    .map(([k, v]) => `<span style="margin-right: 1rem;">${k}: ${v.toFixed(1)}%</span>`).join('');
+                    .map(([k, v]) => `<span>${k}: ${v.toFixed(1)}%</span>`).join('');
             }
 
             // Update previous draw info
@@ -1092,13 +1058,13 @@
             const seqDiv = document.getElementById('sequence-analysis');
             if (data.sequence_analysis && data.sequence_analysis.length > 0) {
                 seqDiv.innerHTML = data.sequence_analysis.map(item => `
-                    <div style="background: rgba(102,126,234,0.1); padding: 1rem; margin-bottom: 0.5rem; border-radius: 8px; border-left: 4px solid #667eea;">
-                        <p style="margin: 0; font-weight: 600;"><strong>Pattern [${item.pattern.join(', ')}]:</strong> ${item.predictions.map(p => `<span style="background: #667eea; color: white; padding: 0.2rem 0.5rem; border-radius: 15px; margin-right: 0.5rem;">${p.number}</span>`).join('')}</p>
-                        <p style="color: #666; font-size: 0.9rem; margin: 0.5rem 0 0; font-style: italic;">${item.message}</p>
+                    <div style="margin-bottom:0.7em;">
+                        <p style="margin:0;"><b>Pattern [${item.pattern.join(', ')}]:</b> ${item.predictions.map(p => `<strong>${p.number}</strong>`).join(', ')}</p>
+                        <p style="color:#888;font-size:0.9em;margin:0.2em 0 0;"><em>${item.message}</em></p>
                     </div>
                 `).join('');
             } else { 
-                seqDiv.innerHTML = '<p style="color: #666; font-style: italic;">No significant patterns detected in recent draws.</p>'; 
+                seqDiv.innerHTML = '<p>No significant patterns detected.</p>'; 
             }
 
             updateMainPredictionHistory(data.prediction_history || []);
@@ -1108,7 +1074,7 @@
     } catch (err) {
         console.error("Failed to load main prediction data:", err);
         showErrorMessage(`Failed to load main prediction: ${err.message}`);
-        document.getElementById('previous-draw').innerHTML = `<span style="color: #e74c3c;">❌ Failed to load main prediction data</span>`;
+        document.getElementById('previous-draw').innerHTML = `<span style="color: #d32f2f;">❌ Failed to load main prediction data</span>`;
     }
   }
 
@@ -1126,13 +1092,13 @@
         const res = item.result || {};
         const corr = item.correct || {};
 
-        const predText = `<strong>${pred.number ? pred.number.join('/') : '--'}</strong><br>${pred.big_small || '--'}<br>${createHistoryChip(pred.color, `Result-${pred.color}`)}`;
+        const predText = `<b>${pred.number ? pred.number.join('/') : '--'}</b><br>${pred.big_small || '--'}<br>${createHistoryChip(pred.color, `Result-${pred.color}`)}`;
         
         const actualNum = res.number !== undefined ? res.number : '--';
         const actualColors = (res.colors || []).filter(Boolean).map(c => createHistoryChip(c, `Result-${c}`)).join(' ');
         const actualBS = res.big_small || '--';
         
-        const actualText = `<strong>${actualNum}</strong><br>${actualBS}<br>${actualColors}`;
+        const actualText = `<b>${actualNum}</b><br>${actualBS}<br>${actualColors}`;
 
         tr.innerHTML = `
             <td>${String(item.issue).slice(-4)}</td>
@@ -1154,15 +1120,15 @@
         const parsePercent = (str) => (str || "0%").match(/(\d+\.?\d*)/)?.[0] || "0";
         accuracyContainer.innerHTML = `
             <div class="stat-card">
-                <div class="stat-label">Numbers Accuracy</div>
+                <div class="stat-label">Numbers Acc.</div>
                 <div class="stat-value">${parsePercent(accuracyStats.number_accuracy)}%</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">Color Accuracy</div>
+                <div class="stat-label">Color Acc.</div>
                 <div class="stat-value">${parsePercent(accuracyStats.color_accuracy)}%</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">Big/Small Accuracy</div>
+                <div class="stat-label">Big/Small Acc.</div>
                 <div class="stat-value">${parsePercent(accuracyStats.big_small_accuracy)}%</div>
             </div>
         `;
@@ -1175,12 +1141,10 @@
         Object.entries(streakStats).forEach(([key, val]) => {
             const label = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
             streaksContainer.innerHTML += `
-                <div class="stat-card">
-                    <div class="stat-label">${label}</div>
-                    <div class="stat-value" style="font-size: 1rem;">
-                        Win: ${val.current_win || 0} (Max: ${val.max_win || 0})<br>
-                        Loss: ${val.current_loss || 0} (Max: ${val.max_loss || 0})
-                    </div>
+                <div class="stat-card streak-card">
+                    <div class="stat-label">${label} Streaks</div>
+                    <div class="streak-detail-row">Win: <strong>${val.current_win || 0}</strong> (Max: ${val.max_win || 0})</div>
+                    <div class="streak-detail-row">Loss: <strong>${val.current_loss || 0}</strong> (Max: ${val.max_loss || 0})</div>
                 </div>
             `;
         });
@@ -1189,10 +1153,10 @@
     }
   }
 
-  // AI Prediction Functions - FIXED ENDPOINT
+  // ✅ FIXED: AI Prediction Data Loading - using correct endpoint
   async function loadAIPredictionData() {
     try {
-      const res = await fetch('/api/ai_prediction'); // ✅ CORRECT ENDPOINT (underscore, not slash)
+      const res = await fetch('/api/ai_prediction'); // ✅ CORRECT - underscore not slash
       const data = await res.json();
       rawApiResponses['ai_prediction'] = data;
 
@@ -1208,7 +1172,7 @@
         timestampElem.textContent = formatTimestamp(data.timestamp);
       } else if (data.status === 'no_data') {
         valueElem.textContent = '--';
-        badgeElem.innerHTML = aiEnabled ? `<span class="ai-badge">Waiting for data...</span>` : `<span class="ai-badge" style="background: #999;">AI OFF</span>`;
+        badgeElem.innerHTML = aiEnabled ? `<span class="ai-badge">Waiting for data...</span>` : `<span class="ai-badge" disabled title="AI is OFF">AI OFF</span>`;
         issueElem.textContent = '--';
         timestampElem.textContent = '--';
       } else {
@@ -1224,194 +1188,218 @@
     }
   }
 
-  // Color and Size Predictions - FIXED ENDPOINTS
-  async function loadColorInsights() {
+  // ✅ FIXED: AI Big/Small Accuracy - using correct endpoint
+  async function loadAIBigSmallAccuracy() {
     try {
-      const res = await fetch('/api/color_insights'); // ✅ CORRECT ENDPOINT (underscore, not dash)
+      const res = await fetch('/api/ai_big_small_accuracy'); // ✅ CORRECT - underscore not slash
       const data = await res.json();
-      rawApiResponses['color_insights'] = data;
+      rawApiResponses['ai_big_small_accuracy'] = data;
 
-      const display = document.getElementById('color-prediction-display');
-      const meta = document.getElementById('color-prediction-meta');
+      const valueElem = document.getElementById('ai-big-small-accuracy-value');
+      const timestampElem = document.getElementById('ai-accuracy-timestamp');
+      const correctElem = document.getElementById('ai-accuracy-correct');
+      const totalElem = document.getElementById('ai-accuracy-total');
 
-      if (data.status === 'success' && data.predictions) {
-        const pred = data.predictions.next_prediction;
-        const box = display.querySelector('.pattern-box') || document.createElement('div');
-        box.className = `pattern-box ${pred || 'Pending'}`;
-        box.textContent = pred || 'Pending';
-        
-        if (!display.querySelector('.pattern-box')) {
-          display.innerHTML = '';
-          display.appendChild(box);
+      if (data.status === 'success' && data.overall_accuracy_percentage !== undefined) {
+        valueElem.textContent = `${data.overall_accuracy_percentage}%`;
+        timestampElem.textContent = formatTimestamp(data.timestamp);
+        correctElem.textContent = data.correct_predictions || 0;
+        totalElem.textContent = data.total_predictions || 0;
+      } else {
+        valueElem.textContent = '--';
+        timestampElem.textContent = '--';
+        correctElem.textContent = '--';
+        totalElem.textContent = '--';
+      }
+    } catch (err) {
+      console.error("Failed to load AI accuracy:", err);
+      document.getElementById('ai-big-small-accuracy-value').textContent = '❌';
+    }
+  }
+
+  // ✅ FIXED: Color Insights Data Loading - using correct endpoint
+  async function loadColorInsightsData() {
+    const predDisplay = document.getElementById('color-prediction-display');
+    const perfStats = document.getElementById('color-performance-stats');
+    const historyBody = document.getElementById('color-history-table-body');
+
+    try {
+        const res = await fetch('/api/color_insights'); // ✅ CORRECT - underscore not dash
+        if (!res.ok) throw new Error(`API Error: ${res.statusText}`);
+        const data = await res.json();
+        rawApiResponses['color_insights'] = data;
+
+        // Update prediction display
+        if (data.predictions && data.predictions.next_prediction) {
+            const nextPred = data.predictions.next_prediction;
+            const box = predDisplay.querySelector('.color-pred-box') || document.createElement('div');
+            
+            box.className = `color-pred-box ${nextPred}`;
+            box.textContent = nextPred;
+            
+            if (!predDisplay.querySelector('.color-pred-box')) {
+                predDisplay.innerHTML = '';
+                predDisplay.appendChild(box);
+            }
+
+            // Update meta info
+            const meta = document.getElementById('color-prediction-meta');
+            if (data.analysis) {
+                meta.innerHTML = `
+                    <strong>Recent Sequence:</strong> <span id="color-pred-sequence">${data.analysis.recent_sequence || 'Loading...'}</span><br>
+                    <strong>Applied Rule:</strong> ${data.analysis.applied_rule || 'Analyzing patterns...'}<br>
+                    <strong>Confidence:</strong> ${data.analysis.confidence || '--'}%
+                `;
+            }
+        } else {
+            predDisplay.innerHTML = '<div class="color-pred-box Pending">Pending</div><div id="color-prediction-meta">Awaiting data...</div>';
         }
 
-        // Update meta information
-        const analysis = data.analysis || {};
-        meta.innerHTML = `
-          <strong>Pattern Analysis:</strong><br>
-          Recent: <span style="font-family: monospace; background: rgba(102,126,234,0.1); padding: 2px 6px; border-radius: 4px;">${analysis.recent_sequence || 'Loading...'}</span><br>
-          <strong>Rule:</strong> ${analysis.applied_rule || 'Analyzing...'}<br>
-          <strong>Confidence:</strong> ${analysis.confidence || '--'}%
-        `;
-      } else {
-        display.innerHTML = '<div class="pattern-box Pending">Pending</div>';
-        meta.innerHTML = 'Awaiting color pattern data...';
-      }
-
-      updateColorHistoryTable(data.prediction_history || []);
-    } catch (err) {
-      console.error("Failed to load color insights:", err);
-      document.getElementById('color-prediction-display').innerHTML = '<div class="pattern-box Pending">Error</div>';
-    }
-  }
-
-  async function loadSizeInsights() {
-    try {
-      const res = await fetch('/api/size_insights'); // ✅ CORRECT ENDPOINT (underscore, not dash)
-      const data = await res.json();
-      rawApiResponses['size_insights'] = data;
-
-      const display = document.getElementById('size-prediction-display');
-      const meta = document.getElementById('size-prediction-meta');
-
-      if (data.status === 'success' && data.predictions) {
-        const pred = data.predictions.next_prediction;
-        const box = display.querySelector('.pattern-box') || document.createElement('div');
-        box.className = `pattern-box ${pred || 'Pending'}`;
-        box.textContent = pred || 'Pending';
-        
-        if (!display.querySelector('.pattern-box')) {
-          display.innerHTML = '';
-          display.appendChild(box);
+        // Update performance stats
+        if (data.performance) {
+            perfStats.innerHTML = `
+                <div class="inner-section">
+                    <h3>Color Accuracy</h3>
+                    <div class="accuracy-grid">
+                        <div class="stat-card">
+                            <div class="stat-label">Overall</div>
+                            <div class="stat-value">${data.performance.accuracy || '--'}%</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Win Streak</div>
+                            <div class="stat-value">${data.performance.current_win_streak || 0}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Loss Streak</div>
+                            <div class="stat-value">${data.performance.current_loss_streak || 0}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else {
+            perfStats.innerHTML = '<p>Loading color performance data...</p>';
         }
 
-        // Update meta information
-        const analysis = data.analysis || {};
-        meta.innerHTML = `
-          <strong>Pattern Analysis:</strong><br>
-          Recent: <span style="font-family: monospace; background: rgba(102,126,234,0.1); padding: 2px 6px; border-radius: 4px;">${analysis.recent_sequence || 'Loading...'}</span><br>
-          <strong>Rule:</strong> ${analysis.applied_rule || 'Analyzing...'}<br>
-          <strong>Confidence:</strong> ${analysis.confidence || '--'}%
-        `;
-      } else {
-        display.innerHTML = '<div class="pattern-box Pending">Pending</div>';
-        meta.innerHTML = 'Awaiting size pattern data...';
-      }
+        // Update history table
+        if (data.prediction_history && data.prediction_history.length > 0) {
+            historyBody.innerHTML = '';
+            data.prediction_history.slice(0, 10).forEach(item => {
+                const tr = document.createElement('tr');
+                const predicted = item.predicted || 'Pending';
+                const actual = item.actual || 'Pending';
+                const result = item.result || 'Pending';
+                
+                tr.innerHTML = `
+                    <td>${String(item.issue).slice(-4)}</td>
+                    <td><span class="history-chip ${predicted}">${predicted}</span></td>
+                    <td style="font-size: 0.75rem;">${item.rule || '--'}</td>
+                    <td><span class="history-chip ${actual}">${actual}</span></td>
+                    <td class="${result === 'Correct' ? 'correct' : result === 'Incorrect' ? 'incorrect' : ''}">${result === 'Correct' ? '✔' : result === 'Incorrect' ? '✘' : '--'}</td>
+                `;
+                historyBody.appendChild(tr);
+            });
+        } else {
+            historyBody.innerHTML = '<tr><td colspan="5">No color prediction history available.</td></tr>';
+        }
 
-      updateSizeHistoryTable(data.prediction_history || []);
     } catch (err) {
-      console.error("Failed to load size insights:", err);
-      document.getElementById('size-prediction-display').innerHTML = '<div class="pattern-box Pending">Error</div>';
+        console.error("Failed to load color insights:", err);
+        predDisplay.innerHTML = '<div class="color-pred-box Pending">Error</div>';
+        perfStats.innerHTML = '<p>Error loading color performance data.</p>';
+        historyBody.innerHTML = '<tr><td colspan="5">Error loading color history.</td></tr>';
     }
   }
 
-  function updateColorHistoryTable(historyData) {
-    const tbody = document.getElementById('color-history-table-body');
-    if (!historyData || historyData.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5">No color prediction history available.</td></tr>';
-        return;
-    }
+  // ✅ FIXED: Size Insights Data Loading - using correct endpoint
+  async function loadSizeInsightsData() {
+    const predDisplay = document.getElementById('size-prediction-display');
+    const perfStats = document.getElementById('size-performance-stats');
+    const historyBody = document.getElementById('size-history-table-body');
 
-    tbody.innerHTML = '';
-    historyData.slice(0, 10).forEach(item => {
-        const tr = document.createElement('tr');
-        const predicted = item.predicted || 'Pending';
-        const actual = item.actual || 'Pending';
-        const result = item.result || 'Pending';
-        
-        tr.innerHTML = `
-            <td>${String(item.issue).slice(-4)}</td>
-            <td>${createHistoryChip(predicted, `Result-${predicted}`)}</td>
-            <td style="font-size: 0.75rem;">${item.rule || '--'}</td>
-            <td>${createHistoryChip(actual, `Result-${actual}`)}</td>
-            <td class="${result === 'Correct' ? 'correct' : result === 'Incorrect' ? 'incorrect' : ''}">${result === 'Correct' ? '✔' : result === 'Incorrect' ? '✘' : '--'}</td>
-        `;
-        tbody.appendChild(tr);
-    });
-  }
-
-  function updateSizeHistoryTable(historyData) {
-    const tbody = document.getElementById('size-history-table-body');
-    if (!historyData || historyData.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5">No size prediction history available.</td></tr>';
-        return;
-    }
-
-    tbody.innerHTML = '';
-    historyData.slice(0, 10).forEach(item => {
-        const tr = document.createElement('tr');
-        const predicted = item.predicted || 'Pending';
-        const actual = item.actual || 'Pending';
-        const result = item.result || 'Pending';
-        
-        tr.innerHTML = `
-            <td>${String(item.issue).slice(-4)}</td>
-            <td>${createHistoryChip(predicted, `Result-${predicted}`)}</td>
-            <td style="font-size: 0.75rem;">${item.rule || '--'}</td>
-            <td>${createHistoryChip(actual, `Result-${actual}`)}</td>
-            <td class="${result === 'Correct' ? 'correct' : result === 'Incorrect' ? 'incorrect' : ''}">${result === 'Correct' ? '✔' : result === 'Incorrect' ? '✘' : '--'}</td>
-        `;
-        tbody.appendChild(tr);
-    });
-  }
-
-  // Performance Stats Loading - FIXED ENDPOINTS
-  async function loadPerformanceStats() {
     try {
-      // Load color performance
-      const colorRes = await fetch('/api/color_insights'); // ✅ CORRECT ENDPOINT
-      const colorData = await colorRes.json();
-      const colorPerf = document.getElementById('color-performance-stats');
-      
-      if (colorData.performance) {
-        colorPerf.innerHTML = `
-          <div class="stats-grid">
-            <div class="stat-card">
-              <div class="stat-label">Accuracy</div>
-              <div class="stat-value">${colorData.performance.accuracy || '--'}%</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-label">Win Streak</div>
-              <div class="stat-value">${colorData.performance.current_win_streak || 0}</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-label">Loss Streak</div>
-              <div class="stat-value">${colorData.performance.current_loss_streak || 0}</div>
-            </div>
-          </div>
-        `;
-      } else {
-        colorPerf.innerHTML = '<p>Loading color performance data...</p>';
-      }
+        const res = await fetch('/api/size_insights'); // ✅ CORRECT - underscore not dash
+        if (!res.ok) throw new Error(`API Error: ${res.statusText}`);
+        const data = await res.json();
+        rawApiResponses['size_insights'] = data;
 
-      // Load size performance
-      const sizeRes = await fetch('/api/size_insights'); // ✅ CORRECT ENDPOINT
-      const sizeData = await sizeRes.json();
-      const sizePerf = document.getElementById('size-performance-stats');
-      
-      if (sizeData.performance) {
-        sizePerf.innerHTML = `
-          <div class="stats-grid">
-            <div class="stat-card">
-              <div class="stat-label">Accuracy</div>
-              <div class="stat-value">${sizeData.performance.accuracy || '--'}%</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-label">Win Streak</div>
-              <div class="stat-value">${sizeData.performance.current_win_streak || 0}</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-label">Loss Streak</div>
-              <div class="stat-value">${sizeData.performance.current_loss_streak || 0}</div>
-            </div>
-          </div>
-        `;
-      } else {
-        sizePerf.innerHTML = '<p>Loading size performance data...</p>';
-      }
+        // Update prediction display
+        if (data.predictions && data.predictions.next_prediction) {
+            const nextPred = data.predictions.next_prediction;
+            const box = predDisplay.querySelector('.size-pred-box') || document.createElement('div');
+            
+            box.className = `size-pred-box ${nextPred}`;
+            box.textContent = nextPred;
+            
+            if (!predDisplay.querySelector('.size-pred-box')) {
+                predDisplay.innerHTML = '';
+                predDisplay.appendChild(box);
+            }
+
+            // Update meta info
+            const meta = document.getElementById('size-prediction-meta');
+            if (data.analysis) {
+                meta.innerHTML = `
+                    <strong>Recent Sequence:</strong> <span id="size-pred-sequence">${data.analysis.recent_sequence || 'Loading...'}</span><br>
+                    <strong>Applied Rule:</strong> ${data.analysis.applied_rule || 'Analyzing patterns...'}<br>
+                    <strong>Confidence:</strong> ${data.analysis.confidence || '--'}%
+                `;
+            }
+        } else {
+            predDisplay.innerHTML = '<div class="size-pred-box Pending">Pending</div><div id="size-prediction-meta">Awaiting data...</div>';
+        }
+
+        // Update performance stats
+        if (data.performance) {
+            perfStats.innerHTML = `
+                <div class="inner-section">
+                    <h3>Size Accuracy</h3>
+                    <div class="accuracy-grid">
+                        <div class="stat-card">
+                            <div class="stat-label">Overall</div>
+                            <div class="stat-value">${data.performance.accuracy || '--'}%</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Win Streak</div>
+                            <div class="stat-value">${data.performance.current_win_streak || 0}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Loss Streak</div>
+                            <div class="stat-value">${data.performance.current_loss_streak || 0}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else {
+            perfStats.innerHTML = '<p>Loading size performance data...</p>';
+        }
+
+        // Update history table
+        if (data.prediction_history && data.prediction_history.length > 0) {
+            historyBody.innerHTML = '';
+            data.prediction_history.slice(0, 10).forEach(item => {
+                const tr = document.createElement('tr');
+                const predicted = item.predicted || 'Pending';
+                const actual = item.actual || 'Pending';
+                const result = item.result || 'Pending';
+                
+                tr.innerHTML = `
+                    <td>${String(item.issue).slice(-4)}</td>
+                    <td><span class="history-chip ${predicted}">${predicted}</span></td>
+                    <td style="font-size: 0.75rem;">${item.rule || '--'}</td>
+                    <td><span class="history-chip ${actual}">${actual}</span></td>
+                    <td class="${result === 'Correct' ? 'correct' : result === 'Incorrect' ? 'incorrect' : ''}">${result === 'Correct' ? '✔' : result === 'Incorrect' ? '✘' : '--'}</td>
+                `;
+                historyBody.appendChild(tr);
+            });
+        } else {
+            historyBody.innerHTML = '<tr><td colspan="5">No size prediction history available.</td></tr>';
+        }
 
     } catch (err) {
-      console.error("Failed to load performance stats:", err);
+        console.error("Failed to load size insights:", err);
+        predDisplay.innerHTML = '<div class="size-pred-box Pending">Error</div>';
+        perfStats.innerHTML = '<p>Error loading size performance data.</p>';
+        historyBody.innerHTML = '<tr><td colspan="5">Error loading size history.</td></tr>';
     }
   }
 
@@ -1420,10 +1408,10 @@
     try {
       await Promise.all([
         loadMainPredictionData(),
-        loadColorInsights(),
-        loadSizeInsights(),
+        loadColorInsightsData(),
+        loadSizeInsightsData(),
         loadAIPredictionData(),
-        loadPerformanceStats(),
+        loadAIBigSmallAccuracy(),
         fetchAIStatusAndUpdateBtn()
       ]);
       updateRawJsonDisplay();
