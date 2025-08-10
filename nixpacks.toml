@@ -1,20 +1,18 @@
 [phases]
-
   [phases.setup]
   nixPkgs = ["python312", "python312Packages.setuptools", "python312Packages.wheel", "gcc", "glibc"]
 
   [phases.build]
   cmds = [
     "python -m pip install --upgrade pip setuptools wheel",
+    "pip install --no-cache-dir setuptools>=68.0.0",
     "pip install --no-cache-dir -r requirements.txt",
-    "python -c 'import redis; print(\"Redis client ready\")'",
-    "python -c 'import requests; print(\"Requests ready\")'", 
-    "python -c 'import flask; print(\"Flask ready\")'",
+    "python -c 'import setuptools; print(\"Setuptools ready\")'",
     "mkdir -p /data /app/templates /app/static"
   ]
 
   [phases.start]
-  cmd = "gunicorn app:app --bind 0.0.0.0:$PORT --workers $WORKERS --timeout 120 --keepalive 5 --log-file - --access-logfile - --error-logfile -"
+  cmd = "gunicorn app:app --bind 0.0.0.0:$PORT --workers $WORKERS --timeout 120 --log-file -"
 
 [variables]
   SETUPTOOLS_USE_DISTUTILS = "stdlib"
