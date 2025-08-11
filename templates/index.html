@@ -1167,115 +1167,85 @@
         const data = await res.json();
         rawApiResponses['color_insights'] = data;
 
-        const pred = data.color_prediction;
-        if (pred && pred.next_color) {
+        // Update prediction display using the actual data structure from your backend
+        if (data.color_prediction && data.color_prediction.next_color) {
+            const pred = data.color_prediction;
+            const nextColor = pred.next_color;
+            
             predDisplay.innerHTML = `
-                <div class="color-pred-box ${pred.next_color}">${pred.next_color}</div>
+                <div class="color-pred-box ${nextColor}">${nextColor}</div>
                 <div id="color-prediction-meta">
-                    For Issue #<strong>${String(pred.issue).slice(-4)}</strong> based on <strong>${pred.rule_name || 'N/A'}</strong> (Score: ${pred.rule_score || 0}%)
-                    <br>Observed Sequence: <span id="color-pred-sequence">${pred.observed_sequence || 'N/A'}</span>
-                    <br>Last Updated: ${formatTimestamp(pred.last_updated)}
+                    For Issue #<strong>${String(pred.issue).slice(-4)}</strong> based on <strong>${pred.rule_name || 'N/A'}</strong><br>
+                    Confidence: <strong>${(pred.confidence * 100).toFixed(1)}%</strong><br>
+                    Last Updated: <strong>${formatTimestamp(pred.last_updated)}</strong>
                 </div>
             `;
         } else {
-            predDisplay.innerHTML = `<div class="color-pred-box Pending">Pending</div><div id="color-prediction-meta">No active color prediction.</div>`;
+            predDisplay.innerHTML = `
+                <div class="color-pred-box Pending">Pending</div>
+                <div id="color-prediction-meta">Awaiting data...</div>
+            `;
         }
 
-        const acc = data.color_accuracy;
-        const streaks = data.color_streaks;
-        if (acc && streaks) {
-            let perRuleHtml = 'No rule data.';
-            if (acc.per_rule && Object.keys(acc.per_rule).length > 0) {
-              perRuleHtml = `
-                <table id="color-rule-accuracy-table">
-                  <thead><tr><th>Rule</th><th>Accuracy</th><th>Count</th></tr></thead>
-                  <tbody>
-                    ${Object.entries(acc.per_rule).sort(([,a],[,b]) => b.total - a.total).map(([rule, stats]) => `
-                      <tr>
-                        <td>${rule}</td>
-                        <td>${stats.accuracy_pct.toFixed(1)}%</td>
-                        <td>${stats.correct}/${stats.total}</td>
-                      </tr>
-                    `).join('')}
-                  </tbody>
-                </table>`;
-            }
-            
-            let winDistributionHtml = '';
-            if (streaks.win_streak_distribution && Object.keys(streaks.win_streak_distribution).length > 0) {
-                winDistributionHtml = `
-                    <h3>Win Streak Count</h3>
-                    <table class="streak-distribution-table">
-                        <thead><tr><th>Level</th><th>Count</th></tr></thead>
-                        <tbody>
-                            ${Object.entries(streaks.win_streak_distribution).sort((a, b) => parseInt(a[0]) - parseInt(b[0])).map(([length, count]) => `
-                                <tr><td>${length}</td><td>${count}</td></tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                `;
-            }
-            
-            let loseDistributionHtml = '';
-            if (streaks.lose_streak_distribution && Object.keys(streaks.lose_streak_distribution).length > 0) {
-                loseDistributionHtml = `
-                    <h3>Loss Streak Count</h3>
-                    <table class="streak-distribution-table">
-                        <thead><tr><th>Level</th><th>Count</th></tr></thead>
-                        <tbody>
-                            ${Object.entries(streaks.lose_streak_distribution).sort((a, b) => parseInt(a[0]) - parseInt(b[0])).map(([length, count]) => `
-                                <tr><td>${length}</td><td>${count}</td></tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                `;
-            }
-
+        // Update performance stats using your actual data structure
+        if (data.color_accuracy) {
+            const acc = data.color_accuracy;
             perfStats.innerHTML = `
                 <div class="inner-section">
-                    <h3>Overall Accuracy & Streaks</h3>
-                    <div class="streaks-grid">
-                        <div class="stat-card"><div class="stat-label">Accuracy</div><div class="stat-value">${(acc.accuracy_percentage || 0).toFixed(2)}%</div></div>
-                        <div class="stat-card"><div class="stat-label">Total</div><div class="stat-value">${acc.correct_predictions || 0}/${acc.total_predictions || 0}</div></div>
-                        <div class="stat-card"><div class="stat-label">Current Win</div><div class="stat-value">${streaks.current_win_streak || 0}</div></div>
-                        <div class="stat-card"><div class="stat-label">Current Loss</div><div class="stat-value">${streaks.current_lose_streak || 0}</div></div>
-                        <div class="stat-card"><div class="stat-label">Max Win</div><div class="stat-value">${streaks.max_win_streak || 0}</div></div>
-                        <div class="stat-card"><div class="stat-label">Max Loss</div><div class="stat-value">${streaks.max_lose_streak || 0}</div></div>
-                    </div>
-                </div>
-                <div class="inner-section">
-                    <h3>Accuracy by Rule</h3>
-                    ${perRuleHtml}
-                </div>
-                <div class="full-width-section" style="display:flex; gap:1rem;">
-                    <div style="flex:1;">
-                        ${winDistributionHtml || '<p>No win streak distribution data.</p>'}
-                    </div>
-                    <div style="flex:1;">
-                        ${loseDistributionHtml || '<p>No loss streak distribution data.</p>'}
+                    <h3>Color Accuracy</h3>
+                    <div class="accuracy-grid">
+                        <div class="stat-card">
+                            <div class="stat-label">Overall</div>
+                            <div class="stat-value">${acc.accuracy_percentage}%</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Correct</div>
+                            <div class="stat-value">${acc.correct_predictions}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Total</div>
+                            <div class="stat-value">${acc.total_predictions}</div>
+                        </div>
                     </div>
                 </div>
             `;
-        } else {
-            perfStats.innerHTML = '<p>No color performance data available.</p>';
+            
+            // Add streak info if available
+            if (data.color_streaks) {
+                const streaks = data.color_streaks;
+                perfStats.innerHTML += `
+                    <div class="inner-section">
+                        <h3>Current Streaks</h3>
+                        <div class="accuracy-grid">
+                            <div class="stat-card">
+                                <div class="stat-label">Win Streak</div>
+                                <div class="stat-value">${streaks.current_win_streak}</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Loss Streak</div>
+                                <div class="stat-value">${streaks.current_lose_streak}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
         }
 
-        const historyData = data.color_prediction_history;
-        historyBody.innerHTML = '';
-        if (historyData && historyData.length > 0) {
-            historyData.forEach(item => {
-                const actualColor = item.actual_color;
-                const isCorrect = actualColor !== null && item.predicted_color === actualColor;
-
+        // Update history table using your actual data structure
+        if (data.color_prediction_history && data.color_prediction_history.length > 0) {
+            historyBody.innerHTML = '';
+            data.color_prediction_history.forEach(item => {
                 const tr = document.createElement('tr');
+                const predicted = item.predicted || 'Pending';
+                const actual = item.actual || 'Pending';
+                const result = item.result || 'Pending';
+                
                 tr.innerHTML = `
                     <td>${String(item.issue).slice(-4)}</td>
-                    <td>${createHistoryChip(item.predicted_color, 'Result-'+item.predicted_color)}</td>
-                    <td>${item.rule_name || 'N/A'}</td>
-                    <td>${createHistoryChip(actualColor, 'Result-'+actualColor)}</td>
-                    <td class="${actualColor ? (isCorrect ? 'correct' : 'incorrect') : ''}">
-                        ${actualColor ? (isCorrect ? '✔' : '✘') : '?'}
-                    </td>
+                    <td><span class="history-chip ${predicted}">${predicted}</span></td>
+                    <td style="font-size: 0.75rem;">${item.rule || '--'}</td>
+                    <td><span class="history-chip ${actual}">${actual}</span></td>
+                    <td class="${result === 'Correct' ? 'correct' : result === 'Incorrect' ? 'incorrect' : ''}">${result === 'Correct' ? '✔' : result === 'Incorrect' ? '✘' : '?'}</td>
                 `;
                 historyBody.appendChild(tr);
             });
@@ -1285,10 +1255,9 @@
 
     } catch (err) {
         console.error("Failed to load color insights:", err);
-        showErrorMessage(`Failed to load Color Insights: ${err.message}`);
-        predDisplay.innerHTML = `<div class="color-pred-box Pending">Error</div><div id="color-prediction-meta">Could not fetch color data.</div>`;
-        perfStats.innerHTML = '<p>Error loading performance data.</p>';
-        historyBody.innerHTML = '<tr><td colspan="5">Error loading history.</td></tr>';
+        predDisplay.innerHTML = '<div class="color-pred-box Pending">Error</div><div id="color-prediction-meta">Failed to load data</div>';
+        perfStats.innerHTML = '<p>Error loading color performance data.</p>';
+        historyBody.innerHTML = '<tr><td colspan="5">Error loading color history.</td></tr>';
     }
   }
 
@@ -1304,114 +1273,85 @@
         const data = await res.json();
         rawApiResponses['size_insights'] = data;
 
-        const pred = data.size_prediction;
-        if (pred && pred.next_size) {
+        // Update prediction display using the actual data structure from your backend
+        if (data.size_prediction && data.size_prediction.next_size) {
+            const pred = data.size_prediction;
+            const nextSize = pred.next_size;
+            
             predDisplay.innerHTML = `
-                <div class="size-pred-box ${pred.next_size}">${pred.next_size}</div>
+                <div class="size-pred-box ${nextSize}">${nextSize}</div>
                 <div id="size-prediction-meta">
-                    For Issue #<strong>${String(pred.issue).slice(-4)}</strong> based on <strong>${pred.rule_name || 'N/A'}</strong> (Score: ${pred.rule_score || 0}%)
-                    <br>Observed Sequence: <span id="size-pred-sequence">${pred.observed_sequence || 'N/A'}</span>
-                    <br>Last Updated: ${formatTimestamp(pred.last_updated)}
+                    For Issue #<strong>${String(pred.issue).slice(-4)}</strong> based on <strong>${pred.rule_name || 'N/A'}</strong><br>
+                    Confidence: <strong>${(pred.confidence * 100).toFixed(1)}%</strong><br>
+                    Last Updated: <strong>${formatTimestamp(pred.last_updated)}</strong>
                 </div>
             `;
         } else {
-            predDisplay.innerHTML = `<div class="size-pred-box Pending">Pending</div><div id="size-prediction-meta">No active size prediction.</div>`;
+            predDisplay.innerHTML = `
+                <div class="size-pred-box Pending">Pending</div>
+                <div id="size-prediction-meta">Awaiting data...</div>
+            `;
         }
 
-        const acc = data.size_accuracy;
-        const streaks = data.size_streaks;
-        if (acc && streaks) {
-            let perRuleHtml = 'No rule data.';
-            if (acc.per_rule && Object.keys(acc.per_rule).length > 0) {
-              perRuleHtml = `
-                <table id="size-rule-accuracy-table">
-                  <thead><tr><th>Rule</th><th>Accuracy</th><th>Count</th></tr></thead>
-                  <tbody>
-                    ${Object.entries(acc.per_rule).sort(([,a],[,b]) => b.total - a.total).map(([rule, stats]) => `
-                      <tr>
-                        <td>${rule}</td>
-                        <td>${stats.accuracy_pct.toFixed(1)}%</td>
-                        <td>${stats.correct}/${stats.total}</td>
-                      </tr>
-                    `).join('')}
-                  </tbody>
-                </table>`;
-            }
-            
-            let winDistributionHtml = '';
-            if (streaks.win_streak_distribution && Object.keys(streaks.win_streak_distribution).length > 0) {
-                winDistributionHtml = `
-                    <h3>Win Streak Count</h3>
-                    <table class="streak-distribution-table">
-                        <thead><tr><th>Level</th><th>Count</th></tr></thead>
-                        <tbody>
-                            ${Object.entries(streaks.win_streak_distribution).sort((a, b) => parseInt(a[0]) - parseInt(b[0])).map(([length, count]) => `
-                                <tr><td>${length}</td><td>${count}</td></tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                `;
-            }
-            
-            let loseDistributionHtml = '';
-            if (streaks.lose_streak_distribution && Object.keys(streaks.lose_streak_distribution).length > 0) {
-                loseDistributionHtml = `
-                    <h3>Loss Streak Count</h3>
-                    <table class="streak-distribution-table">
-                        <thead><tr><th>Level</th><th>Count</th></tr></thead>
-                        <tbody>
-                            ${Object.entries(streaks.lose_streak_distribution).sort((a, b) => parseInt(a[0]) - parseInt(b[0])).map(([length, count]) => `
-                                <tr><td>${length}</td><td>${count}</td></tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                `;
-            }
-
+        // Update performance stats using your actual data structure
+        if (data.size_accuracy) {
+            const acc = data.size_accuracy;
             perfStats.innerHTML = `
                 <div class="inner-section">
-                    <h3>Overall Accuracy & Streaks</h3>
-                    <div class="streaks-grid">
-                        <div class="stat-card"><div class="stat-label">Accuracy</div><div class="stat-value">${(acc.accuracy_percentage || 0).toFixed(2)}%</div></div>
-                        <div class="stat-card"><div class="stat-label">Total</div><div class="stat-value">${acc.correct_predictions || 0}/${acc.total_predictions || 0}</div></div>
-                        <div class="stat-card"><div class="stat-label">Current Win</div><div class="stat-value">${streaks.current_win_streak || 0}</div></div>
-                        <div class="stat-card"><div class="stat-label">Current Loss</div><div class="stat-value">${streaks.current_lose_streak || 0}</div></div>
-                        <div class="stat-card"><div class="stat-label">Max Win</div><div class="stat-value">${streaks.max_win_streak || 0}</div></div>
-                        <div class="stat-card"><div class="stat-label">Max Loss</div><div class="stat-value">${streaks.max_lose_streak || 0}</div></div>
-                    </div>
-                </div>
-                <div class="inner-section">
-                    <h3>Accuracy by Rule</h3>
-                    ${perRuleHtml}
-                </div>
-                <div class="full-width-section" style="display:flex; gap:1rem;">
-                    <div style="flex:1;">
-                        ${winDistributionHtml || '<p>No win streak distribution data.</p>'}
-                    </div>
-                    <div style="flex:1;">
-                        ${loseDistributionHtml || '<p>No loss streak distribution data.</p>'}
+                    <h3>Size Accuracy</h3>
+                    <div class="accuracy-grid">
+                        <div class="stat-card">
+                            <div class="stat-label">Overall</div>
+                            <div class="stat-value">${acc.accuracy_percentage}%</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Correct</div>
+                            <div class="stat-value">${acc.correct_predictions}</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Total</div>
+                            <div class="stat-value">${acc.total_predictions}</div>
+                        </div>
                     </div>
                 </div>
             `;
-        } else {
-            perfStats.innerHTML = '<p>No size performance data available.</p>';
+            
+            // Add streak info if available
+            if (data.size_streaks) {
+                const streaks = data.size_streaks;
+                perfStats.innerHTML += `
+                    <div class="inner-section">
+                        <h3>Current Streaks</h3>
+                        <div class="accuracy-grid">
+                            <div class="stat-card">
+                                <div class="stat-label">Win Streak</div>
+                                <div class="stat-value">${streaks.current_win_streak}</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">Loss Streak</div>
+                                <div class="stat-value">${streaks.current_lose_streak}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
         }
 
-        const historyData = data.size_prediction_history;
-        historyBody.innerHTML = '';
-        if (historyData && historyData.length > 0) {
-            historyData.forEach(item => {
-                const actualSize = item.actual_size;
-                const isCorrect = actualSize !== null && item.predicted_size === actualSize;
+        // Update history table using your actual data structure
+        if (data.size_prediction_history && data.size_prediction_history.length > 0) {
+            historyBody.innerHTML = '';
+            data.size_prediction_history.forEach(item => {
                 const tr = document.createElement('tr');
+                const predicted = item.predicted || 'Pending';
+                const actual = item.actual || 'Pending';
+                const result = item.result || 'Pending';
+                
                 tr.innerHTML = `
                     <td>${String(item.issue).slice(-4)}</td>
-                    <td>${createHistoryChip(item.predicted_size, 'Result-'+item.predicted_size)}</td>
-                    <td>${item.rule_name || 'N/A'}</td>
-                    <td>${createHistoryChip(actualSize, 'Result-'+actualSize)}</td>
-                    <td class="${actualSize ? (isCorrect ? 'correct' : 'incorrect') : ''}">
-                        ${actualSize ? (isCorrect ? '✔' : '✘') : '?'}
-                    </td>
+                    <td><span class="history-chip ${predicted}">${predicted}</span></td>
+                    <td style="font-size: 0.75rem;">${item.rule || '--'}</td>
+                    <td><span class="history-chip ${actual}">${actual}</span></td>
+                    <td class="${result === 'Correct' ? 'correct' : result === 'Incorrect' ? 'incorrect' : ''}">${result === 'Correct' ? '✔' : result === 'Incorrect' ? '✘' : '?'}</td>
                 `;
                 historyBody.appendChild(tr);
             });
@@ -1421,129 +1361,112 @@
 
     } catch (err) {
         console.error("Failed to load size insights:", err);
-        showErrorMessage(`Failed to load Size Insights: ${err.message}`);
-        predDisplay.innerHTML = `<div class="size-pred-box Pending">Error</div><div id="size-prediction-meta">Could not fetch size data.</div>`;
-        perfStats.innerHTML = '<p>Error loading performance data.</p>';
-        historyBody.innerHTML = '<tr><td colspan="5">Error loading history.</td></tr>';
+        predDisplay.innerHTML = '<div class="size-pred-box Pending">Error</div><div id="size-prediction-meta">Failed to load data</div>';
+        perfStats.innerHTML = '<p>Error loading size performance data.</p>';
+        historyBody.innerHTML = '<tr><td colspan="5">Error loading size history.</td></tr>';
     }
   }
 
+  // --- AI Prediction Data Loading ---
   async function loadAIPredictionData() {
-    const valElem = document.getElementById('ai-prediction-value');
-    const issueElem = document.getElementById('ai-issue');
-    const tsElem = document.getElementById('ai-timestamp');
-    const badgeElem = document.getElementById('ai-prediction-display-badge');
-
-    valElem.textContent = '--'; issueElem.textContent = '--'; tsElem.textContent = '--';
-    if (!aiEnabled) { badgeElem.innerHTML = `<span class="ai-badge" disabled>AI OFF</span>`; return; }
-    badgeElem.innerHTML = `<span class="ai-badge">Fetching...</span>`;
-
     try {
-        const res = await fetch('/api/ai_prediction');
-        const data = await res.json();
-        rawApiResponses['ai_prediction'] = data;
-        if (data.status === 'no_data' || data.ai_prediction === undefined) {
-            badgeElem.innerHTML = `<span class="ai-badge" disabled>No Data</span>`;
-        } else {
-            const predNum = parseInt(data.ai_prediction);
-            valElem.textContent = predNum;
-            issueElem.textContent = String(data.issue).slice(-4);
-            tsElem.textContent = formatTimestamp(data.timestamp);
-            badgeElem.innerHTML = `<span class="ai-badge">AI: ${predNum}</span>`;
-            valElem.style.color = '#007bff';
-            valElem.style.textShadow = 'none';
-            if (!isNaN(predNum)) {
-                if ([0, 2, 4, 6, 8].includes(predNum)) valElem.style.color = '#d32f2f';
-                if ([1, 3, 5, 7, 9].includes(predNum)) valElem.style.color = '#388e3c';
-                if ([0, 5].includes(predNum)) valElem.style.textShadow = '0 0 8px #8e24aa';
-            }
-        }
+      const res = await fetch('/api/ai_prediction');
+      const data = await res.json();
+      rawApiResponses['ai_prediction'] = data;
+
+      const valueElem = document.getElementById('ai-prediction-value');
+      const badgeElem = document.getElementById('ai-prediction-display-badge');
+      const issueElem = document.getElementById('ai-issue');
+      const timestampElem = document.getElementById('ai-timestamp');
+
+      if (data.status === 'success' && data.ai_prediction !== undefined && data.ai_prediction !== null) {
+        valueElem.textContent = data.ai_prediction;
+        badgeElem.innerHTML = `<span class="ai-badge">AI ON</span>`;
+        issueElem.textContent = String(data.issue || '--').slice(-4);
+        timestampElem.textContent = formatTimestamp(data.timestamp);
+      } else if (data.status === 'no_data') {
+        valueElem.textContent = '--';
+        badgeElem.innerHTML = aiEnabled ? `<span class="ai-badge">Waiting for data...</span>` : `<span class="ai-badge" disabled title="AI is OFF">AI OFF</span>`;
+        issueElem.textContent = '--';
+        timestampElem.textContent = '--';
+      } else {
+        valueElem.textContent = '⚠️';
+        badgeElem.innerHTML = `<span class="ai-badge" style="background: #ff6b6b;">Error</span>`;
+        issueElem.textContent = '--';
+        timestampElem.textContent = '--';
+      }
     } catch (err) {
-        showErrorMessage(`Failed to load AI data: ${err.message}`);
-        badgeElem.innerHTML = `<span class="ai-badge" disabled>Failed</span>`;
+      console.error("Failed to load AI prediction:", err);
+      document.getElementById('ai-prediction-value').textContent = '❌';
+      document.getElementById('ai-prediction-display-badge').innerHTML = `<span class="ai-badge" style="background: #ff6b6b;">Error</span>`;
     }
   }
 
+  // --- AI Big/Small Accuracy Loading ---
   async function loadAIBigSmallAccuracy() {
-    const valElem = document.getElementById('ai-big-small-accuracy-value');
-    const tsElem = document.getElementById('ai-accuracy-timestamp');
-    const correctElem = document.getElementById('ai-accuracy-correct');
-    const totalElem = document.getElementById('ai-accuracy-total');
-
-    valElem.textContent = '--'; tsElem.textContent = '--'; correctElem.textContent = '--'; totalElem.textContent = '--';
-    if (!aiEnabled) return;
-
     try {
-        const res = await fetch('/api/ai_big_small_accuracy');
-        const data = await res.json();
-        rawApiResponses['ai_big_small_accuracy'] = data;
-        if (data.status === 'success' && data.accuracy !== undefined) {
-            valElem.textContent = `${data.accuracy.toFixed(2)}%`;
-            correctElem.textContent = data.correct_predictions;
-            totalElem.textContent = data.total_predictions;
-            tsElem.textContent = formatTimestamp(data.timestamp);
-        } else {
-            valElem.textContent = 'N/A';
-        }
+      const res = await fetch('/api/ai_big_small_accuracy');
+      const data = await res.json();
+      rawApiResponses['ai_big_small_accuracy'] = data;
+
+      const valueElem = document.getElementById('ai-big-small-accuracy-value');
+      const timestampElem = document.getElementById('ai-accuracy-timestamp');
+      const correctElem = document.getElementById('ai-accuracy-correct');
+      const totalElem = document.getElementById('ai-accuracy-total');
+
+      if (data.status === 'success' && data.overall_accuracy_percentage !== undefined) {
+        valueElem.textContent = `${data.overall_accuracy_percentage}%`;
+        timestampElem.textContent = formatTimestamp(data.timestamp);
+        correctElem.textContent = data.correct_predictions || 0;
+        totalElem.textContent = data.total_predictions || 0;
+      } else {
+        valueElem.textContent = '--';
+        timestampElem.textContent = '--';
+        correctElem.textContent = '--';
+        totalElem.textContent = '--';
+      }
     } catch (err) {
-        showErrorMessage(`Failed to load AI B/S accuracy: ${err.message}`);
-        valElem.textContent = 'Error';
+      console.error("Failed to load AI accuracy:", err);
+      document.getElementById('ai-big-small-accuracy-value').textContent = '❌';
     }
   }
 
-  async function loadCombinedInsightsData() {
-    try {
-        const res = await fetch('/api/v2/insights');
-        if (!res.ok) throw new Error(`API Error: ${res.statusText}`);
-        const data = await res.json();
-        rawApiResponses['v2_insights'] = data;
-    } catch (err) {
-        console.error("Failed to load combined insights:", err);
-    }
-  }
-
-  // Main data loading function
+  // --- Main Data Loading Function ---
   async function loadAllData() {
     try {
-        document.getElementById('last-updated-time').textContent = formatTimestamp(new Date().toISOString());
-        
-        await Promise.all([
-            loadMainPredictionData(),           
-            loadColorInsightsData(),
-            loadSizeInsightsData(),
-            loadCombinedInsightsData(),
-            fetchAIStatusAndUpdateBtn().then(() => {
-                return Promise.all([
-                    loadAIPredictionData(),
-                    loadAIBigSmallAccuracy()
-                ]);
-            })
-        ]);
-
-        // *** MODIFIED: The global timestamp is now set inside loadMainPredictionData(),
-        // so we no longer set it here. This makes the countdown timer more accurate.
-        
-        updateRawJsonDisplay();
-        
-    } catch (err) {
-        console.error("Error loading data:", err);
-        showErrorMessage(`Error loading dashboard data: ${err.message}`);
+      console.log('🔄 Loading all prediction data...');
+      
+      // Update timestamp display
+      document.getElementById('last-updated-time').textContent = formatTimestamp(new Date().toISOString());
+      
+      // Load all data sources
+      await Promise.all([
+        loadMainPredictionData(),
+        loadColorInsightsData(),
+        loadSizeInsightsData(),
+        loadAIPredictionData(),
+        loadAIBigSmallAccuracy(),
+        fetchAIStatusAndUpdateBtn()
+      ]);
+      
+      console.log('✅ All data loaded successfully');
+    } catch (error) {
+      console.error('❌ Error loading data:', error);
+      showErrorMessage('Failed to load prediction data: ' + error.message);
     }
   }
 
-  // Initialize and start timers
-  function init() {
+  // --- Initialization ---
+  document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Dashboard initialized');
     loadAllData();
     
-    timerIntervalId = setInterval(() => {
-        checkRefreshTime();
-    }, 100);
-
+    // Set up periodic refresh
+    setInterval(checkRefreshTime, 100);
     setInterval(updateCountdownDisplay, 1000);
-  }
-
-  window.onload = init;
+  });
 </script>
+
 
 </body>
 </html>
