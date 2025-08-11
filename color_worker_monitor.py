@@ -240,6 +240,8 @@ SIZE_MAP = {
 }
 MAX_PATTERN_LENGTH = 6
 MIN_OCCURRENCES = 11
+MIN_SIZE_OCCURRENCES = 8  # Lower threshold for size patterns
+MIN_COLOR_OCCURRENCES = 11  # Keep existing for colors
 MAX_ALLOWED_LOSS_STREAK = 3
 TRAINING_WINDOW_SIZE = 1000
 EMERGENCY_LOSS_STREAK = 5
@@ -426,6 +428,7 @@ size_rules = {}
 current_loss = 0
 current_size_loss = 0
 rules_lock = Lock()
+cycle_count = 0
 
 # --- Status Management Functions ---
 def update_color_worker_status(status, message=None):
@@ -554,6 +557,37 @@ def learn_patterns(colors):
         logger.error(f"❌ Error in pattern learning: {e}")
         return defaultdict(lambda: defaultdict(int))
 
+def learn_size_patterns(sizes):
+    """Size-specific pattern learning with validation"""
+    try:
+        if not sizes or len(sizes) < MAX_PATTERN_LENGTH:
+            logger.warning(f"⚠️ Insufficient data for size pattern learning: {len(sizes) if sizes else 0} entries")
+            return defaultdict(lambda: defaultdict(int))
+        
+        stats = defaultdict(lambda: defaultdict(int))
+        patterns_found = 0
+        
+        for i in range(MAX_PATTERN_LENGTH, len(sizes)):
+            for l in range(2, MAX_PATTERN_LENGTH + 1):
+                try:
+                    pattern = ''.join([s for _, s in sizes[i - l:i]])
+                    next_s = sizes[i][1]
+                    
+                    if pattern and next_s:
+                        stats[pattern][next_s] += 1
+                        patterns_found += 1
+                        
+                except (IndexError, TypeError) as e:
+                    logger.warning(f"⚠️ Error processing size pattern at index {i}, length {l}: {e}")
+                    continue
+        
+        logger.debug(f"🧠 Learned {patterns_found} size pattern occurrences")
+        return stats
+        
+    except Exception as e:
+        logger.error(f"❌ Error in size pattern learning: {e}")
+        return defaultdict(lambda: defaultdict(int))
+
 def generate_rules(stats):
     """Enhanced rule generation with validation"""
     try:
@@ -567,7 +601,7 @@ def generate_rules(stats):
         for k, outcomes in stats.items():
             try:
                 total = sum(outcomes.values())
-                if total >= MIN_OCCURRENCES:
+                if total >= MIN_COLOR_OCCURRENCES:
                     best = max(outcomes.items(), key=lambda x: x[1])
                     accuracy = round((best[1] / total) * 100, 2)
                     
@@ -588,6 +622,44 @@ def generate_rules(stats):
         
     except Exception as e:
         logger.error(f"❌ Error generating rules: {e}")
+        return {}
+
+def generate_size_rules(stats):
+    """Generate size rules with lower threshold and accuracy filter"""
+    try:
+        if not stats:
+            logger.warning("⚠️ No statistics provided for size rule generation")
+            return {}
+        
+        ruleset = {}
+        rules_generated = 0
+        
+        for k, outcomes in stats.items():
+            try:
+                total = sum(outcomes.values())
+                if total >= MIN_SIZE_OCCURRENCES:  # Use lower threshold
+                    best = max(outcomes.items(), key=lambda x: x[1])
+                    accuracy = round((best[1] / total) * 100, 2)
+                    
+                    # Only accept rules with decent accuracy
+                    if accuracy >= 55.0:  # Minimum accuracy threshold
+                        ruleset[k] = {
+                            "predict": best[0],
+                            "correct": best[1],
+                            "total": total,
+                            "accuracy": accuracy
+                        }
+                        rules_generated += 1
+                        
+            except (ValueError, ZeroDivisionError) as e:
+                logger.warning(f"⚠️ Error generating size rule for pattern {k}: {e}")
+                continue
+        
+        logger.debug(f"📜 Generated {rules_generated} size rules from {len(stats)} patterns")
+        return ruleset
+        
+    except Exception as e:
+        logger.error(f"❌ Error generating size rules: {e}")
         return {}
 
 def get_effective_rulebook(learned_rules, predefined_rules, rule_type="color"):
@@ -618,7 +690,7 @@ def get_effective_rulebook(learned_rules, predefined_rules, rule_type="color"):
 def retrain_rules(colors):
     """Enhanced rule retraining with comprehensive error handling"""
     try:
-        logger.info(f"🧠 Retraining rules with {len(colors)} color entries...")
+        logger.info(f"🧠 Retraining COLOR rules with {len(colors)} color entries...")
         update_color_worker_status("retraining", f"Retraining with {len(colors)} entries")
         
         if not colors:
@@ -628,12 +700,78 @@ def retrain_rules(colors):
         stats = learn_patterns(colors)
         rules = generate_rules(stats)
         
-        logger.info(f"✅ Retraining complete: {len(rules)} rules generated")
+        logger.info(f"✅ Color retraining complete: {len(rules)} rules generated")
         return rules
         
     except Exception as e:
         logger.error(f"❌ Error during rule retraining: {e}")
         return {}
+
+def retrain_size_rules(sizes):
+    """Size-specific rule retraining with comprehensive error handling"""
+    try:
+        logger.info(f"🧠 Retraining SIZE rules with {len(sizes)} size entries...")
+        update_color_worker_status("retraining_size", f"Retraining size rules with {len(sizes)} entries")
+        
+        if not sizes:
+            logger.error("❌ No sizes provided for retraining")
+            return {}
+        
+        stats = learn_size_patterns(sizes)
+        rules = generate_size_rules(stats)
+        
+        logger.info(f"✅ Size retraining complete: {len(rules)} size rules generated")
+        return rules
+        
+    except Exception as e:
+        logger.error(f"❌ Error during size rule retraining: {e}")
+        return {}
+
+def retrain_size_rules_if_needed():
+    """Retrain size rules when accuracy drops below threshold"""
+    global size_rules, current_size_loss
+    
+    try:
+        # Get current size accuracy
+        size_accuracy_data = get_redis_json(REDIS_SIZE_ACCURACY_KEY, {})
+        size_accuracy = size_accuracy_data.get("accuracy_percentage", 50.0)
+        
+        # Check if retraining is needed
+        should_retrain = False
+        retrain_reason = ""
+        
+        if size_accuracy < 50.0:
+            should_retrain = True
+            retrain_reason = f"poor accuracy ({size_accuracy}%)"
+        elif current_size_loss >= 3:
+            should_retrain = True
+            retrain_reason = f"high loss streak ({current_size_loss})"
+        elif len(size_rules) == 0:
+            should_retrain = True
+            retrain_reason = "no learned rules available"
+        
+        if should_retrain:
+            logger.warning(f"🔄 Size rule retraining triggered: {retrain_reason}")
+            
+            history = decode_history()
+            size_sequence = get_size_sequence(history)
+            
+            if len(size_sequence) >= 50:  # Ensure enough data
+                new_size_rules = retrain_size_rules(size_sequence)
+                
+                with rules_lock:
+                    size_rules.update(new_size_rules)
+                
+                logger.info(f"✅ Size rules retrained: {len(new_size_rules)} new rules learned")
+                logger.info(f"📊 Total size rules now: {len(size_rules)} learned + {len(PREDEFINED_SIZE_RULES)} predefined")
+                return True
+            else:
+                logger.warning(f"⚠️ Insufficient size data for retraining: {len(size_sequence)} entries")
+                
+    except Exception as e:
+        logger.error(f"❌ Error in size rule retraining: {e}")
+    
+    return False
 
 # --- Enhanced Prediction Functions with Fallback ---
 def predict_next_color(seq, rulebook):
@@ -1043,555 +1181,411 @@ def update_size_accuracy():
     except Exception as e:
         logger.error(f"❌ Error updating size accuracy: {e}")
 
-# --- Enhanced Streak Calculation Functions ---
-def calculate_color_streaks():
-    """Enhanced color streak calculation with comprehensive error handling"""
+# --- Enhanced Streak Functions ---
+def update_streaks():
+    """Enhanced streak calculation with comprehensive error handling"""
     try:
-        logger.debug("📈 Calculating color streaks...")
+        logger.debug("📈 Updating color streaks...")
         
         if not redis_client:
-            logger.error("❌ Redis client not available for color streak calculation")
+            logger.error("❌ Redis client not available for streak update")
             return
         
-        pred_log = get_redis_hash_all(REDIS_COLOR_PREDICTION_LOG_KEY)
+        log = get_redis_hash_all(REDIS_COLOR_PREDICTION_LOG_KEY)
         history = decode_history()
-        
-        if not pred_log or not history:
-            logger.warning("⚠️ Missing prediction log or history for color streaks")
-            return
         
         # Get reset point
         reset_point_raw = get_redis_json(REDIS_RESET_POINT)
         reset_from = int(reset_point_raw) if reset_point_raw else None
         
         # Process issues in chronological order
-        sorted_issues = sorted(pred_log.keys(), key=int)
+        sorted_issues = sorted(log.keys(), key=int)
         
-        win = lose = max_win = max_lose = 0
-        wd = defaultdict(int)  # win distribution
-        ld = defaultdict(int)  # loss distribution
+        current_win = current_loss = 0
+        max_win = max_loss = 0
+        win_dist = defaultdict(int)
+        loss_dist = defaultdict(int)
         
         for issue in sorted_issues:
             try:
+                # Skip if before reset point
                 if reset_from and int(issue) < reset_from:
                     continue
                 
-                pred_raw = pred_log.get(issue)
+                pred_raw = log.get(issue)
                 if not pred_raw:
                     continue
                 
                 pred = json.loads(pred_raw)
-                actual_val = history.get(issue)
+                actual_value = history.get(issue)
                 
-                if actual_val is None:
+                if actual_value is None:
                     continue
                 
-                actual_color = "Red" if COLOR_MAP[actual_val] == 'R' else "Green"
-                predicted = pred.get("next_color")
+                actual_color = "Red" if COLOR_MAP[actual_value] == "R" else "Green"
+                predicted_color = pred.get("next_color")
                 
-                if actual_color == predicted:
-                    win += 1
-                    if lose > 0:
-                        ld[lose] += 1
-                        lose = 0
-                    max_win = max(max_win, win)
+                if predicted_color == actual_color:
+                    # Correct prediction - win
+                    if current_loss > 0:
+                        loss_dist[current_loss] += 1
+                        current_loss = 0
+                    current_win += 1
+                    max_win = max(max_win, current_win)
                 else:
-                    lose += 1
-                    if win > 0:
-                        wd[win] += 1
-                        win = 0
-                    max_lose = max(max_lose, lose)
+                    # Incorrect prediction - loss
+                    if current_win > 0:
+                        win_dist[current_win] += 1
+                        current_win = 0
+                    current_loss += 1
+                    max_loss = max(max_loss, current_loss)
                     
             except Exception as e:
-                logger.warning(f"⚠️ Error processing color streak for issue {issue}: {e}")
+                logger.warning(f"⚠️ Error processing streak for issue {issue}: {e}")
                 continue
         
-        # Handle final streak
-        current_win = win if win > 0 else 0
-        current_lose = lose if lose > 0 else 0
+        # Count current streak in distribution
+        if current_win > 0:
+            win_dist[current_win] += 1
+        if current_loss > 0:
+            loss_dist[current_loss] += 1
         
-        if win > 0:
-            wd[win] += 1
-        elif lose > 0:
-            ld[lose] += 1
-        
-        result = {
+        # Build streak data
+        streak_data = {
             "current_win_streak": current_win,
-            "current_lose_streak": current_lose,
+            "current_lose_streak": current_loss,
             "max_win_streak": max_win,
-            "max_lose_streak": max_lose,
-            "win_streak_distribution": dict(wd),
-            "lose_streak_distribution": dict(ld),
+            "max_lose_streak": max_loss,
+            "win_streak_distribution": dict(win_dist),
+            "lose_streak_distribution": dict(loss_dist),
             "timestamp": datetime.now(pytz.utc).isoformat(),
             "reset_from_issue": reset_from
         }
         
-        set_redis_json(REDIS_COLOR_STREAKS_KEY, result)
-        set_redis_json(REDIS_CONTROLLED_STREAKS_KEY, result)
-        
-        logger.info(f"📈 Color streaks updated from reset point {reset_from}: win={current_win}, lose={current_lose}")
+        set_redis_json(REDIS_COLOR_STREAKS_KEY, streak_data)
+        logger.info(f"📈 Color streaks updated from reset point {reset_from}: win={current_win}, lose={current_loss}")
         
     except Exception as e:
-        logger.error(f"❌ Error calculating color streaks: {e}")
+        logger.error(f"❌ Error updating color streaks: {e}")
 
-def calculate_size_streaks():
+def update_size_streaks():
     """Enhanced size streak calculation with comprehensive error handling"""
     try:
-        logger.debug("📈 Calculating size streaks...")
+        logger.debug("📈 Updating size streaks...")
         
         if not redis_client:
-            logger.error("❌ Redis client not available for size streak calculation")
+            logger.error("❌ Redis client not available for size streak update")
             return
         
-        pred_log = get_redis_hash_all(REDIS_SIZE_PREDICTION_LOG_KEY)
+        log = get_redis_hash_all(REDIS_SIZE_PREDICTION_LOG_KEY)
         history = decode_history()
-        
-        if not pred_log or not history:
-            logger.warning("⚠️ Missing size prediction log or history for size streaks")
-            return
         
         # Get reset point
         reset_point_raw = get_redis_json(REDIS_RESET_POINT)
         reset_from = int(reset_point_raw) if reset_point_raw else None
         
         # Process issues in chronological order
-        sorted_issues = sorted(pred_log.keys(), key=int)
+        sorted_issues = sorted(log.keys(), key=int)
         
-        win = lose = max_win = max_lose = 0
-        wd = defaultdict(int)  # win distribution
-        ld = defaultdict(int)  # loss distribution
+        current_win = current_loss = 0
+        max_win = max_loss = 0
+        win_dist = defaultdict(int)
+        loss_dist = defaultdict(int)
         
         for issue in sorted_issues:
             try:
+                # Skip if before reset point
                 if reset_from and int(issue) < reset_from:
                     continue
                 
-                pred_raw = pred_log.get(issue)
+                pred_raw = log.get(issue)
                 if not pred_raw:
                     continue
                 
                 pred = json.loads(pred_raw)
-                actual_val = history.get(issue)
+                actual_value = history.get(issue)
                 
-                if actual_val is None:
+                if actual_value is None:
                     continue
                 
-                actual_size = "Big" if SIZE_MAP[actual_val] == 'B' else "Small"
-                predicted = pred.get("next_size")
+                actual_size = "Big" if SIZE_MAP[actual_value] == "B" else "Small"
+                predicted_size = pred.get("next_size")
                 
-                if actual_size == predicted:
-                    win += 1
-                    if lose > 0:
-                        ld[lose] += 1
-                        lose = 0
-                    max_win = max(max_win, win)
+                if predicted_size == actual_size:
+                    # Correct prediction - win
+                    if current_loss > 0:
+                        loss_dist[current_loss] += 1
+                        current_loss = 0
+                    current_win += 1
+                    max_win = max(max_win, current_win)
                 else:
-                    lose += 1
-                    if win > 0:
-                        wd[win] += 1
-                        win = 0
-                    max_lose = max(max_lose, lose)
+                    # Incorrect prediction - loss
+                    if current_win > 0:
+                        win_dist[current_win] += 1
+                        current_win = 0
+                    current_loss += 1
+                    max_loss = max(max_loss, current_loss)
                     
             except Exception as e:
                 logger.warning(f"⚠️ Error processing size streak for issue {issue}: {e}")
                 continue
         
-        # Handle final streak
-        current_win = win if win > 0 else 0
-        current_lose = lose if lose > 0 else 0
+        # Count current streak in distribution
+        if current_win > 0:
+            win_dist[current_win] += 1
+        if current_loss > 0:
+            loss_dist[current_loss] += 1
         
-        if win > 0:
-            wd[win] += 1
-        elif lose > 0:
-            ld[lose] += 1
-        
-        result = {
+        # Build streak data
+        streak_data = {
             "current_win_streak": current_win,
-            "current_lose_streak": current_lose,
+            "current_lose_streak": current_loss,
             "max_win_streak": max_win,
-            "max_lose_streak": max_lose,
-            "win_streak_distribution": dict(wd),
-            "lose_streak_distribution": dict(ld),
+            "max_lose_streak": max_loss,
+            "win_streak_distribution": dict(win_dist),
+            "lose_streak_distribution": dict(loss_dist),
             "timestamp": datetime.now(pytz.utc).isoformat(),
             "reset_from_issue": reset_from
         }
         
-        set_redis_json(REDIS_SIZE_STREAKS_KEY, result)
-        set_redis_json(REDIS_CONTROLLED_SIZE_STREAKS_KEY, result)
-        
-        logger.info(f"📈 Size streaks updated from reset point {reset_from}: win={current_win}, lose={current_lose}")
+        set_redis_json(REDIS_SIZE_STREAKS_KEY, streak_data)
+        logger.info(f"📈 Size streaks updated from reset point {reset_from}: win={current_win}, lose={current_loss}")
         
     except Exception as e:
-        logger.error(f"❌ Error calculating size streaks: {e}")
+        logger.error(f"❌ Error updating size streaks: {e}")
 
-# --- Enhanced Main Prediction Functions ---
-def run_color_prediction_and_monitor():
-    """Enhanced color prediction and monitoring with comprehensive error handling"""
+# --- Enhanced Prediction Cycle Functions ---
+def run_color_prediction_cycle():
+    """Enhanced color prediction cycle with comprehensive error handling"""
     global rules, current_loss
     
     try:
-        logger.info("🔁 Running color prediction cycle...")
-        update_color_worker_status("color_prediction", "Running color prediction cycle")
-        send_color_worker_heartbeat()
+        logger.info("🎨 Running color prediction cycle...")
+        update_color_worker_status("running", "Processing color predictions")
         
-        # Check for shutdown signal
-        if shutdown_event.is_set():
-            logger.info("🛑 Shutdown requested during color prediction")
-            return
-        
+        # Get history and sequences
         history = decode_history()
-        if not history:
-            logger.warning("⚠️ History not found. Skipping color cycle.")
-            update_color_worker_status("warning", "No history data available")
-            return
-
-        sequence_raw = get_color_sequence(history)
-        if not sequence_raw:
-            logger.warning("⚠️ Color sequence is empty. Skipping color cycle.")
-            update_color_worker_status("warning", "Empty color sequence")
+        color_sequence = get_color_sequence(history)
+        
+        if not color_sequence:
+            logger.warning("⚠️ No color sequence available")
             return
         
-        # --- Step 1: Evaluate the PREVIOUS prediction ---
-        last_issue_key = max(history.keys(), key=int)
-        actual_value = history.get(str(last_issue_key))
-
-        if actual_value is not None:
-            actual_color = "Red" if COLOR_MAP[actual_value] == 'R' else "Green"
+        # Get current issue info
+        sorted_issues = sorted(history.keys(), key=int, reverse=True)
+        if not sorted_issues:
+            logger.warning("⚠️ No issues found in history")
+            return
+        
+        current_issue = sorted_issues[0]
+        next_issue = str(int(current_issue) + 1)
+        
+        # Check for recent mismatch (validation)
+        if len(sorted_issues) > 1:
+            prev_issue = sorted_issues[1]
+            prev_prediction = get_redis_hash_json(REDIS_COLOR_PREDICTION_LOG_KEY, prev_issue)
             
-            # Fetch the prediction that was made for this now-completed issue
-            last_prediction_data = get_redis_hash_json(REDIS_COLOR_PREDICTION_LOG_KEY, str(last_issue_key))
-            
-            if last_prediction_data:
-                last_predicted_color = last_prediction_data.get("next_color")
-
-                if last_predicted_color == actual_color:
-                    current_loss = 0
-                    logger.info(f"✅ Correct color prediction for issue #{last_issue_key} ('{actual_color}'). Loss streak reset.")
-                else:
-                    current_loss += 1
-                    logger.warning(f"❌ Color mismatch for issue #{last_issue_key}: expected '{actual_color}', but predicted '{last_predicted_color}'. Loss streak is now {current_loss}.")
+            if prev_prediction:
+                actual_value = history.get(prev_issue)
+                if actual_value is not None:
+                    actual_color = "Red" if COLOR_MAP[actual_value] == "R" else "Green"
+                    predicted_color = prev_prediction.get("next_color")
                     
-                    # Check for retraining conditions
-                    current_streak = get_redis_json(REDIS_COLOR_STREAKS_KEY, {})
-                    current_lose_streak = current_streak.get("current_lose_streak", 0)
-
-                    if current_loss >= MAX_ALLOWED_LOSS_STREAK or current_lose_streak >= EMERGENCY_LOSS_STREAK:
-                        logger.warning(f"🚨 Triggering color rule retraining...")
-                        update_color_worker_status("retraining", f"Loss streak: {current_loss}, Current streak: {current_lose_streak}")
-                        
-                        if current_lose_streak >= EMERGENCY_LOSS_STREAK:
-                            logger.warning(f"🚨 Emergency color retrain triggered: current_lose_streak = {current_lose_streak}")
-                            train_data = sequence_raw[-300:]
-                        else:
-                            logger.warning(f"📉 Regular color retrain triggered: current_loss = {current_loss}")
-                            train_data = sequence_raw[-TRAINING_WINDOW_SIZE:]
-
-                        with rules_lock:
-                            rules_new = retrain_rules(train_data)
-                            
-                            if rules_new:
-                                logger.info(f"🧠 Color model retrained at {datetime.now().isoformat()} with {len(rules_new)} rules.")
-                                logger.info("📊 Top 5 color patterns after retraining:")
-                                top_rules = sorted(rules_new.items(), key=lambda item: item[1]['total'], reverse=True)[:5]
-                                for rule_pattern, info in top_rules:
-                                    logger.info(f"🔍 {rule_pattern} → predict '{info['predict']}' | Accuracy: {info['accuracy']}% | Total: {info['total']}")
-                                
-                                rules.clear()
-                                rules.update(rules_new)
-                                current_loss = 0  # Reset after retraining
-                                logger.info("✅ Color rules updated successfully")
-                            else:
-                                logger.error("❌ Failed to retrain color rules")
-            else:
-                logger.info(f"ℹ️ No previous prediction found for issue #{last_issue_key}")
-
-        # --- Step 2: Generate NEW prediction for next issue ---
-        sequence = [c for _, c in sequence_raw]
+                    if predicted_color != actual_color:
+                        current_loss += 1
+                        logger.warning(f"❌ Color mismatch for issue #{prev_issue}: expected '{actual_color}', but predicted '{predicted_color}'. Loss streak is now {current_loss}.")
+                    else:
+                        current_loss = 0
+                        logger.info(f"✅ Color prediction correct for issue #{prev_issue}: '{actual_color}'. Loss streak reset.")
         
-        # Get next issue
-        next_issue = str(int(last_issue_key) + 1)
+        # Check if retraining is needed
+        if current_loss >= MAX_ALLOWED_LOSS_STREAK or len(rules) == 0:
+            logger.warning(f"🔄 Retraining triggered: loss streak={current_loss}, rules={len(rules)}")
+            with rules_lock:
+                new_rules = retrain_rules(color_sequence)
+                rules.update(new_rules)
+                current_loss = 0  # Reset loss streak after retraining
+                logger.info(f"✅ Rules updated: {len(rules)} total rules now available")
         
-        # Combine learned rules with predefined fallback rules
-        with rules_lock:
-            effective_rules = get_effective_rulebook(rules, PREDEFINED_COLOR_RULES, "color")
+        # Use effective rulebook
+        effective_rules = get_effective_rulebook(rules, PREDEFINED_COLOR_RULES, "color")
         
-        if not effective_rules:
-            logger.warning("⚠️ Empty rulebook for color prediction, using predefined rules only")
-            effective_rules = PREDEFINED_COLOR_RULES
+        # Make prediction
+        predicted_color, rule_used, accuracy = predict_next_color(color_sequence, effective_rules)
         
-        # Make prediction using combined rulebook
-        color_pred, color_rule, color_acc = predict_next_color(sequence_raw, rules)
-        
-        # Create prediction data
-        color_prediction_data = {
+        # Create prediction object
+        prediction = {
             "issue": next_issue,
-            "next_color": "Red" if color_pred == "R" else "Green",
-            "rule_name": color_rule,
-            "confidence": color_acc / 100.0 if color_acc else 0.5,
+            "next_color": predicted_color,
+            "rule_name": rule_used,
+            "confidence": accuracy / 100.0,
+            "available_rules": len(effective_rules),
             "last_updated": datetime.now(pytz.utc).isoformat(),
-            "prediction_source": "enhanced_rules",
-            "available_rules": len(effective_rules)
+            "prediction_source": "enhanced_rules"
         }
         
         # Log the prediction
-        if log_color_prediction(color_prediction_data):
-            logger.info(f"✅ New color prediction logged for issue #{next_issue} → '{color_prediction_data['next_color']}' via rule '{color_rule}'.")
-        else:
-            logger.error("❌ Failed to log color prediction")
+        if log_color_prediction(prediction):
+            logger.info(f"✅ New color prediction logged for issue #{next_issue} → '{predicted_color}' via rule '{rule_used}'.")
         
-        # Update accuracy and streaks
-        update_prediction_history()
+        # Update accuracy and history
         update_accuracy()
-        calculate_color_streaks()
-        
-        # Update worker status
-        update_color_worker_status("idle", f"Color prediction completed for issue {next_issue}")
+        update_prediction_history()
+        update_streaks()
         
         logger.info("✅ Color prediction cycle completed successfully")
         
     except Exception as e:
-        logger.error(f"❌ Color prediction and monitoring failed: {e}")
-        logger.exception("Full traceback:")
-        update_color_worker_status("error", f"Color prediction failed: {str(e)}")
+        logger.error(f"❌ Color prediction cycle failed: {e}")
+        update_color_worker_status("error", f"Color prediction cycle failed: {str(e)}")
 
-def run_size_prediction_and_monitor():
-    """Enhanced size prediction and monitoring with predefined rule support"""
+def run_size_prediction_cycle():
+    """Enhanced size prediction cycle with learning"""
     global size_rules, current_size_loss
     
     try:
         logger.info("📏 Running size prediction cycle...")
-        update_color_worker_status("size_prediction", "Running size prediction cycle")
         
+        # Check if size retraining is needed
+        retrain_size_rules_if_needed()
+        
+        # Get history and sequences
         history = decode_history()
-        if not history:
-            logger.warning("⚠️ History not found. Skipping size cycle.")
-            return
-
-        size_sequence_raw = get_size_sequence(history)
-        if not size_sequence_raw:
-            logger.warning("⚠️ Size sequence is empty. Skipping size cycle.")
+        size_sequence = get_size_sequence(history)
+        
+        if not size_sequence:
+            logger.warning("⚠️ No size sequence available")
             return
         
-        # Get next issue
-        last_issue_key = max(history.keys(), key=int)
-        next_issue = str(int(last_issue_key) + 1)
+        # Get current issue info
+        sorted_issues = sorted(history.keys(), key=int, reverse=True)
+        if not sorted_issues:
+            logger.warning("⚠️ No issues found in history")
+            return
         
-        # Evaluate previous size prediction if exists
-        actual_value = history.get(str(last_issue_key))
-        if actual_value is not None:
-            actual_size = "Big" if SIZE_MAP[actual_value] == 'B' else "Small"
+        current_issue = sorted_issues[0]
+        next_issue = str(int(current_issue) + 1)
+        
+        # Check for recent mismatch (validation)
+        if len(sorted_issues) > 1:
+            prev_issue = sorted_issues[1]
+            prev_prediction = get_redis_hash_json(REDIS_SIZE_PREDICTION_LOG_KEY, prev_issue)
             
-            last_prediction_data = get_redis_hash_json(REDIS_SIZE_PREDICTION_LOG_KEY, str(last_issue_key))
-            if last_prediction_data:
-                last_predicted_size = last_prediction_data.get("next_size")
-                
-                if last_predicted_size == actual_size:
-                    current_size_loss = 0
-                    logger.info(f"✅ Correct size prediction for issue #{last_issue_key} ('{actual_size}'). Loss streak reset.")
-                else:
-                    current_size_loss += 1
-                    logger.warning(f"❌ Size mismatch for issue #{last_issue_key}: expected '{actual_size}', but predicted '{last_predicted_size}'. Loss streak is now {current_size_loss}.")
+            if prev_prediction:
+                actual_value = history.get(prev_issue)
+                if actual_value is not None:
+                    actual_size = "Big" if SIZE_MAP[actual_value] == "B" else "Small"
+                    predicted_size = prev_prediction.get("next_size")
+                    
+                    if predicted_size != actual_size:
+                        current_size_loss += 1
+                        logger.warning(f"❌ Size mismatch for issue #{prev_issue}: expected '{actual_size}', but predicted '{predicted_size}'. Loss streak is now {current_size_loss}.")
+                    else:
+                        current_size_loss = 0
+                        logger.info(f"✅ Size prediction correct for issue #{prev_issue}: '{actual_size}'. Loss streak reset.")
         
-        # Combine learned rules with predefined fallback rules
-        with rules_lock:
-            effective_rules = get_effective_rulebook(size_rules, PREDEFINED_SIZE_RULES, "size")
-        
-        if not effective_rules:
-            logger.warning("⚠️ Empty size rulebook, using predefined rules only")
-            effective_rules = PREDEFINED_SIZE_RULES
+        # Use effective rulebook with any learned rules
+        effective_rules = get_effective_rulebook(size_rules, PREDEFINED_SIZE_RULES, "size")
         
         # Make prediction
-        size_pred, size_rule, size_acc = predict_next_size(size_sequence_raw, size_rules)
+        predicted_size, rule_used, accuracy = predict_next_size(size_sequence, effective_rules)
         
-        # Create prediction data
-        size_prediction_data = {
+        # Create prediction object
+        prediction = {
             "issue": next_issue,
-            "next_size": "Big" if size_pred == "B" else "Small",
-            "rule_name": size_rule,
-            "confidence": size_acc / 100.0 if size_acc else 0.5,
+            "next_size": predicted_size,
+            "rule_name": rule_used,
+            "confidence": accuracy / 100.0,
+            "available_rules": len(effective_rules),
             "last_updated": datetime.now(pytz.utc).isoformat(),
-            "prediction_source": "enhanced_rules",
-            "available_rules": len(effective_rules)
+            "prediction_source": "enhanced_rules"
         }
         
         # Log the prediction
-        if log_size_prediction(size_prediction_data):
-            logger.info(f"✅ New size prediction logged for issue #{next_issue} → '{size_prediction_data['next_size']}' via rule '{size_rule}'.")
+        if log_size_prediction(prediction):
+            logger.info(f"✅ New size prediction logged for issue #{next_issue} → '{predicted_size}' via rule '{rule_used}'.")
         
-        # Update accuracy and streaks
-        update_size_prediction_history()
+        # Update accuracy and history
         update_size_accuracy()
-        calculate_size_streaks()
+        update_size_prediction_history()
+        update_size_streaks()
         
         logger.info("✅ Size prediction cycle completed successfully")
         
     except Exception as e:
-        logger.error(f"❌ Size prediction and monitoring failed: {e}")
-        logger.exception("Full traceback:")
+        logger.error(f"❌ Size prediction cycle failed: {e}")
 
-def run_dual_prediction_cycle():
-    """Run both color and size predictions"""
-    logger.info("🚀 Starting dual prediction cycle...")
+# --- Main Monitoring Functions ---
+def main_monitoring_loop():
+    """Main monitoring loop with both color and size prediction cycles"""
+    global size_rules, cycle_count
     
-    try:
-        # Run color prediction
-        run_color_prediction_and_monitor()
-        
-        # Run size prediction  
-        run_size_prediction_and_monitor()
-        
-        logger.info("✅ Dual prediction cycle completed successfully")
-        return True
-        
-    except Exception as e:
-        logger.error(f"❌ Dual prediction cycle failed: {e}")
-        return False
+    logger.info("🚀 Starting main monitoring loop...")
+    update_color_worker_status("started", "Main monitoring loop initialized")
+    
+    while not shutdown_event.is_set():
+        try:
+            cycle_count += 1
+            logger.info(f"🔄 Starting cycle #{cycle_count}")
+            
+            # Color prediction cycle
+            run_color_prediction_cycle()
+            
+            # Size prediction cycle with learning
+            run_size_prediction_cycle()
+            
+            # Force size rule retraining every 50 cycles if still no learned rules
+            if cycle_count % 50 == 0 and len(size_rules) == 0:
+                logger.info("🔄 Forcing size rule retraining due to no learned rules...")
+                retrain_size_rules_if_needed()
+            
+            # Send heartbeat
+            send_color_worker_heartbeat()
+            update_color_worker_status("running", f"Cycle #{cycle_count} completed")
+            
+            # Wait for next cycle
+            logger.info(f"⏳ Cycle #{cycle_count} complete. Waiting 60 seconds...")
+            if shutdown_event.wait(60):  # Wait 60 seconds or until shutdown
+                break
+                
+        except KeyboardInterrupt:
+            logger.info("🛑 Keyboard interrupt received")
+            break
+        except Exception as e:
+            logger.error(f"❌ Error in main monitoring loop cycle #{cycle_count}: {e}")
+            update_color_worker_status("error", f"Cycle #{cycle_count} failed: {str(e)}")
+            if shutdown_event.wait(30):  # Wait 30 seconds before retrying, or until shutdown
+                break
 
-# Initialize predefined rules on startup
-def initialize_predefined_rules():
-    """Initialize predefined rules and log statistics"""
-    try:
-        logger.info("🎯 Initializing predefined rule system...")
-        
-        # Log predefined color rules
-        logger.info(f"🎨 Loaded {len(PREDEFINED_COLOR_RULES)} predefined color rules:")
-        for pattern, rule in list(PREDEFINED_COLOR_RULES.items())[:5]:  # Show first 5
-            logger.info(f"  📋 {pattern} → {rule['predict']} ({rule['accuracy']}%)")
-        
-        # Log predefined size rules  
-        logger.info(f"📏 Loaded {len(PREDEFINED_SIZE_RULES)} predefined size rules:")
-        for pattern, rule in list(PREDEFINED_SIZE_RULES.items())[:5]:  # Show first 5
-            logger.info(f"  📋 {pattern} → {rule['predict']} ({rule['accuracy']}%)")
-        
-        # Test fallback predictions
-        test_color_pred = get_time_based_color_prediction()
-        test_size_pred = get_time_based_size_prediction()
-        
-        logger.info(f"⏰ Time-based fallbacks ready: Color={test_color_pred[0]}, Size={test_size_pred[0]}")
-        logger.info("✅ Predefined rule system initialized successfully")
-        
-    except Exception as e:
-        logger.error(f"❌ Error initializing predefined rules: {e}")
-
-def calculate_next_run_time():
-    """Calculate the next run time (59th second)"""
-    now_utc = datetime.now(pytz.utc)
-    current_sec = now_utc.second
-    
-    # Target 59th second of current minute, or next minute if past 59th second
-    target_time = now_utc.replace(second=59, microsecond=0)
-    if current_sec >= 59:
-        target_time += timedelta(minutes=1)
-    
-    return target_time, (target_time - now_utc).total_seconds()
-
-def main_worker_loop():
-    """Main color worker loop with predefined rule support"""
-    logger.info("🚀 Color worker loop starting...")
-    
-    # Initialize predefined rules
-    initialize_predefined_rules()
-    
-    consecutive_failures = 0
-    max_consecutive_failures = 5
-    
-    try:
-        while not shutdown_event.is_set():
-            try:
-                # Calculate next run time
-                target_time, sleep_duration = calculate_next_run_time()
-                current_time = datetime.now(pytz.utc)
-                
-                logger.info(
-                    f"⏰ Current: {current_time.strftime('%H:%M:%S')} UTC | "
-                    f"Next run: {target_time.strftime('%H:%M:%S')} UTC | "
-                    f"Sleep: {sleep_duration:.1f}s"
-                )
-                
-                # Sleep with shutdown checks
-                elapsed = 0
-                while elapsed < sleep_duration and not shutdown_event.is_set():
-                    sleep_chunk = min(5, sleep_duration - elapsed)
-                    if shutdown_event.wait(timeout=sleep_chunk):
-                        break
-                    elapsed += sleep_chunk
-                
-                if shutdown_event.is_set():
-                    logger.info("🛑 Shutdown requested during sleep")
-                    break
-                
-                # Execute dual prediction cycle
-                current_utc = datetime.now(pytz.utc)
-                logger.info(f"🎯 Executing enhanced dual prediction cycle at {current_utc.strftime('%H:%M:%S')} UTC")
-                
-                success = run_dual_prediction_cycle()
-                
-                if success:
-                    consecutive_failures = 0
-                else:
-                    consecutive_failures += 1
-                    logger.error(f"❌ Dual prediction cycle failed (consecutive failures: {consecutive_failures})")
-                    
-                    if consecutive_failures >= max_consecutive_failures:
-                        logger.critical(f"💥 {max_consecutive_failures} consecutive failures. Exiting.")
-                        break
-                
-                time.sleep(2)
-                
-            except Exception as e:
-                consecutive_failures += 1
-                logger.error(f"❌ Unexpected error in worker loop: {e}", exc_info=True)
-                
-                if consecutive_failures >= max_consecutive_failures:
-                    logger.critical(f"💥 {max_consecutive_failures} consecutive errors. Exiting.")
-                    break
-                
-                time.sleep(30)
-    
-    except KeyboardInterrupt:
-        logger.info("🛑 Keyboard interrupt received")
-    except Exception as e:
-        logger.critical(f"💥 Critical error in main worker loop: {e}", exc_info=True)
-    finally:
-        logger.info("🏁 Color worker loop ended")
-
-# Graceful shutdown handling
 def signal_handler(signum, frame):
     """Handle shutdown signals gracefully"""
-    signal_name = signal.Signals(signum).name
-    logger.info(f"🛑 Received {signal_name} signal. Initiating graceful shutdown...")
+    logger.info(f"🛑 Received signal {signum}. Initiating graceful shutdown...")
+    update_color_worker_status("shutting_down", f"Received signal {signum}")
     shutdown_event.set()
 
-# Register signal handlers
-signal.signal(signal.SIGTERM, signal_handler)
-signal.signal(signal.SIGINT, signal_handler)
-
-if __name__ == "__main__":
-    logger.info("=" * 80)
-    logger.info("🚀 LOTTERY COLOR & SIZE PREDICTION WORKER WITH PREDEFINED RULES")
-    logger.info("=" * 80)
-    
-    # Environment validation
-    REDIS_URL = os.getenv("REDIS_URL")
-    
-    logger.info(f"🔗 Redis URL: {REDIS_URL[:50] if REDIS_URL else 'NOT SET'}...")
-    logger.info(f"🌍 Environment: {'Railway' if is_railway_environment() else 'Local'}")
-    logger.info(f"📂 Data Directory: {DATA_DIR}")
-    logger.info(f"🎨 Predefined Color Rules: {len(PREDEFINED_COLOR_RULES)}")
-    logger.info(f"📏 Predefined Size Rules: {len(PREDEFINED_SIZE_RULES)}")
-    
-    if not REDIS_URL:
-        logger.critical("💥 REDIS_URL environment variable not set. Exiting.")
-        sys.exit(1)
-    
-    logger.info("🎯 Starting enhanced color & size prediction worker...")
-    logger.info("📅 Scheduled to run every minute at 59th second")
-    logger.info("🛡️ Predefined rules ensure predictions even without historical data")
+def main():
+    """Main entry point"""
+    # Set up signal handlers for graceful shutdown
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
     
     try:
-        main_worker_loop()
+        logger.info("🎮 WinGo Color Worker Monitor starting...")
+        logger.info(f"🔧 Configuration: Pattern Length={MAX_PATTERN_LENGTH}, Min Occurrences={MIN_OCCURRENCES}")
+        logger.info(f"📏 Size Configuration: Min Size Occurrences={MIN_SIZE_OCCURRENCES}")
+        logger.info(f"🎯 Predefined Rules: {len(PREDEFINED_COLOR_RULES)} color, {len(PREDEFINED_SIZE_RULES)} size")
+        
+        # Run the main monitoring loop
+        main_monitoring_loop()
+        
     except Exception as e:
-        logger.critical(f"💥 Fatal error in main execution: {e}", exc_info=True)
-        sys.exit(1)
+        logger.critical(f"💥 Critical error in main(): {e}")
+        update_color_worker_status("critical_error", str(e))
+        return 1
     finally:
-        logger.info("🏁 Enhanced color worker shutdown complete")
+        logger.info("🏁 Color Worker Monitor shutting down...")
+        update_color_worker_status("stopped", "Shutdown completed")
+        return 0
+
+if __name__ == "__main__":
+    sys.exit(main())
