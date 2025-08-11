@@ -241,7 +241,6 @@ SIZE_MAP = {
 MAX_PATTERN_LENGTH = 6
 MIN_OCCURRENCES = 11
 MIN_SIZE_OCCURRENCES = 8  # Lower threshold for size patterns
-MIN_COLOR_OCCURRENCES = 11  # Keep existing for colors
 MAX_ALLOWED_LOSS_STREAK = 3
 TRAINING_WINDOW_SIZE = 1000
 EMERGENCY_LOSS_STREAK = 5
@@ -601,7 +600,7 @@ def generate_rules(stats):
         for k, outcomes in stats.items():
             try:
                 total = sum(outcomes.values())
-                if total >= MIN_COLOR_OCCURRENCES:
+                if total >= MIN_OCCURRENCES:
                     best = max(outcomes.items(), key=lambda x: x[1])
                     accuracy = round((best[1] / total) * 100, 2)
                     
@@ -979,7 +978,7 @@ def update_prediction_history():
         logger.error(f"❌ Error updating prediction history: {e}")
 
 def update_size_prediction_history():
-    """Enhanced size prediction history update with error handling - FIXED FORMAT"""
+    """Enhanced size prediction history update with error handling"""
     try:
         if not redis_client:
             logger.error("❌ Redis client not available for size history update")
@@ -1007,12 +1006,12 @@ def update_size_prediction_history():
                 pred = json.loads(pred_raw)
                 actual_num = history.get(i)
                 
-                # ✅ FIXED: Consistent format - always use "Small"/"Big"
+                # Consistent format - always use "Small"/"Big"
                 actual_size = None
                 if actual_num is not None:
                     actual_size = "Big" if SIZE_MAP.get(actual_num) == "B" else "Small"
                 
-                # ✅ FIXED: Ensure predicted size is also consistent format
+                # Ensure predicted size is also consistent format
                 predicted_size = pred.get("next_size")
                 if predicted_size == "S":
                     predicted_size = "Small"
@@ -1155,7 +1154,7 @@ def update_size_accuracy():
                 actual_size = "Big" if SIZE_MAP[actual_value] == "B" else "Small"
                 predicted_size = pred.get("next_size")
                 
-                # ✅ FIXED: Handle both formats consistently
+                # Handle both formats consistently
                 if predicted_size == "S":
                     predicted_size = "Small"
                 elif predicted_size == "B":
@@ -1326,7 +1325,7 @@ def update_size_streaks():
                 actual_size = "Big" if SIZE_MAP[actual_value] == "B" else "Small"
                 predicted_size = pred.get("next_size")
                 
-                # ✅ FIXED: Handle both formats consistently
+                # Handle both formats consistently
                 if predicted_size == "S":
                     predicted_size = "Small"
                 elif predicted_size == "B":
@@ -1498,7 +1497,7 @@ def run_size_prediction_cycle():
                     actual_size = "Big" if SIZE_MAP[actual_value] == "B" else "Small"
                     predicted_size = prev_prediction.get("next_size")
                     
-                    # ✅ FIXED: Handle both formats consistently
+                    # Handle both formats consistently
                     if predicted_size == "S":
                         predicted_size = "Small"
                     elif predicted_size == "B":
@@ -1517,7 +1516,7 @@ def run_size_prediction_cycle():
         # Make prediction
         predicted_size, rule_used, accuracy = predict_next_size(size_sequence, effective_rules)
         
-        # ✅ FIXED: Ensure consistent format in storage (use full names)
+        # Ensure consistent format in storage (use full names)
         if predicted_size == "S":
             predicted_size = "Small"
         elif predicted_size == "B":
@@ -1526,7 +1525,7 @@ def run_size_prediction_cycle():
         # Create prediction object
         prediction = {
             "issue": next_issue,
-            "next_size": predicted_size,  # ✅ Now stores "Small"/"Big"
+            "next_size": predicted_size,  # Now stores "Small"/"Big"
             "rule_name": rule_used,
             "confidence": accuracy / 100.0,
             "available_rules": len(effective_rules),
