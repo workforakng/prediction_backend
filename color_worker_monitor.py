@@ -1411,9 +1411,16 @@ def run_color_prediction_cycle():
                     actual_color = "Red" if COLOR_MAP[actual_value] == "R" else "Green"
                     predicted_color = prev_prediction.get("next_color")
                     
-                    if predicted_color != actual_color:
+                    if predicted_color == "R":
+                        predicted_color_full = "Red"
+                    elif predicted_color == "G":
+                        predicted_color_full = "Green"
+                    else:
+                        predicted_color_full = predicted_color
+                    
+                    if predicted_color_full != actual_color:
                         current_loss += 1
-                        logger.warning(f"❌ Color mismatch for issue #{prev_issue}: expected '{actual_color}', but predicted '{predicted_color}'. Loss streak is now {current_loss}.")
+                        logger.warning(f"❌ Color mismatch for issue #{prev_issue}: expected '{actual_color}', but predicted '{predicted_color_full}'. Loss streak is now {current_loss}.")
                     else:
                         current_loss = 0
                         logger.info(f"✅ Color prediction correct for issue #{prev_issue}: '{actual_color}'. Loss streak reset.")
@@ -1499,13 +1506,15 @@ def run_size_prediction_cycle():
                     
                     # Handle both formats consistently
                     if predicted_size == "S":
-                        predicted_size = "Small"
+                        predicted_size_full = "Small"
                     elif predicted_size == "B":
-                        predicted_size = "Big"
+                        predicted_size_full = "Big"
+                    else:
+                        predicted_size_full = predicted_size
                     
-                    if predicted_size != actual_size:
+                    if predicted_size_full != actual_size:
                         current_size_loss += 1
-                        logger.warning(f"❌ Size mismatch for issue #{prev_issue}: expected '{actual_size}', but predicted '{predicted_size}'. Loss streak is now {current_size_loss}.")
+                        logger.warning(f"❌ Size mismatch for issue #{prev_issue}: expected '{actual_size}', but predicted '{predicted_size_full}'. Loss streak is now {current_size_loss}.")
                     else:
                         current_size_loss = 0
                         logger.info(f"✅ Size prediction correct for issue #{prev_issue}: '{actual_size}'. Loss streak reset.")
@@ -1516,16 +1525,10 @@ def run_size_prediction_cycle():
         # Make prediction
         predicted_size, rule_used, accuracy = predict_next_size(size_sequence, effective_rules)
         
-        # Ensure consistent format in storage (use full names)
-        if predicted_size == "S":
-            predicted_size = "Small"
-        elif predicted_size == "B":
-            predicted_size = "Big"
-        
         # Create prediction object
         prediction = {
             "issue": next_issue,
-            "next_size": predicted_size,  # Now stores "Small"/"Big"
+            "next_size": predicted_size,
             "rule_name": rule_used,
             "confidence": accuracy / 100.0,
             "available_rules": len(effective_rules),
@@ -1621,3 +1624,4 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
+
