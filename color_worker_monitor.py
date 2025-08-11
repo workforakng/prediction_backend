@@ -759,15 +759,26 @@ def predict_next_size(seq, rulebook):
 
 # --- Enhanced Logging Functions ---
 def log_color_prediction(pred):
-    """Enhanced color prediction logging with error handling"""
+    """Enhanced color prediction logging with frontend compatibility"""
     try:
         if not pred or not pred.get("issue"):
             logger.error("❌ Invalid prediction data for color logging")
             return False
         
-        if not redis_client:
-            logger.error("❌ Redis client not available for color prediction logging")
-            return False
+        # Add missing fields for frontend compatibility
+        if "observed_sequence" not in pred:
+            # Get recent sequence for display
+            history = decode_history()
+            if history:
+                color_sequence = get_color_sequence(history)
+                recent_colors = [c for _, c in color_sequence[-6:]]  # Last 6 colors
+                pred["observed_sequence"] = ''.join(recent_colors) if recent_colors else "N/A"
+            else:
+                pred["observed_sequence"] = "N/A"
+        
+        if "score" not in pred:
+            # Convert confidence to percentage score
+            pred["score"] = round((pred.get("confidence", 0) * 100), 2)
         
         # Store current prediction
         set_redis_json(REDIS_COLOR_PREDICTION_KEY, pred)
@@ -783,16 +794,28 @@ def log_color_prediction(pred):
         logger.error(f"❌ Error logging color prediction: {e}")
         return False
 
+
 def log_size_prediction(pred):
-    """Enhanced size prediction logging with error handling"""
+    """Enhanced size prediction logging with frontend compatibility"""
     try:
         if not pred or not pred.get("issue"):
             logger.error("❌ Invalid prediction data for size logging")
             return False
         
-        if not redis_client:
-            logger.error("❌ Redis client not available for size prediction logging")
-            return False
+        # Add missing fields for frontend compatibility
+        if "observed_sequence" not in pred:
+            # Get recent sequence for display
+            history = decode_history()
+            if history:
+                size_sequence = get_size_sequence(history)
+                recent_sizes = [s for _, s in size_sequence[-6:]]  # Last 6 sizes
+                pred["observed_sequence"] = ''.join(recent_sizes) if recent_sizes else "N/A"
+            else:
+                pred["observed_sequence"] = "N/A"
+        
+        if "score" not in pred:
+            # Convert confidence to percentage score
+            pred["score"] = round((pred.get("confidence", 0) * 100), 2)
         
         # Store current prediction
         set_redis_json(REDIS_SIZE_PREDICTION_KEY, pred)
@@ -807,6 +830,7 @@ def log_size_prediction(pred):
     except Exception as e:
         logger.error(f"❌ Error logging size prediction: {e}")
         return False
+
 
 # --- Enhanced History Update Functions ---
 def update_prediction_history():
@@ -1349,6 +1373,8 @@ def run_color_prediction_and_monitor():
             "next_color": "Red" if color_pred == "R" else "Green",
             "rule_name": color_rule,
             "confidence": color_acc / 100.0 if color_acc else 0.5,
+            "score": color_acc if color_acc else 50.0,  # ✅ Add score field
+            "observed_sequence": ''.join([c for _, c in sequence_raw[-6:]]),  # ✅ Add sequence
             "last_updated": datetime.now(pytz.utc).isoformat(),
             "prediction_source": "enhanced_rules",
             "available_rules": len(effective_rules)
@@ -1440,6 +1466,8 @@ def run_size_prediction_and_monitor():
             "next_size": "Big" if size_pred == "B" else "Small",
             "rule_name": size_rule,
             "confidence": size_acc / 100.0 if size_acc else 0.5,
+            "score": size_acc if size_acc else 50.0,  # ✅ Add score field
+            "observed_sequence": ''.join([s for _, s in size_sequence_raw[-6:]]),  # ✅ Add sequence
             "last_updated": datetime.now(pytz.utc).isoformat(),
             "prediction_source": "enhanced_rules",
             "available_rules": len(effective_rules)
