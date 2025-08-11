@@ -240,6 +240,7 @@ SIZE_MAP = {
 }
 MAX_PATTERN_LENGTH = 6
 MIN_OCCURRENCES = 11
+MIN_SIZE_OCCURRENCES = 8
 MAX_ALLOWED_LOSS_STREAK = 3
 TRAINING_WINDOW_SIZE = 1000
 EMERGENCY_LOSS_STREAK = 5
@@ -554,7 +555,7 @@ def learn_patterns(colors):
         logger.error(f"❌ Error in pattern learning: {e}")
         return defaultdict(lambda: defaultdict(int))
 
-def generate_rules(stats):
+def generate_rules(stats, min_occurrences=MIN_OCCURRENCES):
     """Enhanced rule generation with validation"""
     try:
         if not stats:
@@ -567,7 +568,7 @@ def generate_rules(stats):
         for k, outcomes in stats.items():
             try:
                 total = sum(outcomes.values())
-                if total >= MIN_OCCURRENCES:
+                if total >= min_occurrences:
                     best = max(outcomes.items(), key=lambda x: x[1])
                     accuracy = round((best[1] / total) * 100, 2)
                     
@@ -618,8 +619,8 @@ def get_effective_rulebook(learned_rules, predefined_rules, rule_type="color"):
 def retrain_rules(colors):
     """Enhanced rule retraining with comprehensive error handling"""
     try:
-        logger.info(f"🧠 Retraining rules with {len(colors)} color entries...")
-        update_color_worker_status("retraining", f"Retraining with {len(colors)} entries")
+        logger.info(f"🧠 Retraining color rules with {len(colors)} entries...")
+        update_color_worker_status("retraining", f"Retraining color with {len(colors)} entries")
         
         if not colors:
             logger.error("❌ No colors provided for retraining")
@@ -628,11 +629,31 @@ def retrain_rules(colors):
         stats = learn_patterns(colors)
         rules = generate_rules(stats)
         
-        logger.info(f"✅ Retraining complete: {len(rules)} rules generated")
+        logger.info(f"✅ Color retraining complete: {len(rules)} rules generated")
         return rules
         
     except Exception as e:
-        logger.error(f"❌ Error during rule retraining: {e}")
+        logger.error(f"❌ Error during color rule retraining: {e}")
+        return {}
+
+def retrain_size_rules(size_sequence):
+    """Retrain size pattern rules from history sequence"""
+    try:
+        logger.info(f"🧠 Retraining SIZE rules with {len(size_sequence)} entries...")
+        update_color_worker_status("size_retraining", f"Retraining size with {len(size_sequence)} entries")
+        
+        if not size_sequence or len(size_sequence) < MAX_PATTERN_LENGTH + 1:
+            logger.warning("⚠️ Not enough size sequence data to retrain.")
+            return {}
+        
+        stats = learn_patterns(size_sequence)
+        rules = generate_rules(stats, min_occurrences=MIN_SIZE_OCCURRENCES)
+        
+        logger.info(f"✅ Size retraining complete: {len(rules)} rules generated")
+        return rules
+        
+    except Exception as e:
+        logger.error(f"❌ Error during size rule retraining: {e}")
         return {}
 
 # --- Enhanced Prediction Functions with Fallback ---
@@ -1391,6 +1412,16 @@ def run_size_prediction_and_monitor():
                 else:
                     current_size_loss += 1
                     logger.warning(f"❌ Size mismatch for issue #{last_issue_key}: expected '{actual_size}', but predicted '{last_predicted_size}'. Loss streak is now {current_size_loss}.")
+                    
+                    # Check for size retraining
+                    if current_size_loss >= MAX_ALLOWED_LOSS_STREAK or not size_rules:
+                        logger.warning(f"🔄 Retraining SIZE rules. Loss streak: {current_size_loss}, Rules count: {len(size_rules)}")
+                        new_size_rules = retrain_size_rules(size_sequence_raw)
+                        if new_size_rules:
+                            size_rules.clear()
+                            size_rules.update(new_size_rules)
+                            current_size_loss = 0
+                            logger.info(f"✅ Size rules updated: {len(size_rules)} total rules")
         
         # Combine learned rules with predefined fallback rules
         with rules_lock:
