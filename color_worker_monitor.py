@@ -961,10 +961,10 @@ def update_prediction_history():
                 
                 history_table.append({
                     "issue": i,
-                    "predicted_color": pred.get("next_color"),
-                    "actual_color": actual_color,
-                    "prediction_time": pred.get("last_updated"),
-                    "rule_name": pred.get("rule_name")
+                    "predicted": pred.get("next_color"),
+                    "rule": pred.get("rule_name"),
+                    "actual": actual_color,
+                    "result": "Correct" if pred.get("next_color") == actual_color else "Incorrect" if actual_color else "Pending"
                 })
                 processed_count += 1
                 
@@ -979,7 +979,7 @@ def update_prediction_history():
         logger.error(f"❌ Error updating prediction history: {e}")
 
 def update_size_prediction_history():
-    """Enhanced size prediction history update with error handling"""
+    """Enhanced size prediction history update with error handling - FIXED FORMAT"""
     try:
         if not redis_client:
             logger.error("❌ Redis client not available for size history update")
@@ -1007,16 +1007,24 @@ def update_size_prediction_history():
                 pred = json.loads(pred_raw)
                 actual_num = history.get(i)
                 
+                # ✅ FIXED: Consistent format - always use "Small"/"Big"
                 actual_size = None
                 if actual_num is not None:
                     actual_size = "Big" if SIZE_MAP.get(actual_num) == "B" else "Small"
                 
+                # ✅ FIXED: Ensure predicted size is also consistent format
+                predicted_size = pred.get("next_size")
+                if predicted_size == "S":
+                    predicted_size = "Small"
+                elif predicted_size == "B":
+                    predicted_size = "Big"
+                
                 history_table.append({
                     "issue": i,
-                    "predicted_size": pred.get("next_size"),
-                    "actual_size": actual_size,
-                    "prediction_time": pred.get("last_updated"),
-                    "rule_name": pred.get("rule_name")
+                    "predicted": predicted_size,
+                    "rule": pred.get("rule_name"),
+                    "actual": actual_size,
+                    "result": "Correct" if predicted_size == actual_size else "Incorrect" if actual_size else "Pending"
                 })
                 processed_count += 1
                 
@@ -1146,6 +1154,13 @@ def update_size_accuracy():
                 
                 actual_size = "Big" if SIZE_MAP[actual_value] == "B" else "Small"
                 predicted_size = pred.get("next_size")
+                
+                # ✅ FIXED: Handle both formats consistently
+                if predicted_size == "S":
+                    predicted_size = "Small"
+                elif predicted_size == "B":
+                    predicted_size = "Big"
+                
                 rule = pred.get("rule_name", "Unknown")
                 
                 per_rule[rule]["total"] += 1
@@ -1310,6 +1325,12 @@ def update_size_streaks():
                 
                 actual_size = "Big" if SIZE_MAP[actual_value] == "B" else "Small"
                 predicted_size = pred.get("next_size")
+                
+                # ✅ FIXED: Handle both formats consistently
+                if predicted_size == "S":
+                    predicted_size = "Small"
+                elif predicted_size == "B":
+                    predicted_size = "Big"
                 
                 if predicted_size == actual_size:
                     # Correct prediction - win
@@ -1477,6 +1498,12 @@ def run_size_prediction_cycle():
                     actual_size = "Big" if SIZE_MAP[actual_value] == "B" else "Small"
                     predicted_size = prev_prediction.get("next_size")
                     
+                    # ✅ FIXED: Handle both formats consistently
+                    if predicted_size == "S":
+                        predicted_size = "Small"
+                    elif predicted_size == "B":
+                        predicted_size = "Big"
+                    
                     if predicted_size != actual_size:
                         current_size_loss += 1
                         logger.warning(f"❌ Size mismatch for issue #{prev_issue}: expected '{actual_size}', but predicted '{predicted_size}'. Loss streak is now {current_size_loss}.")
@@ -1490,10 +1517,16 @@ def run_size_prediction_cycle():
         # Make prediction
         predicted_size, rule_used, accuracy = predict_next_size(size_sequence, effective_rules)
         
+        # ✅ FIXED: Ensure consistent format in storage (use full names)
+        if predicted_size == "S":
+            predicted_size = "Small"
+        elif predicted_size == "B":
+            predicted_size = "Big"
+        
         # Create prediction object
         prediction = {
             "issue": next_issue,
-            "next_size": predicted_size,
+            "next_size": predicted_size,  # ✅ Now stores "Small"/"Big"
             "rule_name": rule_used,
             "confidence": accuracy / 100.0,
             "available_rules": len(effective_rules),
