@@ -1,8 +1,11 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
+try/
+gitpush.sh
+auto-betting-simulator/
 *.py[cod]
 *$py.class
-*.sh
+
 # C extensions
 *.so
 

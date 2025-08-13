@@ -1,5 +1,3 @@
-# color_worker_monitor.py
-
 import os
 import json
 import logging
@@ -239,11 +237,71 @@ SIZE_MAP = {
     5: 'B', 6: 'B', 7: 'B', 8: 'B', 9: 'B'
 }
 MAX_PATTERN_LENGTH = 6
-MIN_OCCURRENCES = 10
-MIN_SIZE_OCCURRENCES = 8
+MIN_OCCURRENCES = 5
+MIN_SIZE_OCCURRENCES = 5
 MAX_ALLOWED_LOSS_STREAK = 2
 TRAINING_WINDOW_SIZE = 1000
 EMERGENCY_LOSS_STREAK = 5
+
+# --- 25 Red-Green Pattern Rules ---
+RED_GREEN_PATTERNS = {
+    "Rule 1": "ABABABABAB",
+    "Rule 2": "AABBAABB",
+    "Rule 3": "AAABBBAAABBB",
+    "Rule 4": "AAAABBBBAAAABBBB",
+    "Rule 5": "AABAABAAB",
+    "Rule 6": "AAAAAAAABBBBBBBB",
+    "Rule 7": "ABBABBABB",
+    "Rule 8": "AAABAAABAAAB",
+    "Rule 9": "AAABBAAABB",
+    "Rule 10": "AAAABBABBBAAAA",
+    "Rule 11": "ABBBAABBBAABBB",
+    "Rule 12": "ABABBBABBBB",
+    "Rule 13": "AABBAAABBBAAAABBBB",
+    "Rule 14": "ABBAAABBBB",
+    "Rule 15": "AAAABBBAAB",
+    "Rule 16": "ABAABBAAABBB",
+    "Rule 17": "AABBBAABBBAA",
+    "Rule 18": "ABBAAAABBBBBBBB",
+    "Rule 19": "ABBBAABBB",
+    "Rule 20": "AABBBAABBB",
+    "Rule 21": "ABAABAAAB",
+    "Rule 22": "AABAABBAABBB",
+    "Rule 23": "AAAABAAAAB",
+    "Rule 24": "AAAABBAAAABB",
+    "Rule 25": "AAAABBBAAAABBB"
+}
+
+# --- 25 Small-Big Pattern Rules (for size) ---
+# Same patterns, but for Small and Big
+SMALL_BIG_PATTERNS = {
+    "Rule 1": "ABABABABAB",
+    "Rule 2": "AABBAABB",
+    "Rule 3": "AAABBBAAABBB",
+    "Rule 4": "AAAABBBBAAAABBBB",
+    "Rule 5": "AABAABAAB",
+    "Rule 6": "AAAAAAAABBBBBBBB",
+    "Rule 7": "ABBABBABB",
+    "Rule 8": "AAABAAABAAAB",
+    "Rule 9": "AAABBAAABB",
+    "Rule 10": "AAAABBABBBAAAA",
+    "Rule 11": "ABBBAABBBAABBB",
+    "Rule 12": "ABABBBABBBB",
+    "Rule 13": "AABBAAABBBAAAABBBB",
+    "Rule 14": "ABBAAABBBB",
+    "Rule 15": "AAAABBBAAB",
+    "Rule 16": "ABAABBAAABBB",
+    "Rule 17": "AABBBAABBBAA",
+    "Rule 18": "ABBAAAABBBBBBBB",
+    "Rule 19": "ABBBAABBB",
+    "Rule 20": "AABBBAABBB",
+    "Rule 21": "ABAABAAAB",
+    "Rule 22": "AABAABBAABBB",
+    "Rule 23": "AAAABAAAAB",
+    "Rule 24": "AAAABBAAAABB",
+    "Rule 25": "AAAABBBAAAABBB"
+}
+
 
 # --- PREDEFINED RULES FOR FALLBACK ---
 PREDEFINED_COLOR_RULES = {
@@ -420,6 +478,64 @@ def get_trend_size_prediction(sequence):
         return "S", "TrendRule_BigDominant", 61.0
     else:
         return "S", "TrendRule_Balanced", 51.0
+
+# --- Pattern Matching Logic for 25 Rules ---
+def ab_to_colors(pattern, a_type, b_type):
+    """Converts a pattern of 'A'/'B' into a color/size sequence"""
+    return [a_type if c == 'A' else b_type for c in pattern]
+
+def score_rule_match(sequence, rule_pattern):
+    """Scores a match between a sequence and a rule pattern"""
+    max_match_len = min(len(sequence), len(rule_pattern))
+    score = 0
+    for i in range(max_match_len):
+        if sequence[-max_match_len + i] == rule_pattern[i]:
+            score += 1
+    return score, max_match_len
+
+def infer_next_from_patterns(current_sequence, patterns, type_a, type_b):
+    """Infers the next element based on a set of A/B patterns"""
+    best_score = -1
+    best_rule = None
+    best_next_type = None
+
+    for rule_name, ab_pattern in patterns.items():
+        for a_type, b_type in [(type_a, type_b), (type_b, type_a)]:
+            type_pattern = ab_to_colors(ab_pattern, a_type, b_type)
+            for offset in range(len(type_pattern)):
+                # Ensure a minimum match length of 2
+                slice_pattern = type_pattern[offset:offset + len(current_sequence)]
+                if len(slice_pattern) < 2:
+                    continue
+
+                score, match_len = score_rule_match(current_sequence, slice_pattern)
+                
+                # Use strict score comparison
+                if score > best_score:
+                    try:
+                        next_char = type_pattern[offset + len(current_sequence)]
+                        best_next_type = next_char
+                        best_score = score
+                        best_rule = f"{rule_name} (A={a_type}, B={b_type})"
+                    except IndexError:
+                        continue
+                # If scores are equal, prioritize longer match length
+                elif score == best_score and match_len > len(slice_pattern):
+                     try:
+                        next_char = type_pattern[offset + len(current_sequence)]
+                        best_next_type = next_char
+                        best_score = score
+                        best_rule = f"{rule_name} (A={a_type}, B={b_type})"
+                     except IndexError:
+                        continue
+    
+    # Return prediction and a confidence score based on the match score
+    if best_score > -1:
+        # Simple confidence calculation based on best score
+        confidence = (best_score / len(current_sequence)) if len(current_sequence) > 0 else 0.5
+        return best_next_type, best_rule, confidence
+        
+    return None, None, 0.0
 
 # Global variables with thread safety
 rules = {}
@@ -668,18 +784,19 @@ def predict_next_color(seq, rulebook):
         # Use effective rulebook (learned + predefined)
         effective_rules = get_effective_rulebook(rulebook, PREDEFINED_COLOR_RULES, "color")
         
-        if not effective_rules:
-            logger.warning("⚠️ No effective rules available for color prediction")
-            # Multiple fallback strategies
-            color_seq = [c for _, c in seq[-5:]] if len(seq) >= 5 else [c for _, c in seq]
-            
-            # Try trend-based prediction
-            trend_pred, trend_rule, trend_acc = get_trend_color_prediction(color_seq)
-            logger.info(f"🔄 Using trend-based color prediction: {trend_pred} via {trend_rule} ({trend_acc}%)")
-            return trend_pred, trend_rule, trend_acc
-        
-        # Try patterns from longest to shortest
+        # First, try to find a match using the 25 predefined patterns
         color_seq = [c for _, c in seq]
+        if len(color_seq) >= 2:
+            try:
+                next_color, rule_name, confidence = infer_next_from_patterns(color_seq, RED_GREEN_PATTERNS, 'R', 'G')
+                if next_color:
+                    accuracy_pct = round(confidence * 100, 2)
+                    logger.info(f"🎯 Color prediction using 25-Rules pattern '{rule_name}': {next_color} ({accuracy_pct}%)")
+                    return next_color, rule_name, accuracy_pct
+            except Exception as e:
+                logger.error(f"❌ Error during 25-Rules pattern inference: {e}")
+
+        # If no pattern matches from the 25 rules, fall back to learned/predefined rules
         for l in range(min(MAX_PATTERN_LENGTH, len(color_seq)), 1, -1):
             try:
                 sub = ''.join(color_seq[-l:])
@@ -717,6 +834,18 @@ def predict_next_size(seq, rulebook):
         
         # Use effective rulebook (learned + predefined)
         effective_rules = get_effective_rulebook(rulebook, PREDEFINED_SIZE_RULES, "size")
+
+        # First, try to find a match using the 25 predefined patterns for size
+        size_seq = [s for _, s in seq]
+        if len(size_seq) >= 2:
+            try:
+                next_size, rule_name, confidence = infer_next_from_patterns(size_seq, SMALL_BIG_PATTERNS, 'S', 'B')
+                if next_size:
+                    accuracy_pct = round(confidence * 100, 2)
+                    logger.info(f"🎯 Size prediction using 25-Rules pattern '{rule_name}': {next_size} ({accuracy_pct}%)")
+                    return next_size, rule_name, accuracy_pct
+            except Exception as e:
+                logger.error(f"❌ Error during 25-Rules size pattern inference: {e}")
         
         if not effective_rules:
             logger.warning("⚠️ No effective rules available for size prediction")
@@ -1351,7 +1480,6 @@ def run_color_prediction_and_monitor():
                 logger.info(f"ℹ️ No previous prediction found for issue #{last_issue_key}")
 
         # --- Step 2: Generate NEW prediction for next issue ---
-        sequence = [c for _, c in sequence_raw]
         
         # Get next issue
         next_issue = str(int(last_issue_key) + 1)
@@ -1516,11 +1644,21 @@ def initialize_predefined_rules():
         logger.info(f"🎨 Loaded {len(PREDEFINED_COLOR_RULES)} predefined color rules:")
         for pattern, rule in list(PREDEFINED_COLOR_RULES.items())[:5]:  # Show first 5
             logger.info(f"  📋 {pattern} → {rule['predict']} ({rule['accuracy']}%)")
+            
+        # Log 25 pattern-matching rules
+        logger.info(f"🎨 Loaded {len(RED_GREEN_PATTERNS)} 25-Rules patterns.")
+        for rule_name, ab_pattern in list(RED_GREEN_PATTERNS.items())[:5]:
+            logger.info(f"  📋 {rule_name}: {ab_pattern}")
         
         # Log predefined size rules  
         logger.info(f"📏 Loaded {len(PREDEFINED_SIZE_RULES)} predefined size rules:")
         for pattern, rule in list(PREDEFINED_SIZE_RULES.items())[:5]:  # Show first 5
             logger.info(f"  📋 {pattern} → {rule['predict']} ({rule['accuracy']}%)")
+
+        # Log 25 pattern-matching rules for size
+        logger.info(f"📏 Loaded {len(SMALL_BIG_PATTERNS)} 25-Rules size patterns.")
+        for rule_name, ab_pattern in list(SMALL_BIG_PATTERNS.items())[:5]:
+            logger.info(f"  📋 {rule_name}: {ab_pattern}")
         
         # Test fallback predictions
         test_color_pred = get_time_based_color_prediction()
