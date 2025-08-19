@@ -11,7 +11,7 @@ import time
 # Load environment variables from .env file
 load_dotenv()
 
-# Railway configuration
+# Railway configuration path
 DATA_DIR = os.getenv("RAILWAY_VOLUME_MOUNT_PATH", "/data")
 
 # --- Import simulator blueprint ---
