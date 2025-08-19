@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Wingo 1 min Size Prediction</title>
+  <title>Size Prediction Dashboard</title>
 
   <style>
     /* --- 1. Custom Properties (CSS Variables) --- */
@@ -239,7 +239,7 @@
 <script>
 // Global variables
 let lastApiTimestamp = null;
-let refreshGate = { '1': false, '5': false, '10': false };
+let refreshGate = { '3': false, '5': false };
 
 // Utility Functions
 function formatTimestamp(isoString) {
@@ -275,44 +275,38 @@ function showErrorMessage(message) {
 function checkRefreshTime() {
   const now = new Date();
   const currentSecond = now.getSeconds();
-  const currentMs = now.getMilliseconds();
   
-  const targetSeconds = [1, 5, 10];
+  const targetSeconds = [3, 5];
   for (const second of targetSeconds) {
-    if (currentSecond === second && currentMs >= 0 && currentMs <= 200 && !refreshGate[second]) {
+    if (currentSecond === second && !refreshGate[second]) {
       console.log(`🔄 Auto-refresh triggered at ${second} seconds`);
       loadAllData();
-      refreshGate[second] = true;
-      break; 
+      refreshGate[second] = true; // Set gate to prevent multiple calls
+    } else if (currentSecond !== second) {
+      refreshGate[second] = false; // Reset gate
     }
-  }
-
-  if (currentMs < 200) {
-    targetSeconds.forEach(second => {
-      if (currentSecond !== second) {
-        refreshGate[second] = false;
-      }
-    });
   }
 }
 
 function updateCountdownDisplay() {
   const countdownElement = document.getElementById('countdown-timer');
-  if (!lastApiTimestamp) {
-    countdownElement.textContent = "Connecting...";
-    return;
-  }
-  
   const now = new Date();
   const currentSecond = now.getSeconds();
   
-  let nextRefresh;
-  if (currentSecond < 1) nextRefresh = 1;
-  else if (currentSecond < 5) nextRefresh = 5; 
-  else if (currentSecond < 10) nextRefresh = 10;
-  else nextRefresh = 61;
+  let remaining;
+  let nextRefreshPoint;
+
+  if (currentSecond < 3) {
+    nextRefreshPoint = 3;
+  } else if (currentSecond < 5) {
+    nextRefreshPoint = 5;
+  } else {
+    // Next refresh is at 3 seconds of the next minute
+    nextRefreshPoint = 60 + 3; 
+  }
+
+  remaining = nextRefreshPoint - currentSecond;
   
-  const remaining = nextRefresh - currentSecond;
   const emoji = remaining <= 3 ? '⚡' : '⏳';
   countdownElement.textContent = `Next update in: ${remaining}s ${emoji}`;
   
@@ -341,7 +335,8 @@ async function loadAllData() {
     lastApiTimestamp = new Date().toISOString();
     document.getElementById('error-message').style.display = 'none';
     
-  } catch (err) {
+  } catch (err)
+ {
     console.error("❌ Failed to load data:", err);
     showErrorMessage(`Failed to load data: ${err.message}`);
     document.getElementById('issue-display').innerHTML = `Issue #<strong>----</strong>`;
@@ -393,15 +388,11 @@ function init() {
   console.log('🚀 Initializing Size Prediction Dashboard...');
   loadAllData();
   
+  // Set up timer to run every second to update countdown and check for refresh time
   setInterval(() => {
     updateCountdownDisplay();
     checkRefreshTime();
-  }, 100);
-  
-  setInterval(() => {
-    console.log('🔄 Failsafe 60-second refresh triggered');
-    loadAllData();
-  }, 60000);
+  }, 1000);
   
   console.log('✅ Dashboard initialized successfully');
 }
