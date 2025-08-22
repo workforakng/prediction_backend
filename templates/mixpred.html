@@ -47,7 +47,7 @@
       background: var(--body-gradient);
       color: var(--white);
       min-height: 100vh;
-      padding-bottom: 80px; /* Space for the floating footer */
+      padding-bottom: 180px; /* Increased space for the floating footer and disclaimer */
     }
     
     h2 {
@@ -154,8 +154,34 @@
     .history-chip.Small { background: var(--small-gradient); }
     .history-chip.Pending { background: var(--pending-gradient); }
 
+    /* --- 5. Disclaimer Styles --- */
+    .disclaimer {
+      background: rgba(220, 53, 69, 0.9);
+      color: var(--white);
+      padding: var(--spacing-md);
+      border-radius: var(--border-radius-md);
+      margin-bottom: var(--spacing-md);
+      text-align: center;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(10px);
+    }
 
-    /* --- 5. Floating Status Bar --- */
+    .disclaimer h3 {
+      font-size: 1.2rem;
+      margin-bottom: 0.8rem;
+      font-weight: 700;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+    }
+
+    .disclaimer strong {
+      font-weight: 700;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+    }
+
+    /* --- 6. Floating Status Bar --- */
     .status-bar-floating {
       position: fixed;
       bottom: 0;
@@ -174,7 +200,81 @@
     .timer { font-weight: 700; font-size: 1.2rem; color: #ffd700; }
     .error-message { color: #d32f2f; background: #ffcdd2; border-radius: 8px; padding: 0.5rem; margin-top: var(--spacing-sm); font-weight: 600; display: none; }
 
-    /* --- 6. Animations --- */
+    /* --- 7. Telegram Notification Modal Styles (Commented) --- */
+    /*
+    .telegram-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 2000;
+    }
+
+    .telegram-modal-content {
+      background: var(--white);
+      color: var(--text-color);
+      padding: 2rem;
+      border-radius: var(--border-radius-md);
+      max-width: 400px;
+      text-align: center;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+      position: relative;
+    }
+
+    .telegram-modal h3 {
+      color: var(--primary-color);
+      margin-bottom: 1rem;
+      font-size: 1.3rem;
+    }
+
+    .telegram-modal p {
+      margin-bottom: 1.5rem;
+      line-height: 1.5;
+    }
+
+    .telegram-btn {
+      background: linear-gradient(135deg, #0088cc, #005999);
+      color: var(--white);
+      padding: 0.8rem 1.5rem;
+      border: none;
+      border-radius: 25px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+      margin: 0.5rem;
+      box-shadow: 0 4px 8px rgba(0, 136, 204, 0.3);
+      transition: all 0.3s ease;
+    }
+
+    .telegram-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px rgba(0, 136, 204, 0.4);
+    }
+
+    .close-modal-btn {
+      background: #6c757d;
+      color: var(--white);
+      padding: 0.6rem 1.2rem;
+      border: none;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      margin-left: 0.5rem;
+    }
+
+    .close-modal-btn:hover {
+      background: #5a6268;
+    }
+    */
+
+    /* --- 8. Animations --- */
     @keyframes pulse {
       0%, 100% { opacity: 1; }
       50% { opacity: 0.6; }
@@ -185,22 +285,47 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
-    .pred-box, .section {
+    .pred-box, .section, .disclaimer {
       animation: fadeIn 0.5s ease-out;
     }
 
-    /* --- 7. Responsive Design --- */
+    /* --- 9. Responsive Design --- */
     @media (max-width: 480px) {
+      body {
+        padding-bottom: 200px; /* More space on mobile */
+      }
       main { padding: var(--spacing-sm); }
       .pred-box { font-size: 3.5rem; min-width: 240px; }
       #issue-display { font-size: 1.5rem; }
       table { font-size: 0.8rem; }
       th, td { padding: 0.5rem 0.3rem; }
+      .disclaimer { font-size: 0.8rem; padding: var(--spacing-sm); }
+      /*
+      .telegram-modal-content {
+        margin: 1rem;
+        padding: 1.5rem;
+        max-width: 90%;
+      }
+      */
     }
   </style>
 </head>
 <body>
   
+  <!-- Telegram Notification Modal (Commented) -->
+  <!--
+  <div class="telegram-modal" id="telegram-modal" style="display: none;">
+    <div class="telegram-modal-content">
+      <h3>🚀 Join Our Community!</h3>
+      <p>Stay updated with the latest predictions and analysis by joining our Telegram group!</p>
+      <a href="https://t.me/+-MoOUgldWYhlMGI1" class="telegram-btn" target="_blank">
+        📱 Join Telegram Group
+      </a>
+      <button class="close-modal-btn" onclick="closeTelegramModal()">Maybe Later</button>
+    </div>
+  </div>
+  -->
+
   <main>
     <div class="prediction-container">
         <h2 id="issue-display">Issue #<strong>----</strong></h2>
@@ -228,6 +353,22 @@
             </tbody>
           </table>
         </div>
+    </section>
+
+    <!-- Disclaimer Section -->
+    <section class="disclaimer">
+      <h3>⚠️ Important Disclaimer</h3>
+      <p>
+        <strong>Gambling is not good for you.</strong> This website is created for <strong>educational and analysis purposes only</strong>. 
+        The predictions shown here are based on algorithmic analysis and should not be used for actual betting or gambling activities.
+      </p>
+      <p>
+        <strong>We do not bear any responsibility or risk</strong> for any losses, damages, or consequences that may arise from the use of this information. 
+        Please gamble responsibly and seek help if you have a gambling addiction.
+      </p>
+      <p>
+        This tool is intended for research, learning, and entertainment purposes. Always remember that gambling involves significant financial risks.
+      </p>
     </section>
   </main>
   
@@ -270,6 +411,33 @@ function showErrorMessage(message) {
   errorDiv.style.display = "block";
   setTimeout(() => errorDiv.style.display = "none", 5000);
 }
+
+// Telegram Modal Functions (Commented)
+/*
+function showTelegramModal() {
+  const modal = document.getElementById('telegram-modal');
+  if (modal) {
+    modal.style.display = 'flex';
+  }
+}
+
+function closeTelegramModal() {
+  const modal = document.getElementById('telegram-modal');
+  if (modal) {
+    modal.style.display = 'none';
+    // Set a flag in localStorage to not show again for this session
+    localStorage.setItem('telegram-modal-shown', 'true');
+  }
+}
+
+function checkFirstTimeVisitor() {
+  const hasVisited = localStorage.getItem('telegram-modal-shown');
+  if (!hasVisited) {
+    // Show modal after a short delay
+    setTimeout(showTelegramModal, 2000);
+  }
+}
+*/
 
 // Auto-Refresh System
 function checkRefreshTime() {
@@ -335,8 +503,7 @@ async function loadAllData() {
     lastApiTimestamp = new Date().toISOString();
     document.getElementById('error-message').style.display = 'none';
     
-  } catch (err)
- {
+  } catch (err) {
     console.error("❌ Failed to load data:", err);
     showErrorMessage(`Failed to load data: ${err.message}`);
     document.getElementById('issue-display').innerHTML = `Issue #<strong>----</strong>`;
@@ -382,11 +549,13 @@ function updateHistoryTable(sizeHistory) {
   }
 }
 
-
 // Initialize Application
 function init() {
   console.log('🚀 Initializing Size Prediction Dashboard...');
   loadAllData();
+  
+  // Check for first-time visitor (Commented)
+  // checkFirstTimeVisitor();
   
   // Set up timer to run every second to update countdown and check for refresh time
   setInterval(() => {
@@ -405,6 +574,16 @@ document.addEventListener('visibilitychange', () => {
     loadAllData();
   }
 });
+
+// Close modal when clicking outside (Commented)
+/*
+document.addEventListener('click', (e) => {
+  const modal = document.getElementById('telegram-modal');
+  if (e.target === modal) {
+    closeTelegramModal();
+  }
+});
+*/
 </script>
 </body>
 </html>
