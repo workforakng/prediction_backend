@@ -59,7 +59,27 @@
       font-weight: 700;
     }
 
-    /* --- 3. Layout & Structure --- */
+    /* --- 3. Maintenance Notice Styles --- */
+    .maintenance-notice {
+      background: linear-gradient(135deg, #ff5722, #d32f2f);
+      color: var(--white);
+      padding: 1rem;
+      text-align: center;
+      font-weight: 600;
+      font-size: 0.95rem;
+      position: sticky;
+      top: 0;
+      z-index: 1001;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      animation: maintenanceBlink 2s ease-in-out infinite;
+    }
+
+    @keyframes maintenanceBlink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+
+    /* --- 4. Layout & Structure --- */
     main {
       padding: var(--spacing-md);
       max-width: 800px;
@@ -113,7 +133,7 @@
     .pred-box.Small { background: var(--small-gradient); }
     .pred-box.Pending { background: var(--pending-gradient); }
 
-    /* --- 4. Table Styles --- */
+    /* --- 5. Table Styles --- */
     table {
       width: 100%;
       border-collapse: collapse;
@@ -154,7 +174,80 @@
     .history-chip.Small { background: var(--small-gradient); }
     .history-chip.Pending { background: var(--pending-gradient); }
 
-    /* --- 5. Disclaimer Styles --- */
+    /* --- 6. Size Streaks Styles --- */
+    .streaks-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--spacing-md);
+      margin-bottom: var(--spacing-md);
+    }
+
+    .streak-card {
+      background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+      border-radius: var(--border-radius-md);
+      padding: var(--spacing-sm);
+      border: 1px solid rgba(102, 126, 234, 0.2);
+      text-align: center;
+    }
+
+    .streak-value {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    .streak-value.win { color: #4caf50; }
+    .streak-value.lose { color: #f44336; }
+
+    .streak-label {
+      font-size: 0.9rem;
+      opacity: 0.8;
+    }
+
+    .distribution-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--spacing-md);
+      margin-top: var(--spacing-sm);
+    }
+
+    .distribution-card {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+      padding: var(--spacing-sm);
+    }
+
+    .distribution-card h4 {
+      font-size: 1rem;
+      margin-bottom: 0.8rem;
+      text-align: center;
+      color: var(--text-color);
+    }
+
+    .distribution-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.3rem 0;
+      font-size: 0.85rem;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .distribution-item:last-child {
+      border-bottom: none;
+    }
+
+    .streak-number {
+      font-weight: 600;
+      color: var(--primary-color);
+    }
+
+    .streak-count {
+      font-weight: 600;
+      color: var(--text-color);
+    }
+
+    /* --- 7. Disclaimer Styles --- */
     .disclaimer {
       background: rgba(220, 53, 69, 0.9);
       color: var(--white);
@@ -181,7 +274,7 @@
       text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
     }
 
-    /* --- 6. Floating Status Bar --- */
+    /* --- 8. Floating Status Bar --- */
     .status-bar-floating {
       position: fixed;
       bottom: 0;
@@ -200,7 +293,7 @@
     .timer { font-weight: 700; font-size: 1.2rem; color: #ffd700; }
     .error-message { color: #d32f2f; background: #ffcdd2; border-radius: 8px; padding: 0.5rem; margin-top: var(--spacing-sm); font-weight: 600; display: none; }
 
-    /* --- 7. Telegram Notification Modal Styles (Commented) --- */
+    /* --- 9. Telegram Notification Modal Styles (Commented) --- */
     /*
     .telegram-modal {
       position: fixed;
@@ -274,7 +367,7 @@
     }
     */
 
-    /* --- 8. Animations --- */
+    /* --- 10. Animations --- */
     @keyframes pulse {
       0%, 100% { opacity: 1; }
       50% { opacity: 0.6; }
@@ -289,7 +382,18 @@
       animation: fadeIn 0.5s ease-out;
     }
 
-    /* --- 9. Responsive Design --- */
+    /* --- 11. Responsive Design --- */
+    @media (max-width: 768px) {
+      .streaks-container {
+        grid-template-columns: 1fr;
+        gap: var(--spacing-sm);
+      }
+
+      .distribution-container {
+        grid-template-columns: 1fr;
+      }
+    }
+
     @media (max-width: 480px) {
       body {
         padding-bottom: 200px; /* More space on mobile */
@@ -300,6 +404,7 @@
       table { font-size: 0.8rem; }
       th, td { padding: 0.5rem 0.3rem; }
       .disclaimer { font-size: 0.8rem; padding: var(--spacing-sm); }
+      .maintenance-notice { font-size: 0.85rem; padding: 0.8rem; }
       /*
       .telegram-modal-content {
         margin: 1rem;
@@ -312,6 +417,11 @@
 </head>
 <body>
   
+  <!-- Maintenance Notice (Temporary - Can be commented out) -->
+  <div class="maintenance-notice">
+    🚧 Website under maintenance with new rules for 24 August, suggested to don't play, will again work properly from 25 Aug 🚧
+  </div>
+
   <!-- Telegram Notification Modal (Commented) -->
   <!--
   <div class="telegram-modal" id="telegram-modal" style="display: none;">
@@ -352,6 +462,48 @@
               <tr><td colspan="5">Loading history...</td></tr>
             </tbody>
           </table>
+        </div>
+    </section>
+
+    <section class="section">
+        <h2 style="font-size: 1.5rem; color: var(--text-color); border-bottom: 2px solid var(--primary-color); padding-bottom: 0.5rem; margin-bottom: var(--spacing-sm);">Size Prediction Streaks 📊</h2>
+        
+        <div class="streaks-container">
+          <div class="streak-card">
+            <div class="streak-value win" id="current-win-streak">--</div>
+            <div class="streak-label">Current Win Streak 🔥</div>
+          </div>
+          <div class="streak-card">
+            <div class="streak-value lose" id="current-lose-streak">--</div>
+            <div class="streak-label">Current Lose Streak ❄️</div>
+          </div>
+        </div>
+
+        <div style="text-align: center; margin-bottom: var(--spacing-sm);">
+          <span style="font-size: 0.9rem; color: var(--text-color); opacity: 0.8;">
+            Max Win: <strong id="max-win-streak">--</strong> | Max Lose: <strong id="max-lose-streak">--</strong>
+          </span>
+        </div>
+
+        <div class="distribution-container">
+          <div class="distribution-card">
+            <h4>Win Streak Distribution 🏆</h4>
+            <div id="win-streak-distribution">
+              <div class="distribution-item">
+                <span>Loading...</span>
+                <span>--</span>
+              </div>
+            </div>
+          </div>
+          <div class="distribution-card">
+            <h4>Lose Streak Distribution 📉</h4>
+            <div id="lose-streak-distribution">
+              <div class="distribution-item">
+                <span>Loading...</span>
+                <span>--</span>
+              </div>
+            </div>
+          </div>
         </div>
     </section>
 
@@ -484,6 +636,47 @@ function updateCountdownDisplay() {
   }
 }
 
+// Size Streaks Update Function
+function updateSizeStreaks(sizeStreaks) {
+  if (!sizeStreaks) return;
+
+  // Update current streaks
+  document.getElementById('current-win-streak').textContent = sizeStreaks.current_win_streak || 0;
+  document.getElementById('current-lose-streak').textContent = sizeStreaks.current_lose_streak || 0;
+  document.getElementById('max-win-streak').textContent = sizeStreaks.max_win_streak || 0;
+  document.getElementById('max-lose-streak').textContent = sizeStreaks.max_lose_streak || 0;
+
+  // Update win streak distribution
+  const winStreakContainer = document.getElementById('win-streak-distribution');
+  if (sizeStreaks.win_streak_distribution) {
+    const winStreakItems = Object.entries(sizeStreaks.win_streak_distribution)
+      .sort((a, b) => parseInt(a[0]) - parseInt(b))
+      .slice(0, 8) // Show top 8 distributions
+      .map(([streak, count]) => `
+        <div class="distribution-item">
+          <span class="streak-number">${streak} wins</span>
+          <span class="streak-count">${count}</span>
+        </div>
+      `).join('');
+    winStreakContainer.innerHTML = winStreakItems || '<div class="distribution-item"><span>No data</span><span>--</span></div>';
+  }
+
+  // Update lose streak distribution
+  const loseStreakContainer = document.getElementById('lose-streak-distribution');
+  if (sizeStreaks.lose_streak_distribution) {
+    const loseStreakItems = Object.entries(sizeStreaks.lose_streak_distribution)
+      .sort((a, b) => parseInt(a[0]) - parseInt(b))
+      .slice(0, 8) // Show top 8 distributions
+      .map(([streak, count]) => `
+        <div class="distribution-item">
+          <span class="streak-number">${streak} losses</span>
+          <span class="streak-count">${count}</span>
+        </div>
+      `).join('');
+    loseStreakContainer.innerHTML = loseStreakItems || '<div class="distribution-item"><span>No data</span><span>--</span></div>';
+  }
+}
+
 // Main Data Loading Function
 async function loadAllData() {
   try {
@@ -498,6 +691,7 @@ async function loadAllData() {
     // Update both the prediction and the history table
     updateNextPredictionDisplay(data.size_prediction);
     updateHistoryTable(data.size_prediction_history);
+    updateSizeStreaks(data.size_streaks);
     
     lastApiTimestamp = new Date().toISOString();
     document.getElementById('error-message').style.display = 'none';
