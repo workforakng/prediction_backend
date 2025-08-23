@@ -372,15 +372,19 @@
 
     /* --- 11. Responsive Design --- */
     @media (max-width: 768px) {
+      /* Keep side-by-side for smaller screens */
       .streak-tables-container {
-        flex-direction: column;
-        align-items: center;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        gap: 0.5rem; /* Reduced gap for phone screens */
+        justify-content: space-between;
       }
 
       .streak-table-section {
-        flex: none;
-        max-width: 100%;
-        width: 100%;
+        flex: 1 1 48%; /* Adjust to ensure side-by-side layout */
+        max-width: 48%; /* A little extra room */
+        min-width: unset; /* Remove min-width restriction */
+        padding: 0.5rem; /* Reduced padding on mobile */
       }
     }
 
@@ -398,6 +402,12 @@
       .streak-table { font-size: 0.7rem; }
       .streak-table th, .streak-table td { padding: 0.3rem 0.2rem; font-size: 0.65rem; }
       .streak-table-section { padding: 0.6rem; }
+      .streak-tables-container {
+        gap: 0.3rem;
+      }
+      .streak-table-title {
+        font-size: 0.9rem;
+      }
       /*
       .telegram-modal-content {
         margin: 1rem;
@@ -410,24 +420,9 @@
 </head>
 <body>
   
-  <!-- Maintenance Notice (Temporary - Can be commented out) -->
   <div class="maintenance-notice">
     🚧 Website under maintenance with new rules for 24 August, suggested to don't play, will again work properly from 25 Aug 🚧
   </div>
-
-  <!-- Telegram Notification Modal (Commented) -->
-  <!--
-  <div class="telegram-modal" id="telegram-modal" style="display: none;">
-    <div class="telegram-modal-content">
-      <h3>🚀 Join Our Community!</h3>
-      <p>Stay updated with the latest predictions and analysis by joining our Telegram group!</p>
-      <a href="https://t.me/+-MoOUgldWYhlMGI1" class="telegram-btn" target="_blank">
-        📱 Join Telegram Group
-      </a>
-      <button class="close-modal-btn" onclick="closeTelegramModal()">Maybe Later</button>
-    </div>
-  </div>
-  -->
 
   <main>
     <div class="prediction-container">
@@ -465,7 +460,7 @@
             <table class="streak-table">
               <thead>
                 <tr>
-                  <th>Level</th>
+                  <th>Level Win</th>
                   <th>Count</th>
                 </tr>
               </thead>
@@ -482,7 +477,7 @@
             <table class="streak-table">
               <thead>
                 <tr>
-                  <th>Level</th>
+                  <th>Level Lost</th>
                   <th>Count</th>
                 </tr>
               </thead>
@@ -496,7 +491,6 @@
         </div>
     </section>
 
-    <!-- Disclaimer Section -->
     <section class="disclaimer">
       <h3>⚠️ Important Disclaimer</h3>
       <p>
