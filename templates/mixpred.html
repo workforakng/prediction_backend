@@ -174,19 +174,21 @@
     .history-chip.Small { background: var(--small-gradient); }
     .history-chip.Pending { background: var(--pending-gradient); }
 
-    /* --- 6. Compact Streak Tables Styles --- */
-    .streak-tables-container {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
+    /* --- 6. Streak Tables Side-by-Side Styles --- */
+    .streak-tables-row {
+      display: flex;
+      flex-wrap: wrap;
       gap: 1rem;
-      margin-top: 1rem;
+      align-items: flex-start;
     }
 
-    .streak-table-wrapper {
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 8px;
+    .streak-table-section {
+      flex: 1 1 calc(50% - 0.5rem);
+      background: #f8faff;
+      border: 1px solid #e1e6ef;
       padding: 0.8rem;
-      border: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: 8px;
+      min-width: 0; /* Important for flex items */
     }
 
     .streak-table-title {
@@ -206,25 +208,25 @@
     }
 
     .streak-table th {
-      background: linear-gradient(135deg, #a7b8d4, #8a9cc4);
-      color: var(--white);
+      background: #b3cde0;
+      color: #2a3f66;
       padding: 0.4rem 0.3rem;
       text-align: center;
       font-weight: 600;
       font-size: 0.75rem;
-      border: 1px solid rgba(255, 255, 255, 0.3);
+      border: 1px solid #e1e6ef;
     }
 
     .streak-table td {
       padding: 0.35rem 0.3rem;
       text-align: center;
-      border: 1px solid rgba(0, 0, 0, 0.1);
-      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid #e1e6ef;
+      background: rgba(255, 255, 255, 0.8);
       font-size: 0.75rem;
     }
 
     .streak-table tbody tr:nth-child(even) {
-      background: rgba(102, 126, 234, 0.05);
+      background: rgba(179, 205, 224, 0.1);
     }
 
     .streak-table tbody tr:hover {
@@ -368,9 +370,12 @@
 
     /* --- 11. Responsive Design --- */
     @media (max-width: 768px) {
-      .streak-tables-container {
-        grid-template-columns: 1fr;
-        gap: 0.8rem;
+      .streak-tables-row {
+        flex-direction: column;
+      }
+
+      .streak-table-section {
+        flex: 1 1 100%;
       }
     }
 
@@ -387,7 +392,7 @@
       .maintenance-notice { font-size: 0.85rem; padding: 0.8rem; }
       .streak-table { font-size: 0.7rem; }
       .streak-table th, .streak-table td { padding: 0.3rem 0.2rem; font-size: 0.65rem; }
-      .streak-table-wrapper { padding: 0.6rem; }
+      .streak-table-section { padding: 0.6rem; }
       /*
       .telegram-modal-content {
         margin: 1rem;
@@ -449,8 +454,8 @@
     </section>
 
     <section class="section">
-        <div class="streak-tables-container">
-          <div class="streak-table-wrapper">
+        <div class="streak-tables-row">
+          <div class="streak-table-section">
             <div class="streak-table-title">Win Streak Count</div>
             <table class="streak-table">
               <thead>
@@ -467,7 +472,7 @@
             </table>
           </div>
 
-          <div class="streak-table-wrapper">
+          <div class="streak-table-section">
             <div class="streak-table-title">Loss Streak Count</div>
             <table class="streak-table">
               <thead>
@@ -623,7 +628,7 @@ function updateSizeStreaks(sizeStreaks) {
   const winStreakTableBody = document.getElementById('win-streak-table-body');
   if (sizeStreaks.win_streak_distribution) {
     const winStreakRows = Object.entries(sizeStreaks.win_streak_distribution)
-      .sort((a, b) => parseInt(a[0]) - parseInt(b))
+      .sort((a, b) => parseInt(a[0]) - parseInt(b[0]))
       .map(([level, count]) => `
         <tr>
           <td>${level}</td>
