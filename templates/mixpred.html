@@ -19,6 +19,12 @@
       --border-color: rgba(255, 255, 255, 0.2);
       --table-header-bg: linear-gradient(135deg, #2a3f66, #1a2642);
 
+      /* New Streak Table Variables */
+      --streak-section-bg: #f8faff;
+      --streak-table-header-bg: #b3cde0;
+      --streak-table-header-color: #2a3f66;
+      --streak-table-cell-bg: rgba(255, 255, 255, 0.8);
+      
       /* Gradients */
       --body-gradient: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
       --green-gradient: linear-gradient(135deg, #4caf50, #2e7d32);
@@ -37,6 +43,33 @@
       --font-family-base: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
 
+    /* --- Dark Mode Variables --- */
+    body.dark-mode {
+        --primary-color: #1a237e;
+        --secondary-color: #303f9f;
+        --header-bg: rgba(26, 35, 126, 0.95);
+        --text-color: #e0e0e0;
+        --light-text-color: #333;
+        --white: #121212;
+        --section-bg: rgba(25, 25, 25, 0.95);
+        --border-color: rgba(0, 0, 0, 0.2);
+        --table-header-bg: linear-gradient(135deg, #0d123d, #090b20);
+
+        /* New Streak Table Variables for dark mode */
+        --streak-section-bg: #1e1e1e;
+        --streak-table-header-bg: #444;
+        --streak-table-header-color: #eee;
+        --streak-table-cell-bg: #333;
+
+        --body-gradient: linear-gradient(135deg, var(--secondary-color) 0%, var(--primary-color) 100%);
+        --green-gradient: linear-gradient(135deg, #66bb6a, #43a047);
+        --red-gradient: linear-gradient(135deg, #ef5350, #e53935);
+        --big-gradient: linear-gradient(135deg, #ffb300, #fb8c00);
+        --small-gradient: linear-gradient(135deg, #7986cb, #5c6bc0);
+        --pending-gradient: linear-gradient(135deg, #757575, #424242);
+    }
+
+
     /* --- 2. Reset & Base Styles --- */
     * {
       box-sizing: border-box;
@@ -50,6 +83,7 @@
       color: var(--white);
       min-height: 100vh;
       padding-bottom: 180px;
+      transition: background-color 0.5s ease;
     }
     
     h2 {
@@ -113,7 +147,8 @@
     #issue-display, #color-issue-display, #size-issue-display {
         font-size: 1.8rem;
         margin-bottom: var(--spacing-sm);
-        color: var(--white);
+        /* Corrected color here */
+        color: var(--text-color); 
     }
     
     .section-title {
@@ -162,6 +197,10 @@
       vertical-align: middle;
     }
 
+    body.dark-mode td {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
     tbody tr:hover {
       background: rgba(102, 126, 234, 0.1);
     }
@@ -195,14 +234,19 @@
       flex-wrap: nowrap;
     }
 
+    /* Fixed to use new variables */
     .streak-table-section {
       flex: 0 1 45%;
       max-width: 45%;
       min-width: 200px;
-      background: #f8faff;
+      background: var(--streak-section-bg);
       border: 1px solid #e1e6ef;
       padding: 0.8rem;
       border-radius: 8px;
+    }
+    
+    body.dark-mode .streak-table-section {
+        border-color: #333;
     }
 
     .streak-table-title {
@@ -214,6 +258,11 @@
       border-bottom: 1px solid rgba(102, 126, 234, 0.3);
       padding-bottom: 0.4rem;
     }
+    
+    body.dark-mode .streak-table-title {
+        color: #e0e0e0;
+        border-color: rgba(255, 255, 255, 0.2);
+    }
 
     .streak-table {
       width: 100%;
@@ -221,26 +270,40 @@
       font-size: 0.8rem;
     }
 
+    /* Fixed to use new variables */
     .streak-table th {
-      background: #b3cde0;
-      color: #2a3f66;
+      background: var(--streak-table-header-bg);
+      color: var(--streak-table-header-color);
       padding: 0.4rem 0.3rem;
       text-align: center;
       font-weight: 600;
       font-size: 0.75rem;
       border: 1px solid #e1e6ef;
     }
+    
+    body.dark-mode .streak-table th {
+        border-color: #555;
+    }
 
+    /* Fixed to use new variables */
     .streak-table td {
       padding: 0.35rem 0.3rem;
       text-align: center;
       border: 1px solid #e1e6ef;
-      background: rgba(255, 255, 255, 0.8);
+      background: var(--streak-table-cell-bg);
       font-size: 0.75rem;
+    }
+    
+    body.dark-mode .streak-table td {
+        border-color: #555;
     }
 
     .streak-table tbody tr:nth-child(even) {
       background: rgba(179, 205, 224, 0.1);
+    }
+    
+    body.dark-mode .streak-table tbody tr:nth-child(even) {
+        background: rgba(179, 205, 224, 0.05);
     }
 
     .streak-table tbody tr:hover {
@@ -274,7 +337,7 @@
       text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
     }
 
-    /* --- 8. Floating Status Bar --- */
+    /* --- 8. Floating Status Bar & Theme Toggle Button --- */
     .status-bar-floating {
       position: fixed;
       bottom: 0;
@@ -287,6 +350,30 @@
       box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
       backdrop-filter: blur(10px);
       z-index: 1000;
+    }
+
+    .theme-toggle-button {
+      position: fixed;
+      bottom: 120px; /* Adjusted to be above the status bar */
+      right: 20px;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: var(--primary-color);
+      color: var(--white);
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 1.5rem;
+      z-index: 1001;
+      transition: background-color 0.3s ease, transform 0.2s ease;
+    }
+
+    .theme-toggle-button:hover {
+      transform: scale(1.05);
     }
 
     #timestamp-display { font-size: 0.8rem; opacity: 0.8; }
@@ -585,11 +672,45 @@
     <div id="timestamp-display">Last Updated: <span id="last-updated-time">--</span></div>
     <div class="timer" id="countdown-timer">Next update in: -- seconds ⏳</div>
   </footer>
+  
+  <button id="theme-toggle-button" class="theme-toggle-button">
+    ☀️
+  </button>
 
 <script>
 // Global variables
 let lastApiTimestamp = null;
 let refreshGate = { '3': false, '5': false };
+
+// Theme Toggle Functionality
+function toggleTheme() {
+    const body = document.body;
+    body.classList.toggle('dark-mode');
+    const isDarkMode = body.classList.contains('dark-mode');
+    localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+    updateThemeButton(isDarkMode);
+}
+
+function updateThemeButton(isDarkMode) {
+    const button = document.getElementById('theme-toggle-button');
+    if (isDarkMode) {
+        button.innerHTML = '🌙';
+        button.style.backgroundColor = 'var(--section-bg)';
+        button.style.color = 'var(--text-color)';
+    } else {
+        button.innerHTML = '☀️';
+        button.style.backgroundColor = 'var(--primary-color)';
+        button.style.color = 'var(--white)';
+    }
+}
+
+function loadThemePreference() {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark') {
+        document.body.classList.add('dark-mode');
+    }
+    updateThemeButton(savedTheme === 'dark');
+}
 
 // Utility Functions
 function formatTimestamp(isoString) {
@@ -802,11 +923,16 @@ function updateCountdownDisplay() {
 // Initialize Application
 function init() {
   console.log('🚀 Initializing Merged Prediction Dashboard...');
+  loadThemePreference(); // Load theme preference on init
   loadAllData();
   setInterval(() => {
     updateCountdownDisplay();
     checkRefreshTime();
   }, 1000);
+
+  // Add event listener for the theme toggle button
+  document.getElementById('theme-toggle-button').addEventListener('click', toggleTheme);
+
   console.log('✅ Dashboard initialized successfully');
 }
 
