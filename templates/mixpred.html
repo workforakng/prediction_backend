@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Size Prediction Dashboard</title>
+  <title>Prediction Dashboard</title>
 
   <style>
     /* --- 1. Custom Properties (CSS Variables) --- */
@@ -21,8 +21,10 @@
 
       /* Gradients */
       --body-gradient: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-      --big-gradient: linear-gradient(135deg, #ff9800, #f57c00); /* Yellow-Orange */
-      --small-gradient: linear-gradient(135deg, #3f51b5, #303f9f); /* Dark Blue */
+      --green-gradient: linear-gradient(135deg, #4caf50, #2e7d32);
+      --red-gradient: linear-gradient(135deg, #ff5252, #d32f2f);
+      --big-gradient: linear-gradient(135deg, #ff9800, #f57c00);
+      --small-gradient: linear-gradient(135deg, #3f51b5, #303f9f);
       --pending-gradient: linear-gradient(135deg, #9e9e9e, #616161);
       
       /* Spacing & Sizes */
@@ -47,7 +49,7 @@
       background: var(--body-gradient);
       color: var(--white);
       min-height: 100vh;
-      padding-bottom: 180px; /* Increased space for the floating footer and disclaimer */
+      padding-bottom: 180px;
     }
     
     h2 {
@@ -86,6 +88,12 @@
       margin: 0 auto;
       width: 100%;
     }
+
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--spacing-md);
+    }
     
     .section {
       background: var(--section-bg);
@@ -101,14 +109,14 @@
     .prediction-container {
       text-align: center;
     }
-    
-    #issue-display {
+
+    #issue-display, #color-issue-display, #size-issue-display {
         font-size: 1.8rem;
         margin-bottom: var(--spacing-sm);
         color: var(--white);
     }
-
-    #history-title {
+    
+    .section-title {
         font-size: 1.5rem;
         color: var(--text-color);
         border-bottom: 2px solid var(--primary-color);
@@ -129,6 +137,8 @@
       border: 2px solid var(--border-color);
     }
     
+    .pred-box.Green { background: var(--green-gradient); }
+    .pred-box.Red { background: var(--red-gradient); }
     .pred-box.Big { background: var(--big-gradient); }
     .pred-box.Small { background: var(--small-gradient); }
     .pred-box.Pending { background: var(--pending-gradient); }
@@ -170,6 +180,8 @@
       border: 1px solid rgba(255, 255, 255, 0.2);
     }
 
+    .history-chip.Green { background: var(--green-gradient); }
+    .history-chip.Red { background: var(--red-gradient); }
     .history-chip.Big { background: var(--big-gradient); }
     .history-chip.Small { background: var(--small-gradient); }
     .history-chip.Pending { background: var(--pending-gradient); }
@@ -372,29 +384,31 @@
 
     /* --- 11. Responsive Design --- */
     @media (max-width: 768px) {
-      /* Keep side-by-side for smaller screens */
+      .dashboard-grid {
+        grid-template-columns: 1fr;
+      }
       .streak-tables-container {
         flex-direction: row;
         flex-wrap: nowrap;
-        gap: 0.5rem; /* Reduced gap for phone screens */
+        gap: 0.5rem;
         justify-content: space-between;
       }
 
       .streak-table-section {
-        flex: 1 1 48%; /* Adjust to ensure side-by-side layout */
-        max-width: 48%; /* A little extra room */
-        min-width: unset; /* Remove min-width restriction */
-        padding: 0.5rem; /* Reduced padding on mobile */
+        flex: 1 1 48%;
+        max-width: 48%;
+        min-width: unset;
+        padding: 0.5rem;
       }
     }
 
     @media (max-width: 480px) {
       body {
-        padding-bottom: 200px; /* More space on mobile */
+        padding-bottom: 200px;
       }
       main { padding: var(--spacing-sm); }
       .pred-box { font-size: 3.5rem; min-width: 240px; }
-      #issue-display { font-size: 1.5rem; }
+      #issue-display, #color-issue-display, #size-issue-display { font-size: 1.5rem; }
       table { font-size: 0.8rem; }
       th, td { padding: 0.5rem 0.3rem; }
       .disclaimer { font-size: 0.8rem; padding: var(--spacing-sm); }
@@ -408,13 +422,6 @@
       .streak-table-title {
         font-size: 0.9rem;
       }
-      /*
-      .telegram-modal-content {
-        margin: 1rem;
-        padding: 1.5rem;
-        max-width: 90%;
-      }
-      */
     }
   </style>
 </head>
@@ -425,16 +432,17 @@
   </div>
 
   <main>
-    <div class="prediction-container">
-        <h2 id="issue-display">Issue #<strong>----</strong></h2>
-        <div id="prediction-display">
-            <div class="pred-box Pending">Loading...</div>
+    <section class="section">
+        <div class="prediction-container">
+            <h2 id="size-issue-display">Size #<strong>----</strong></h2>
+            <div id="size-prediction-display">
+                <div class="pred-box Pending">Loading...</div>
+            </div>
         </div>
-        <div class="error-message" id="error-message"></div>
-    </div>
+    </section>
 
     <section class="section">
-        <h2 id="history-title">Prediction History 📜</h2>
+        <h2 class="section-title">Size History 📜</h2>
         <div style="overflow-x: auto;">
           <table>
             <thead>
@@ -456,7 +464,7 @@
     <section class="section">
         <div class="streak-tables-container">
           <div class="streak-table-section">
-            <div class="streak-table-title">Win Streak Count</div>
+            <div class="streak-table-title">Size Win Streak</div>
             <table class="streak-table">
               <thead>
                 <tr>
@@ -464,7 +472,7 @@
                   <th>Count</th>
                 </tr>
               </thead>
-              <tbody id="win-streak-table-body">
+              <tbody id="size-win-streak-table-body">
                 <tr>
                   <td colspan="2">Loading...</td>
                 </tr>
@@ -473,7 +481,7 @@
           </div>
 
           <div class="streak-table-section">
-            <div class="streak-table-title">Loss Streak Count</div>
+            <div class="streak-table-title">Size Loss Streak</div>
             <table class="streak-table">
               <thead>
                 <tr>
@@ -481,7 +489,74 @@
                   <th>Count</th>
                 </tr>
               </thead>
-              <tbody id="lose-streak-table-body">
+              <tbody id="size-lose-streak-table-body">
+                <tr>
+                  <td colspan="2">Loading...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="prediction-container">
+            <h2 id="color-issue-display">Color #<strong>----</strong></h2>
+            <div id="color-prediction-display">
+                <div class="pred-box Pending">Loading...</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section">
+        <h2 class="section-title">Color History 📜</h2>
+        <div style="overflow-x: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Issue #</th>
+                <th>Predicted</th>
+                <th>Rule</th>
+                <th>Actual</th>
+                <th>Result</th>
+              </tr>
+            </thead>
+            <tbody id="color-history-tbody">
+              <tr><td colspan="5">Loading history...</td></tr>
+            </tbody>
+          </table>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="streak-tables-container">
+          <div class="streak-table-section">
+            <div class="streak-table-title">Color Win Streak</div>
+            <table class="streak-table">
+              <thead>
+                <tr>
+                  <th>Level Win</th>
+                  <th>Count</th>
+                </tr>
+              </thead>
+              <tbody id="color-win-streak-table-body">
+                <tr>
+                  <td colspan="2">Loading...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="streak-table-section">
+            <div class="streak-table-title">Color Loss Streak</div>
+            <table class="streak-table">
+              <thead>
+                <tr>
+                  <th>Level Lost</th>
+                  <th>Count</th>
+                </tr>
+              </thead>
+              <tbody id="color-lose-streak-table-body">
                 <tr>
                   <td colspan="2">Loading...</td>
                 </tr>
@@ -546,112 +621,6 @@ function showErrorMessage(message) {
   setTimeout(() => errorDiv.style.display = "none", 5000);
 }
 
-// Telegram Modal Functions (Commented)
-/*
-function showTelegramModal() {
-  const modal = document.getElementById('telegram-modal');
-  if (modal) {
-    modal.style.display = 'flex';
-  }
-}
-
-function closeTelegramModal() {
-  const modal = document.getElementById('telegram-modal');
-  if (modal) {
-    modal.style.display = 'none';
-    // Set a flag in localStorage to not show again for this session
-    localStorage.setItem('telegram-modal-shown', 'true');
-  }
-}
-
-function checkFirstTimeVisitor() {
-  const hasVisited = localStorage.getItem('telegram-modal-shown');
-  if (!hasVisited) {
-    // Show modal after a short delay
-    setTimeout(showTelegramModal, 2000);
-  }
-}
-*/
-
-// Auto-Refresh System
-function checkRefreshTime() {
-  const now = new Date();
-  const currentSecond = now.getSeconds();
-  
-  const targetSeconds = [3, 5];
-  for (const second of targetSeconds) {
-    if (currentSecond === second && !refreshGate[second]) {
-      console.log(`🔄 Auto-refresh triggered at ${second} seconds`);
-      loadAllData();
-      refreshGate[second] = true; // Set gate to prevent multiple calls
-    } else if (currentSecond !== second) {
-      refreshGate[second] = false; // Reset gate
-    }
-  }
-}
-
-function updateCountdownDisplay() {
-  const countdownElement = document.getElementById('countdown-timer');
-  const now = new Date();
-  const currentSecond = now.getSeconds();
-  
-  let remaining;
-  let nextRefreshPoint;
-
-  if (currentSecond < 3) {
-    nextRefreshPoint = 3;
-  } else if (currentSecond < 5) {
-    nextRefreshPoint = 5;
-  } else {
-    // Next refresh is at 3 seconds of the next minute
-    nextRefreshPoint = 60 + 3; 
-  }
-
-  remaining = nextRefreshPoint - currentSecond;
-  
-  const emoji = remaining <= 3 ? '⚡' : '⏳';
-  countdownElement.textContent = `Next update in: ${remaining}s ${emoji}`;
-  
-  if (remaining <= 3) {
-    countdownElement.style.animation = 'pulse 0.5s ease-in-out infinite';
-  } else {
-    countdownElement.style.animation = '';
-  }
-}
-
-// Size Streaks Update Function
-function updateSizeStreaks(sizeStreaks) {
-  if (!sizeStreaks) return;
-
-  // Update win streak table
-  const winStreakTableBody = document.getElementById('win-streak-table-body');
-  if (sizeStreaks.win_streak_distribution) {
-    const winStreakRows = Object.entries(sizeStreaks.win_streak_distribution)
-      .sort((a, b) => parseInt(a[0]) - parseInt(b))
-      .map(([level, count]) => `
-        <tr>
-          <td>${level}</td>
-          <td>${count}</td>
-        </tr>
-      `).join('');
-    winStreakTableBody.innerHTML = winStreakRows || '<tr><td colspan="2">No data</td></tr>';
-  }
-
-  // Update lose streak table
-  const loseStreakTableBody = document.getElementById('lose-streak-table-body');
-  if (sizeStreaks.lose_streak_distribution) {
-    const loseStreakRows = Object.entries(sizeStreaks.lose_streak_distribution)
-      .sort((a, b) => parseInt(a[0]) - parseInt(b))
-      .map(([level, count]) => `
-        <tr>
-          <td>${level}</td>
-          <td>${count}</td>
-        </tr>
-      `).join('');
-    loseStreakTableBody.innerHTML = loseStreakRows || '<tr><td colspan="2">No data</td></tr>';
-  }
-}
-
 // Main Data Loading Function
 async function loadAllData() {
   try {
@@ -663,10 +632,15 @@ async function loadAllData() {
     const data = await res.json();
     console.log('✅ Data loaded successfully.');
     
-    // Update both the prediction and the history table
-    updateNextPredictionDisplay(data.size_prediction);
-    updateHistoryTable(data.size_prediction_history);
+    // Update Size section
+    updateNextSizePrediction(data.size_prediction);
+    updateSizeHistoryTable(data.size_prediction_history);
     updateSizeStreaks(data.size_streaks);
+
+    // Update Color section
+    updateNextColorPrediction(data.color_prediction);
+    updateColorHistoryTable(data.color_prediction_history);
+    updateColorStreaks(data.color_streaks);
     
     lastApiTimestamp = new Date().toISOString();
     document.getElementById('error-message').style.display = 'none';
@@ -674,18 +648,19 @@ async function loadAllData() {
   } catch (err) {
     console.error("❌ Failed to load data:", err);
     showErrorMessage(`Failed to load data: ${err.message}`);
-    document.getElementById('issue-display').innerHTML = `Issue #<strong>----</strong>`;
-    document.getElementById('prediction-display').innerHTML = `<div class="pred-box Pending">Error</div>`;
+    document.getElementById('size-issue-display').innerHTML = `Size #<strong>----</strong>`;
+    document.getElementById('size-prediction-display').innerHTML = `<div class="pred-box Pending">Error</div>`;
+    document.getElementById('color-issue-display').innerHTML = `Color #<strong>----</strong>`;
+    document.getElementById('color-prediction-display').innerHTML = `<div class="pred-box Pending">Error</div>`;
   }
 }
 
-// Next Prediction Update Function
-function updateNextPredictionDisplay(prediction) {
-  const issueDisplay = document.getElementById('issue-display');
-  const predictionDisplay = document.getElementById('prediction-display');
-
+// Next Prediction Update Functions
+function updateNextSizePrediction(prediction) {
+  const issueDisplay = document.getElementById('size-issue-display');
+  const predictionDisplay = document.getElementById('size-prediction-display');
   if (prediction && prediction.next_size && prediction.issue) {
-    issueDisplay.innerHTML = `Next Prediction for Issue #<strong>${String(prediction.issue).slice(-4)}</strong>`;
+    issueDisplay.innerHTML = `Size #<strong>${String(prediction.issue).slice(-4)}</strong>`;
     predictionDisplay.innerHTML = `<div class="pred-box ${prediction.next_size}">${prediction.next_size}</div>`;
   } else {
     issueDisplay.innerHTML = `Awaiting Next Issue...`;
@@ -693,11 +668,23 @@ function updateNextPredictionDisplay(prediction) {
   }
 }
 
-// History Table Update Function
-function updateHistoryTable(sizeHistory) {
+function updateNextColorPrediction(prediction) {
+  const issueDisplay = document.getElementById('color-issue-display');
+  const predictionDisplay = document.getElementById('color-prediction-display');
+  if (prediction && prediction.next_color && prediction.issue) {
+    issueDisplay.innerHTML = `Color #<strong>${String(prediction.issue).slice(-4)}</strong>`;
+    predictionDisplay.innerHTML = `<div class="pred-box ${prediction.next_color}">${prediction.next_color}</div>`;
+  } else {
+    issueDisplay.innerHTML = `Awaiting Next Issue...`;
+    predictionDisplay.innerHTML = `<div class="pred-box Pending">Pending</div>`;
+  }
+}
+
+// History Table Update Functions
+function updateSizeHistoryTable(sizeHistory) {
   const sizeTbody = document.getElementById('size-history-tbody');
   if (sizeHistory && sizeHistory.length > 0) {
-    sizeTbody.innerHTML = sizeHistory.slice(0, 15).map(item => { // Show recent 15 items
+    sizeTbody.innerHTML = sizeHistory.slice(0, 15).map(item => {
       const actualSize = item.actual_size;
       const isCorrect = actualSize !== null && item.predicted_size === actualSize;
       return `
@@ -717,20 +704,109 @@ function updateHistoryTable(sizeHistory) {
   }
 }
 
+function updateColorHistoryTable(colorHistory) {
+  const colorTbody = document.getElementById('color-history-tbody');
+  if (colorHistory && colorHistory.length > 0) {
+    colorTbody.innerHTML = colorHistory.slice(0, 15).map(item => {
+      const actualColor = item.actual_color;
+      const isCorrect = actualColor !== null && item.predicted_color === actualColor;
+      return `
+        <tr>
+          <td>${String(item.issue).slice(-4)}</td>
+          <td>${createHistoryChip(item.predicted_color)}</td>
+          <td title="${item.rule_name}">${(item.rule_name || 'N/A').substring(0, 10)}${item.rule_name?.length > 10 ? '...' : ''}</td>
+          <td>${createHistoryChip(actualColor)}</td>
+          <td class="${actualColor ? (isCorrect ? 'correct' : 'incorrect') : ''}">
+            ${actualColor ? (isCorrect ? '✔' : '✘') : '?'}
+          </td>
+        </tr>
+      `;
+    }).join('');
+  } else {
+    colorTbody.innerHTML = '<tr><td colspan="5">No color history available.</td></tr>';
+  }
+}
+
+// Streak Update Functions
+function updateSizeStreaks(sizeStreaks) {
+  if (!sizeStreaks) return;
+  const winTbody = document.getElementById('size-win-streak-table-body');
+  const loseTbody = document.getElementById('size-lose-streak-table-body');
+  updateStreakTable(winTbody, sizeStreaks.win_streak_distribution);
+  updateStreakTable(loseTbody, sizeStreaks.lose_streak_distribution);
+}
+
+function updateColorStreaks(colorStreaks) {
+  if (!colorStreaks) return;
+  const winTbody = document.getElementById('color-win-streak-table-body');
+  const loseTbody = document.getElementById('color-lose-streak-table-body');
+  updateStreakTable(winTbody, colorStreaks.win_streak_distribution);
+  updateStreakTable(loseTbody, colorStreaks.lose_streak_distribution);
+}
+
+function updateStreakTable(tbody, data) {
+  if (data) {
+    const rows = Object.entries(data)
+      .sort((a, b) => parseInt(a[0]) - parseInt(b))
+      .map(([level, count]) => `
+        <tr>
+          <td>${level}</td>
+          <td>${count}</td>
+        </tr>
+      `).join('');
+    tbody.innerHTML = rows || '<tr><td colspan="2">No data</td></tr>';
+  } else {
+    tbody.innerHTML = '<tr><td colspan="2">No data</td></tr>';
+  }
+}
+
+// Auto-Refresh System
+function checkRefreshTime() {
+  const now = new Date();
+  const currentSecond = now.getSeconds();
+  const targetSeconds = [3, 5];
+  for (const second of targetSeconds) {
+    if (currentSecond === second && !refreshGate[second]) {
+      console.log(`🔄 Auto-refresh triggered at ${second} seconds`);
+      loadAllData();
+      refreshGate[second] = true;
+    } else if (currentSecond !== second) {
+      refreshGate[second] = false;
+    }
+  }
+}
+
+function updateCountdownDisplay() {
+  const countdownElement = document.getElementById('countdown-timer');
+  const now = new Date();
+  const currentSecond = now.getSeconds();
+  let remaining;
+  let nextRefreshPoint;
+  if (currentSecond < 3) {
+    nextRefreshPoint = 3;
+  } else if (currentSecond < 5) {
+    nextRefreshPoint = 5;
+  } else {
+    nextRefreshPoint = 60 + 3;
+  }
+  remaining = nextRefreshPoint - currentSecond;
+  const emoji = remaining <= 3 ? '⚡' : '⏳';
+  countdownElement.textContent = `Next update in: ${remaining}s ${emoji}`;
+  if (remaining <= 3) {
+    countdownElement.style.animation = 'pulse 0.5s ease-in-out infinite';
+  } else {
+    countdownElement.style.animation = '';
+  }
+}
+
 // Initialize Application
 function init() {
-  console.log('🚀 Initializing Size Prediction Dashboard...');
+  console.log('🚀 Initializing Merged Prediction Dashboard...');
   loadAllData();
-  
-  // Check for first-time visitor (Commented)
-  // checkFirstTimeVisitor();
-  
-  // Set up timer to run every second to update countdown and check for refresh time
   setInterval(() => {
     updateCountdownDisplay();
     checkRefreshTime();
   }, 1000);
-  
   console.log('✅ Dashboard initialized successfully');
 }
 
@@ -742,16 +818,6 @@ document.addEventListener('visibilitychange', () => {
     loadAllData();
   }
 });
-
-// Close modal when clicking outside (Commented)
-/*
-document.addEventListener('click', (e) => {
-  const modal = document.getElementById('telegram-modal');
-  if (e.target === modal) {
-    closeTelegramModal();
-  }
-});
-*/
 </script>
 </body>
 </html>
