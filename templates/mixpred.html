@@ -175,25 +175,25 @@
     .history-chip.Pending { background: var(--pending-gradient); }
 
     /* --- 6. Size Streaks Styles --- */
-    .streaks-container {
+    .streaks-summary {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: var(--spacing-md);
       margin-bottom: var(--spacing-md);
+      text-align: center;
     }
 
-    .streak-card {
+    .streak-info {
       background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
       border-radius: var(--border-radius-md);
       padding: var(--spacing-sm);
       border: 1px solid rgba(102, 126, 234, 0.2);
-      text-align: center;
     }
 
     .streak-value {
-      font-size: 2rem;
+      font-size: 1.8rem;
       font-weight: 700;
-      margin-bottom: 0.5rem;
+      margin-bottom: 0.3rem;
     }
 
     .streak-value.win { color: #4caf50; }
@@ -204,47 +204,57 @@
       opacity: 0.8;
     }
 
-    .distribution-container {
+    .streak-tables-container {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: var(--spacing-md);
-      margin-top: var(--spacing-sm);
     }
 
-    .distribution-card {
+    .streak-table-wrapper {
       background: rgba(255, 255, 255, 0.05);
       border-radius: 10px;
       padding: var(--spacing-sm);
+      border: 1px solid rgba(0, 0, 0, 0.1);
     }
 
-    .distribution-card h4 {
-      font-size: 1rem;
-      margin-bottom: 0.8rem;
+    .streak-table-title {
+      font-size: 1.1rem;
+      font-weight: 600;
       text-align: center;
+      margin-bottom: 0.8rem;
       color: var(--text-color);
+      border-bottom: 1px solid rgba(102, 126, 234, 0.3);
+      padding-bottom: 0.5rem;
     }
 
-    .distribution-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 0.3rem 0;
+    .streak-table {
+      width: 100%;
+      border-collapse: collapse;
       font-size: 0.85rem;
-      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
     }
 
-    .distribution-item:last-child {
-      border-bottom: none;
-    }
-
-    .streak-number {
+    .streak-table th {
+      background: linear-gradient(135deg, rgba(102, 126, 234, 0.8), rgba(118, 75, 162, 0.8));
+      color: var(--white);
+      padding: 0.6rem 0.4rem;
+      text-align: center;
       font-weight: 600;
-      color: var(--primary-color);
+      border: 1px solid rgba(255, 255, 255, 0.2);
     }
 
-    .streak-count {
-      font-weight: 600;
-      color: var(--text-color);
+    .streak-table td {
+      padding: 0.5rem 0.4rem;
+      text-align: center;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .streak-table tbody tr:nth-child(even) {
+      background: rgba(102, 126, 234, 0.05);
+    }
+
+    .streak-table tbody tr:hover {
+      background: rgba(102, 126, 234, 0.1);
     }
 
     /* --- 7. Disclaimer Styles --- */
@@ -384,13 +394,14 @@
 
     /* --- 11. Responsive Design --- */
     @media (max-width: 768px) {
-      .streaks-container {
+      .streaks-summary {
         grid-template-columns: 1fr;
         gap: var(--spacing-sm);
       }
 
-      .distribution-container {
+      .streak-tables-container {
         grid-template-columns: 1fr;
+        gap: var(--spacing-sm);
       }
     }
 
@@ -405,6 +416,8 @@
       th, td { padding: 0.5rem 0.3rem; }
       .disclaimer { font-size: 0.8rem; padding: var(--spacing-sm); }
       .maintenance-notice { font-size: 0.85rem; padding: 0.8rem; }
+      .streak-table { font-size: 0.75rem; }
+      .streak-table th, .streak-table td { padding: 0.4rem 0.2rem; }
       /*
       .telegram-modal-content {
         margin: 1rem;
@@ -468,12 +481,12 @@
     <section class="section">
         <h2 style="font-size: 1.5rem; color: var(--text-color); border-bottom: 2px solid var(--primary-color); padding-bottom: 0.5rem; margin-bottom: var(--spacing-sm);">Size Prediction Streaks 📊</h2>
         
-        <div class="streaks-container">
-          <div class="streak-card">
+        <div class="streaks-summary">
+          <div class="streak-info">
             <div class="streak-value win" id="current-win-streak">--</div>
             <div class="streak-label">Current Win Streak 🔥</div>
           </div>
-          <div class="streak-card">
+          <div class="streak-info">
             <div class="streak-value lose" id="current-lose-streak">--</div>
             <div class="streak-label">Current Lose Streak ❄️</div>
           </div>
@@ -485,24 +498,39 @@
           </span>
         </div>
 
-        <div class="distribution-container">
-          <div class="distribution-card">
-            <h4>Win Streak Distribution 🏆</h4>
-            <div id="win-streak-distribution">
-              <div class="distribution-item">
-                <span>Loading...</span>
-                <span>--</span>
-              </div>
-            </div>
+        <div class="streak-tables-container">
+          <div class="streak-table-wrapper">
+            <div class="streak-table-title">Win Streak Count</div>
+            <table class="streak-table">
+              <thead>
+                <tr>
+                  <th>Level</th>
+                  <th>Count</th>
+                </tr>
+              </thead>
+              <tbody id="win-streak-table-body">
+                <tr>
+                  <td colspan="2">Loading...</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-          <div class="distribution-card">
-            <h4>Lose Streak Distribution 📉</h4>
-            <div id="lose-streak-distribution">
-              <div class="distribution-item">
-                <span>Loading...</span>
-                <span>--</span>
-              </div>
-            </div>
+
+          <div class="streak-table-wrapper">
+            <div class="streak-table-title">Loss Streak Count</div>
+            <table class="streak-table">
+              <thead>
+                <tr>
+                  <th>Level</th>
+                  <th>Count</th>
+                </tr>
+              </thead>
+              <tbody id="lose-streak-table-body">
+                <tr>
+                  <td colspan="2">Loading...</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
     </section>
@@ -646,34 +674,32 @@ function updateSizeStreaks(sizeStreaks) {
   document.getElementById('max-win-streak').textContent = sizeStreaks.max_win_streak || 0;
   document.getElementById('max-lose-streak').textContent = sizeStreaks.max_lose_streak || 0;
 
-  // Update win streak distribution
-  const winStreakContainer = document.getElementById('win-streak-distribution');
+  // Update win streak table
+  const winStreakTableBody = document.getElementById('win-streak-table-body');
   if (sizeStreaks.win_streak_distribution) {
-    const winStreakItems = Object.entries(sizeStreaks.win_streak_distribution)
+    const winStreakRows = Object.entries(sizeStreaks.win_streak_distribution)
       .sort((a, b) => parseInt(a[0]) - parseInt(b))
-      .slice(0, 8) // Show top 8 distributions
-      .map(([streak, count]) => `
-        <div class="distribution-item">
-          <span class="streak-number">${streak} wins</span>
-          <span class="streak-count">${count}</span>
-        </div>
+      .map(([level, count]) => `
+        <tr>
+          <td>${level}</td>
+          <td>${count}</td>
+        </tr>
       `).join('');
-    winStreakContainer.innerHTML = winStreakItems || '<div class="distribution-item"><span>No data</span><span>--</span></div>';
+    winStreakTableBody.innerHTML = winStreakRows || '<tr><td colspan="2">No data</td></tr>';
   }
 
-  // Update lose streak distribution
-  const loseStreakContainer = document.getElementById('lose-streak-distribution');
+  // Update lose streak table
+  const loseStreakTableBody = document.getElementById('lose-streak-table-body');
   if (sizeStreaks.lose_streak_distribution) {
-    const loseStreakItems = Object.entries(sizeStreaks.lose_streak_distribution)
+    const loseStreakRows = Object.entries(sizeStreaks.lose_streak_distribution)
       .sort((a, b) => parseInt(a[0]) - parseInt(b))
-      .slice(0, 8) // Show top 8 distributions
-      .map(([streak, count]) => `
-        <div class="distribution-item">
-          <span class="streak-number">${streak} losses</span>
-          <span class="streak-count">${count}</span>
-        </div>
+      .map(([level, count]) => `
+        <tr>
+          <td>${level}</td>
+          <td>${count}</td>
+        </tr>
       `).join('');
-    loseStreakContainer.innerHTML = loseStreakItems || '<div class="distribution-item"><span>No data</span><span>--</span></div>';
+    loseStreakTableBody.innerHTML = loseStreakRows || '<tr><td colspan="2">No data</td></tr>';
   }
 }
 
