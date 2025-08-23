@@ -174,79 +174,53 @@
     .history-chip.Small { background: var(--small-gradient); }
     .history-chip.Pending { background: var(--pending-gradient); }
 
-    /* --- 6. Size Streaks Styles --- */
-    .streaks-summary {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: var(--spacing-md);
-      margin-bottom: var(--spacing-md);
-      text-align: center;
-    }
-
-    .streak-info {
-      background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
-      border-radius: var(--border-radius-md);
-      padding: var(--spacing-sm);
-      border: 1px solid rgba(102, 126, 234, 0.2);
-    }
-
-    .streak-value {
-      font-size: 1.8rem;
-      font-weight: 700;
-      margin-bottom: 0.3rem;
-    }
-
-    .streak-value.win { color: #4caf50; }
-    .streak-value.lose { color: #f44336; }
-
-    .streak-label {
-      font-size: 0.9rem;
-      opacity: 0.8;
-    }
-
+    /* --- 6. Compact Streak Tables Styles --- */
     .streak-tables-container {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: var(--spacing-md);
+      gap: 1rem;
+      margin-top: 1rem;
     }
 
     .streak-table-wrapper {
       background: rgba(255, 255, 255, 0.05);
-      border-radius: 10px;
-      padding: var(--spacing-sm);
+      border-radius: 8px;
+      padding: 0.8rem;
       border: 1px solid rgba(0, 0, 0, 0.1);
     }
 
     .streak-table-title {
-      font-size: 1.1rem;
+      font-size: 1rem;
       font-weight: 600;
       text-align: center;
-      margin-bottom: 0.8rem;
-      color: var(--text-color);
+      margin-bottom: 0.6rem;
+      color: #5a73d8;
       border-bottom: 1px solid rgba(102, 126, 234, 0.3);
-      padding-bottom: 0.5rem;
+      padding-bottom: 0.4rem;
     }
 
     .streak-table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 0.85rem;
+      font-size: 0.8rem;
     }
 
     .streak-table th {
-      background: linear-gradient(135deg, rgba(102, 126, 234, 0.8), rgba(118, 75, 162, 0.8));
+      background: linear-gradient(135deg, #a7b8d4, #8a9cc4);
       color: var(--white);
-      padding: 0.6rem 0.4rem;
+      padding: 0.4rem 0.3rem;
       text-align: center;
       font-weight: 600;
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      font-size: 0.75rem;
+      border: 1px solid rgba(255, 255, 255, 0.3);
     }
 
     .streak-table td {
-      padding: 0.5rem 0.4rem;
+      padding: 0.35rem 0.3rem;
       text-align: center;
       border: 1px solid rgba(0, 0, 0, 0.1);
       background: rgba(255, 255, 255, 0.02);
+      font-size: 0.75rem;
     }
 
     .streak-table tbody tr:nth-child(even) {
@@ -394,14 +368,9 @@
 
     /* --- 11. Responsive Design --- */
     @media (max-width: 768px) {
-      .streaks-summary {
-        grid-template-columns: 1fr;
-        gap: var(--spacing-sm);
-      }
-
       .streak-tables-container {
         grid-template-columns: 1fr;
-        gap: var(--spacing-sm);
+        gap: 0.8rem;
       }
     }
 
@@ -416,8 +385,9 @@
       th, td { padding: 0.5rem 0.3rem; }
       .disclaimer { font-size: 0.8rem; padding: var(--spacing-sm); }
       .maintenance-notice { font-size: 0.85rem; padding: 0.8rem; }
-      .streak-table { font-size: 0.75rem; }
-      .streak-table th, .streak-table td { padding: 0.4rem 0.2rem; }
+      .streak-table { font-size: 0.7rem; }
+      .streak-table th, .streak-table td { padding: 0.3rem 0.2rem; font-size: 0.65rem; }
+      .streak-table-wrapper { padding: 0.6rem; }
       /*
       .telegram-modal-content {
         margin: 1rem;
@@ -479,25 +449,6 @@
     </section>
 
     <section class="section">
-        <h2 style="font-size: 1.5rem; color: var(--text-color); border-bottom: 2px solid var(--primary-color); padding-bottom: 0.5rem; margin-bottom: var(--spacing-sm);">Size Prediction Streaks 📊</h2>
-        
-        <div class="streaks-summary">
-          <div class="streak-info">
-            <div class="streak-value win" id="current-win-streak">--</div>
-            <div class="streak-label">Current Win Streak 🔥</div>
-          </div>
-          <div class="streak-info">
-            <div class="streak-value lose" id="current-lose-streak">--</div>
-            <div class="streak-label">Current Lose Streak ❄️</div>
-          </div>
-        </div>
-
-        <div style="text-align: center; margin-bottom: var(--spacing-sm);">
-          <span style="font-size: 0.9rem; color: var(--text-color); opacity: 0.8;">
-            Max Win: <strong id="max-win-streak">--</strong> | Max Lose: <strong id="max-lose-streak">--</strong>
-          </span>
-        </div>
-
         <div class="streak-tables-container">
           <div class="streak-table-wrapper">
             <div class="streak-table-title">Win Streak Count</div>
@@ -667,12 +618,6 @@ function updateCountdownDisplay() {
 // Size Streaks Update Function
 function updateSizeStreaks(sizeStreaks) {
   if (!sizeStreaks) return;
-
-  // Update current streaks
-  document.getElementById('current-win-streak').textContent = sizeStreaks.current_win_streak || 0;
-  document.getElementById('current-lose-streak').textContent = sizeStreaks.current_lose_streak || 0;
-  document.getElementById('max-win-streak').textContent = sizeStreaks.max_win_streak || 0;
-  document.getElementById('max-lose-streak').textContent = sizeStreaks.max_lose_streak || 0;
 
   // Update win streak table
   const winStreakTableBody = document.getElementById('win-streak-table-body');
