@@ -546,14 +546,16 @@ def get_alternation_prediction(sequence, rule_type="color"):
             return "S", "AlternationRule_BtoS", 54.0
 
 def get_emergency_prediction(sequence, rule_type="color"):
-    """Get emergency prediction when all else fails"""
-    # Try frequency-based first
+    """Get emergency prediction when all else fails - avoid Fibonacci"""
+    # Try frequency-based first (anti-dominant strategy)
     freq_pred = get_pattern_frequency_prediction(sequence, rule_type)
-    if freq_pred[2] > 55.0:  # If confidence is good
+    if freq_pred[2] > 52.0:  # Lower threshold, higher chance of use
         return freq_pred
     
-    # Fallback to alternation
-    return get_alternation_prediction(sequence, rule_type)
+    # Fallback to alternation (better than Fibonacci)
+    alt_pred = get_alternation_prediction(sequence, rule_type)
+    return alt_pred
+
 
 # --- Pattern Matching Logic for 25 Rules ---
 def ab_to_colors(pattern, a_type, b_type):
