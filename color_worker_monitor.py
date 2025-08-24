@@ -878,8 +878,8 @@ def get_dynamic_predefined_rules(static_rules, rule_type="color"):
                 dynamic_accuracy = performance_data[pattern]["accuracy"]
                 
                 # Filter out poor performing rules
-                if dynamic_accuracy < 52.0:
-                    #logger.warning(f"🚫 Filtering out poor {rule_type} rule '{pattern}': {dynamic_accuracy}%")
+                if dynamic_accuracy < 10.0:
+                    logger.warning(f"🚫 Filtering out poor {rule_type} rule '{pattern}': {dynamic_accuracy}%")
                     filtered_count += 1
                     continue
                 
