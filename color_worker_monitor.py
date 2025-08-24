@@ -318,8 +318,8 @@ PREDEFINED_COLOR_RULES = {
     "GGR": {"predict": "G", "correct": 53, "total": 100, "accuracy": 53.0},
     "RGR": {"predict": "G", "correct": 57, "total": 100, "accuracy": 57.0},
     "GRG": {"predict": "R", "correct": 55, "total": 100, "accuracy": 55.0},
-    "RGG": {"predict": "R", "correct": 56, "total": 100, "accuracy": 56.0},
-    "GRR": {"predict": "G", "correct": 54, "total": 100, "accuracy": 54.0},
+    #"RGG": {"predict": "R", "correct": 56, "total": 100, "accuracy": 56.0},
+    #"GRR": {"predict": "G", "correct": 54, "total": 100, "accuracy": 54.0},
     
     # Complex patterns
     "RGRG": {"predict": "R", "correct": 65, "total": 100, "accuracy": 65.0},
@@ -364,8 +364,8 @@ PREDEFINED_SIZE_RULES = {
     "BBS": {"predict": "B", "correct": 51, "total": 100, "accuracy": 51.0},
     "SBS": {"predict": "B", "correct": 56, "total": 100, "accuracy": 56.0},
     "BSB": {"predict": "S", "correct": 54, "total": 100, "accuracy": 54.0},
-    "SBB": {"predict": "S", "correct": 55, "total": 100, "accuracy": 55.0},
-    "BSS": {"predict": "B", "correct": 53, "total": 100, "accuracy": 53.0},
+    #"SBB": {"predict": "S", "correct": 55, "total": 100, "accuracy": 55.0},
+    #"BSS": {"predict": "B", "correct": 53, "total": 100, "accuracy": 53.0},
     
     # Complex patterns
     "SBSB": {"predict": "S", "correct": 64, "total": 100, "accuracy": 64.0},
