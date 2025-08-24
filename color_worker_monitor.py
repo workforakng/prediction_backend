@@ -346,8 +346,8 @@ PREDEFINED_COLOR_RULES = {
     "GGGG": {"predict": "R", "correct": 70, "total": 100, "accuracy": 70.0},
     "RRRRR": {"predict": "R", "correct": 78, "total": 100, "accuracy": 78.0},
     "GGGGG": {"predict": "G", "correct": 76, "total": 100, "accuracy": 76.0},
-    #"RRRRRR": {"predict": "G", "correct": 80, "total": 100, "accuracy": 80.0},
-    #"GGGGGG": {"predict": "R", "correct": 78, "total": 100, "accuracy": 78.0},
+    "RRRRRG": {"predict": "R", "correct": 80, "total": 100, "accuracy": 80.0},
+    "GGGGGR": {"predict": "G", "correct": 78, "total": 100, "accuracy": 78.0},
 }
 
 PREDEFINED_SIZE_RULES = {
@@ -392,8 +392,8 @@ PREDEFINED_SIZE_RULES = {
     "BBBB": {"predict": "S", "correct": 69, "total": 100, "accuracy": 69.0},
     "SSSSS": {"predict": "S", "correct": 77, "total": 100, "accuracy": 77.0},
     "BBBBB": {"predict": "B", "correct": 75, "total": 100, "accuracy": 75.0},
-    #"SSSSSS": {"predict": "B", "correct": 79, "total": 100, "accuracy": 79.0},
-    #"BBBBBB": {"predict": "S", "correct": 77, "total": 100, "accuracy": 77.0},
+    "SSSSSB": {"predict": "S", "correct": 79, "total": 100, "accuracy": 79.0},
+    "BBBBBS": {"predict": "B", "correct": 77, "total": 100, "accuracy": 77.0},
 }
 
 # Time-based prediction rules
