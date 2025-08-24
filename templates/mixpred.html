@@ -816,7 +816,7 @@ function updateNextSizePrediction(prediction) {
   const predictionDisplay = document.getElementById('size-prediction-display');
   if (prediction && prediction.next_size && prediction.issue) {
     issueDisplay.innerHTML = `Size #<strong>${String(prediction.issue).slice(-4)}</strong>`;
-    predictionDisplay.innerHTML = `<div class="pred-box ${prediction.next_size}">${prediction.next_size === "Small" ? "Total Small" : prediction.next_size}</div>`;
+    predictionDisplay.innerHTML = `<div class="pred-box ${prediction.next_size}">${prediction.next_size === "Small" ? "Small" : prediction.next_size}</div>`;
   } else {
     issueDisplay.innerHTML = `Awaiting Next Issue...`;
     predictionDisplay.innerHTML = `<div class="pred-box Pending">Pending</div>`;
