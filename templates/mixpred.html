@@ -18,6 +18,8 @@
       --section-bg: rgba(255, 255, 255, 0.95);
       --border-color: rgba(255, 255, 255, 0.2);
       --table-header-bg: linear-gradient(135deg, #2a3f66, #1a2642);
+      --table-header-bg-light: #f1f1f1;
+      --table-header-color: #333;
 
       /* New Streak Table Variables */
       --streak-section-bg: #f8faff;
@@ -54,6 +56,8 @@
         --section-bg: rgba(25, 25, 25, 0.95);
         --border-color: rgba(0, 0, 0, 0.2);
         --table-header-bg: linear-gradient(135deg, #0d123d, #090b20);
+        --table-header-bg-light: #2c2c2c;
+        --table-header-color: #e0e0e0;
 
         /* New Streak Table Variables for dark mode */
         --streak-section-bg: #1e1e1e;
@@ -68,7 +72,6 @@
         --small-gradient: linear-gradient(135deg, #7986cb, #5c6bc0);
         --pending-gradient: linear-gradient(135deg, #757575, #424242);
     }
-
 
     /* --- 2. Reset & Base Styles --- */
     * {
@@ -147,7 +150,6 @@
     #issue-display, #color-issue-display, #size-issue-display {
         font-size: 1.8rem;
         margin-bottom: var(--spacing-sm);
-        /* Corrected color here */
         color: var(--text-color); 
     }
     
@@ -163,10 +165,11 @@
       font-size: 5rem;
       font-weight: 700;
       color: var(--white);
-      padding: var(--spacing-md) var(--spacing-sm);
+      /* Shortened padding for smaller box */
+      padding: 0.8rem 1.2rem;
       border-radius: var(--border-radius-md);
       display: inline-block;
-      min-width: 300px;
+      min-width: 200px;
       box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
       text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
       border: 2px solid var(--border-color);
@@ -185,7 +188,12 @@
       font-size: 0.9rem;
     }
 
+    /* Fixed table header visibility in dark mode */
     thead {
+      background: var(--table-header-bg-light);
+      color: var(--table-header-color);
+    }
+    body.dark-mode thead {
       background: var(--table-header-bg);
       color: var(--white);
     }
@@ -264,10 +272,11 @@
         border-color: rgba(255, 255, 255, 0.2);
     }
 
+    /* Font size increased */
     .streak-table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 0.8rem;
+      font-size: 0.9rem; 
     }
 
     /* Fixed to use new variables */
@@ -277,7 +286,7 @@
       padding: 0.4rem 0.3rem;
       text-align: center;
       font-weight: 600;
-      font-size: 0.75rem;
+      font-size: 0.85rem;
       border: 1px solid #e1e6ef;
     }
     
@@ -291,7 +300,7 @@
       text-align: center;
       border: 1px solid #e1e6ef;
       background: var(--streak-table-cell-bg);
-      font-size: 0.75rem;
+      font-size: 0.85rem;
     }
     
     body.dark-mode .streak-table td {
@@ -380,7 +389,7 @@
     .timer { font-weight: 700; font-size: 1.2rem; color: #ffd700; }
     .error-message { color: #d32f2f; background: #ffcdd2; border-radius: 8px; padding: 0.5rem; margin-top: var(--spacing-sm); font-weight: 600; display: none; }
 
-    /* --- 9. Telegram Notification Modal Styles (Commented) --- */
+    /* --- 9. Telegram Notification Modal Styles (COMMENTED) --- */
     /*
     .telegram-modal {
       position: fixed;
@@ -515,7 +524,7 @@
 <body>
   
   <div class="maintenance-notice">
-    🚧 Website under maintenance with new rules for 24 August, suggested to don't play, will again work properly from 25 Aug 🚧
+    🚧 Website under maintenance for 24 August, suggested to don't play, will again work properly from 25 Aug 🚧
   </div>
 
   <main>
@@ -712,6 +721,31 @@ function loadThemePreference() {
     updateThemeButton(savedTheme === 'dark');
 }
 
+// Telegram Modal Functions (COMMENTED)
+/*
+function showTelegramModal() {
+  const modal = document.getElementById('telegram-modal');
+  if (modal) {
+    modal.style.display = 'flex';
+  }
+}
+
+function closeTelegramModal() {
+  const modal = document.getElementById('telegram-modal');
+  if (modal) {
+    modal.style.display = 'none';
+    localStorage.setItem('telegram-modal-shown', 'true');
+  }
+}
+
+function checkFirstTimeVisitor() {
+  const hasVisited = localStorage.getItem('telegram-modal-shown');
+  if (!hasVisited) {
+    setTimeout(showTelegramModal, 2000);
+  }
+}
+*/
+
 // Utility Functions
 function formatTimestamp(isoString) {
   try {
@@ -782,7 +816,7 @@ function updateNextSizePrediction(prediction) {
   const predictionDisplay = document.getElementById('size-prediction-display');
   if (prediction && prediction.next_size && prediction.issue) {
     issueDisplay.innerHTML = `Size #<strong>${String(prediction.issue).slice(-4)}</strong>`;
-    predictionDisplay.innerHTML = `<div class="pred-box ${prediction.next_size}">${prediction.next_size}</div>`;
+    predictionDisplay.innerHTML = `<div class="pred-box ${prediction.next_size}">${prediction.next_size === "Small" ? "Total Small" : prediction.next_size}</div>`;
   } else {
     issueDisplay.innerHTML = `Awaiting Next Issue...`;
     predictionDisplay.innerHTML = `<div class="pred-box Pending">Pending</div>`;
@@ -924,6 +958,7 @@ function updateCountdownDisplay() {
 function init() {
   console.log('🚀 Initializing Merged Prediction Dashboard...');
   loadThemePreference(); // Load theme preference on init
+  /* checkFirstTimeVisitor(); */ // Check if Telegram modal should be shown
   loadAllData();
   setInterval(() => {
     updateCountdownDisplay();
@@ -932,6 +967,16 @@ function init() {
 
   // Add event listener for the theme toggle button
   document.getElementById('theme-toggle-button').addEventListener('click', toggleTheme);
+  
+  // Close modal when clicking outside
+  /*
+  document.addEventListener('click', (e) => {
+    const modal = document.getElementById('telegram-modal');
+    if (e.target === modal) {
+      closeTelegramModal();
+    }
+  });
+  */
 
   console.log('✅ Dashboard initialized successfully');
 }
