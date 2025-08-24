@@ -344,10 +344,10 @@ PREDEFINED_COLOR_RULES = {
     # Streak breakers
     "RRRR": {"predict": "G", "correct": 72, "total": 100, "accuracy": 72.0},
     "GGGG": {"predict": "R", "correct": 70, "total": 100, "accuracy": 70.0},
-    "RRRRR": {"predict": "G", "correct": 78, "total": 100, "accuracy": 78.0},
-    "GGGGG": {"predict": "R", "correct": 76, "total": 100, "accuracy": 76.0},
-    "RRRRRR": {"predict": "G", "correct": 80, "total": 100, "accuracy": 80.0},
-    "GGGGGG": {"predict": "R", "correct": 78, "total": 100, "accuracy": 78.0},
+    "RRRRR": {"predict": "R", "correct": 78, "total": 100, "accuracy": 78.0},
+    "GGGGG": {"predict": "G", "correct": 76, "total": 100, "accuracy": 76.0},
+    #"RRRRRR": {"predict": "G", "correct": 80, "total": 100, "accuracy": 80.0},
+    #"GGGGGG": {"predict": "R", "correct": 78, "total": 100, "accuracy": 78.0},
 }
 
 PREDEFINED_SIZE_RULES = {
@@ -390,10 +390,10 @@ PREDEFINED_SIZE_RULES = {
     # Streak breakers
     "SSSS": {"predict": "B", "correct": 71, "total": 100, "accuracy": 71.0},
     "BBBB": {"predict": "S", "correct": 69, "total": 100, "accuracy": 69.0},
-    "SSSSS": {"predict": "B", "correct": 77, "total": 100, "accuracy": 77.0},
-    "BBBBB": {"predict": "S", "correct": 75, "total": 100, "accuracy": 75.0},
-    "SSSSSS": {"predict": "B", "correct": 79, "total": 100, "accuracy": 79.0},
-    "BBBBBB": {"predict": "S", "correct": 77, "total": 100, "accuracy": 77.0},
+    "SSSSS": {"predict": "S", "correct": 77, "total": 100, "accuracy": 77.0},
+    "BBBBB": {"predict": "B", "correct": 75, "total": 100, "accuracy": 75.0},
+    #"SSSSSS": {"predict": "B", "correct": 79, "total": 100, "accuracy": 79.0},
+    #"BBBBBB": {"predict": "S", "correct": 77, "total": 100, "accuracy": 77.0},
 }
 
 # Time-based prediction rules
@@ -793,11 +793,11 @@ def get_effective_rulebook(learned_rules, predefined_rules, rule_type="color"):
         # Get predefined rules with dynamic accuracy (already filtered)
         dynamic_predefined = get_dynamic_predefined_rules(predefined_rules, rule_type)
         
-        # Only add learned rules if their accuracy is at least 56%
+        # Only add learned rules if their accuracy is at least 54%
         high_quality_learned = 0
         if learned_rules:
             for pattern, rule_data in learned_rules.items():
-                if rule_data.get("accuracy", 0) >= 56.0:  # Increased threshold
+                if rule_data.get("accuracy", 0) >= 54.0:  # Increased threshold
                     effective_rules[pattern] = rule_data
                     high_quality_learned += 1
 
@@ -877,7 +877,7 @@ def get_dynamic_predefined_rules(static_rules, rule_type="color"):
                 
                 # Filter out poor performing rules
                 if dynamic_accuracy < 52.0:
-                    logger.warning(f"🚫 Filtering out poor {rule_type} rule '{pattern}': {dynamic_accuracy}%")
+                    #logger.warning(f"🚫 Filtering out poor {rule_type} rule '{pattern}': {dynamic_accuracy}%")
                     filtered_count += 1
                     continue
                 
