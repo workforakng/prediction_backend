@@ -672,62 +672,71 @@ def learn_patterns(colors):
         return defaultdict(lambda: defaultdict(int))
 
 def generate_rules(stats, min_occurrences=MIN_OCCURRENCES):
-    """Enhanced rule generation with validation"""
+    """Enhanced rule generation with accuracy threshold"""
     try:
         if not stats:
             logger.warning("⚠️ No statistics provided for rule generation")
             return {}
-        
+
         ruleset = {}
         rules_generated = 0
-        
+
         for k, outcomes in stats.items():
             try:
                 total = sum(outcomes.values())
                 if total >= min_occurrences:
                     best = max(outcomes.items(), key=lambda x: x[1])
                     accuracy = round((best[1] / total) * 100, 2)
-                    
-                    ruleset[k] = {
-                        "predict": best[0],
-                        "correct": best[1],
-                        "total": total,
-                        "accuracy": accuracy
-                    }
-                    rules_generated += 1
-                    
+
+                    # Only add rule if accuracy >= 54.0
+                    if accuracy >= 54.0:
+                        ruleset[k] = {
+                            "predict": best[0],
+                            "correct": best[1],
+                            "total": total,
+                            "accuracy": accuracy
+                        }
+                        rules_generated += 1
+
             except (ValueError, ZeroDivisionError) as e:
                 logger.warning(f"⚠️ Error generating rule for pattern {k}: {e}")
                 continue
-        
-        logger.debug(f"📜 Generated {rules_generated} rules from {len(stats)} patterns")
+
+        logger.debug(f"📜 Generated {rules_generated} quality rules from {len(stats)} patterns")
         return ruleset
-        
+
     except Exception as e:
         logger.error(f"❌ Error generating rules: {e}")
         return {}
 
 def get_effective_rulebook(learned_rules, predefined_rules, rule_type="color"):
-    """Combine learned rules with predefined fallback rules"""
+    """Combine learned rules with predefined fallback rules based on accuracy"""
     try:
         effective_rules = {}
-        
-        # First, add all learned rules (higher priority)
+
+        # Only add learned rules if their accuracy is at least as good as default (54%)
+        high_quality_learned = 0
         if learned_rules:
-            effective_rules.update(learned_rules)
-            logger.debug(f"📚 Added {len(learned_rules)} learned {rule_type} rules")
-        
-        # Then, add predefined rules that don't conflict
+            for pattern, rule_data in learned_rules.items():
+                if rule_data.get("accuracy", 0) >= 54.0:
+                    effective_rules[pattern] = rule_data
+                    high_quality_learned += 1
+
+        # For patterns not covered, or if predefined rule has better accuracy, add predefined
         added_predefined = 0
         for pattern, rule_data in predefined_rules.items():
             if pattern not in effective_rules:
                 effective_rules[pattern] = rule_data
                 added_predefined += 1
-        
-        logger.info(f"🎯 Effective {rule_type} rulebook: {len(learned_rules or [])} learned + {added_predefined} predefined = {len(effective_rules)} total rules")
-        
+            elif effective_rules[pattern].get("accuracy", 0) < rule_data.get("accuracy", 0):
+                effective_rules[pattern] = rule_data
+                added_predefined += 1
+                high_quality_learned -= 1
+
+        logger.info(f"🎯 Effective {rule_type} rulebook: {high_quality_learned} learned + {added_predefined} predefined = {len(effective_rules)} total rules")
+
         return effective_rules
-        
+
     except Exception as e:
         logger.error(f"❌ Error creating effective rulebook: {e}")
         return predefined_rules  # Fallback to just predefined rules
