@@ -1677,7 +1677,7 @@ def run_color_prediction_and_monitor():
         
         # Emergency fallback check
         current_accuracy = get_redis_json(REDIS_COLOR_ACCURACY_KEY, {}).get("accuracy_percentage", 50.0)
-        if current_accuracy < 48.0:
+        if current_accuracy < 46.0:
             logger.warning(f"🚨 Emergency fallback: color accuracy is {current_accuracy}%, using frequency-based prediction")
             color_pred, color_rule, color_acc = get_emergency_prediction(sequence_raw, "color")
         else:
@@ -1783,7 +1783,7 @@ def run_size_prediction_and_monitor():
         
         # Emergency fallback check
         current_accuracy = get_redis_json(REDIS_SIZE_ACCURACY_KEY, {}).get("accuracy_percentage", 50.0)
-        if current_accuracy < 48.0:
+        if current_accuracy < 46.0:
             logger.warning(f"🚨 Emergency fallback: size accuracy is {current_accuracy}%, using frequency-based prediction")
             size_pred, size_rule, size_acc = get_emergency_prediction(size_sequence_raw, "size")
         else:
