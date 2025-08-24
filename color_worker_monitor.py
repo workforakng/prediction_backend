@@ -799,7 +799,7 @@ def get_effective_rulebook(learned_rules, predefined_rules, rule_type="color"):
         high_quality_learned = 0
         if learned_rules:
             for pattern, rule_data in learned_rules.items():
-                if rule_data.get("accuracy", 0) >= 54.0:  # Increased threshold
+                if rule_data.get("accuracy", 0) >= 50.0:  # Increased threshold
                     effective_rules[pattern] = rule_data
                     high_quality_learned += 1
 
@@ -892,7 +892,7 @@ def get_dynamic_predefined_rules(static_rules, rule_type="color"):
                 logger.debug(f"🎯 Dynamic {rule_type} rule '{pattern}': {dynamic_accuracy}% (was {rule_data['accuracy']}%)")
             else:
                 # Only use static rules that meet minimum threshold
-                if rule_data.get("accuracy", 0) >= 55.0:
+                if rule_data.get("accuracy", 0) >= 50.0:
                     dynamic_rules[pattern] = rule_data.copy()
                 else:
                     logger.debug(f"🚫 Skipping low static {rule_type} rule '{pattern}': {rule_data.get('accuracy', 0)}%")
