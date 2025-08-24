@@ -699,7 +699,7 @@ def get_v2_insights():
 
 @app.route('/admin/reset-streaks', methods=['POST'])
 def reset_all_streaks():
-    """Reset all streak and accuracy data"""
+    """Reset all streak and accuracy data from a specific issue (URL param only)"""
     try:
         if not app.redis_client:
             if not initialize_redis():
@@ -708,17 +708,33 @@ def reset_all_streaks():
                     "message": "Database connection not available"
                 }), 503
 
-        latest_pred_raw = app.redis_client.get(REDIS_COLOR_PREDICTION_KEY)
-        latest_issue = json.loads(latest_pred_raw).get("issue") if latest_pred_raw else None
+        # Get issue number from URL parameter only
+        reset_issue = request.args.get('issue')
+        
+        # Default to latest issue if none provided
+        if not reset_issue:
+            latest_pred_raw = app.redis_client.get(REDIS_COLOR_PREDICTION_KEY)
+            reset_issue = json.loads(latest_pred_raw).get("issue") if latest_pred_raw else None
+            
+            if not reset_issue:
+                return jsonify({
+                    "status": "error",
+                    "message": "Prediction not yet initialized and no issue specified. Cannot reset streaks."
+                }), 400
 
-        if not latest_issue:
+        # Validate issue format (optional)
+        if not str(reset_issue).isdigit() and len(str(reset_issue)) < 10:
             return jsonify({
                 "status": "error",
-                "message": "Prediction not yet initialized. Cannot reset streaks."
+                "message": f"Invalid issue format: {reset_issue}. Expected numeric issue ID."
             }), 400
 
-        app.redis_client.set(REDIS_RESET_POINT, latest_issue)
+        # Set the reset point
+        app.redis_client.set(REDIS_RESET_POINT, str(reset_issue))
 
+        # Create blank streak and accuracy objects
+        current_timestamp = datetime.now().isoformat()
+        
         blank_streaks = {
             "current_win_streak": 0,
             "current_lose_streak": 0,
@@ -726,14 +742,17 @@ def reset_all_streaks():
             "max_lose_streak": 0,
             "win_streak_distribution": {},
             "lose_streak_distribution": {},
-            "timestamp": datetime.now().isoformat()
+            "timestamp": current_timestamp,
+            "reset_from_issue": str(reset_issue)
         }
+        
         blank_accuracy = {
             "total_predictions": 0,
             "correct_predictions": 0,
             "accuracy_percentage": 0.0,
             "per_rule": {},
-            "timestamp": datetime.now().isoformat()
+            "timestamp": current_timestamp,
+            "reset_from_issue": str(reset_issue)
         }
         
         # Reset both color and size streaks & accuracy
@@ -744,19 +763,22 @@ def reset_all_streaks():
         app.redis_client.set(REDIS_CONTROLLED_SIZE_STREAKS_KEY, json.dumps(blank_streaks))
         app.redis_client.set(REDIS_SIZE_ACCURACY_KEY, json.dumps(blank_accuracy))
         
-        app.logger.info(f"✅ /admin/reset-streaks → Color & Size data reset from issue {latest_issue}.")
+        app.logger.info(f"✅ /admin/reset-streaks → Color & Size data reset from issue {reset_issue}.")
+        
         return jsonify({
-            "status": "ok",
-            "message": "✅ Color & Size streaks and accuracy data have been reset.",
-            "reset_from_issue": latest_issue
+            "status": "success",
+            "message": f"✅ Color & Size streaks and accuracy data have been reset from issue {reset_issue}.",
+            "reset_from_issue": str(reset_issue),
+            "timestamp": current_timestamp
         }), 200
         
     except Exception as e:
         app.logger.exception("❌ Error in /admin/reset-streaks")
         return jsonify({
-            "status": "error", 
-            "message": str(e)
+            "status": "error",
+            "message": f"Failed to reset streaks: {str(e)}"
         }), 500
+
 
 @app.errorhandler(404)
 def not_found(error):
