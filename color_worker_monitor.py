@@ -710,11 +710,14 @@ def generate_rules(stats, min_occurrences=MIN_OCCURRENCES):
         return {}
 
 def get_effective_rulebook(learned_rules, predefined_rules, rule_type="color"):
-    """Combine learned rules with predefined fallback rules based on accuracy"""
+    """Combine learned rules with dynamic predefined rules based on actual accuracy"""
     try:
         effective_rules = {}
-
-        # Only add learned rules if their accuracy is at least as good as default (54%)
+        
+        # Get predefined rules with dynamic accuracy
+        dynamic_predefined = get_dynamic_predefined_rules(predefined_rules, rule_type)
+        
+        # Only add learned rules if their accuracy is at least 54%
         high_quality_learned = 0
         if learned_rules:
             for pattern, rule_data in learned_rules.items():
@@ -722,24 +725,88 @@ def get_effective_rulebook(learned_rules, predefined_rules, rule_type="color"):
                     effective_rules[pattern] = rule_data
                     high_quality_learned += 1
 
-        # For patterns not covered, or if predefined rule has better accuracy, add predefined
+        # For patterns not covered, or if dynamic predefined rule has better accuracy, add predefined
         added_predefined = 0
-        for pattern, rule_data in predefined_rules.items():
+        for pattern, rule_data in dynamic_predefined.items():
             if pattern not in effective_rules:
-                effective_rules[pattern] = rule_data
-                added_predefined += 1
+                # Only add predefined if accuracy >= 52% (dynamic threshold)
+                if rule_data.get("accuracy", 0) >= 52.0:
+                    effective_rules[pattern] = rule_data
+                    added_predefined += 1
             elif effective_rules[pattern].get("accuracy", 0) < rule_data.get("accuracy", 0):
-                effective_rules[pattern] = rule_data
-                added_predefined += 1
-                high_quality_learned -= 1
+                # Use predefined if it's more accurate than learned
+                if rule_data.get("accuracy", 0) >= 52.0:
+                    effective_rules[pattern] = rule_data
+                    added_predefined += 1
+                    high_quality_learned -= 1
 
-        logger.info(f"🎯 Effective {rule_type} rulebook: {high_quality_learned} learned + {added_predefined} predefined = {len(effective_rules)} total rules")
+        logger.info(f"🎯 Effective {rule_type} rulebook: {high_quality_learned} learned + {added_predefined} dynamic predefined = {len(effective_rules)} total rules")
 
         return effective_rules
 
     except Exception as e:
         logger.error(f"❌ Error creating effective rulebook: {e}")
-        return predefined_rules  # Fallback to just predefined rules
+        return predefined_rules  # Fallback to static predefined rules
+        
+def update_predefined_rule_performance(pattern, predicted, actual, rule_type="color"):
+    """Track actual performance of predefined rules"""
+    try:
+        key = f"lottery:{rule_type}_predefined_performance"
+        
+        # Get current performance data
+        performance_data = get_redis_json(key, {})
+        
+        if pattern not in performance_data:
+            performance_data[pattern] = {"correct": 0, "total": 0, "accuracy": 50.0}
+        
+        # Update counts
+        performance_data[pattern]["total"] += 1
+        if predicted == actual:
+            performance_data[pattern]["correct"] += 1
+        
+        # Calculate new accuracy
+        correct = performance_data[pattern]["correct"]
+        total = performance_data[pattern]["total"]
+        accuracy = round((correct / total) * 100, 2) if total > 0 else 50.0
+        performance_data[pattern]["accuracy"] = accuracy
+        
+        # Store updated data
+        set_redis_json(key, performance_data)
+        
+        logger.debug(f"📊 Updated {rule_type} predefined rule '{pattern}': {correct}/{total} ({accuracy}%)")
+        
+    except Exception as e:
+        logger.error(f"❌ Error updating predefined rule performance: {e}")
+
+def get_dynamic_predefined_rules(static_rules, rule_type="color"):
+    """Get predefined rules with dynamic accuracy based on actual performance"""
+    try:
+        key = f"lottery:{rule_type}_predefined_performance"
+        performance_data = get_redis_json(key, {})
+        
+        dynamic_rules = {}
+        
+        for pattern, rule_data in static_rules.items():
+            if pattern in performance_data and performance_data[pattern]["total"] >= 5:
+                # Use actual performance if we have enough data
+                dynamic_accuracy = performance_data[pattern]["accuracy"]
+                dynamic_rules[pattern] = {
+                    "predict": rule_data["predict"],
+                    "correct": performance_data[pattern]["correct"],
+                    "total": performance_data[pattern]["total"],
+                    "accuracy": dynamic_accuracy
+                }
+                logger.debug(f"🎯 Dynamic {rule_type} rule '{pattern}': {dynamic_accuracy}% (was {rule_data['accuracy']}%)")
+            else:
+                # Use static rule if not enough performance data
+                dynamic_rules[pattern] = rule_data.copy()
+        
+        return dynamic_rules
+        
+    except Exception as e:
+        logger.error(f"❌ Error getting dynamic predefined rules: {e}")
+        return static_rules
+
 
 def retrain_rules(colors):
     """Enhanced rule retraining with comprehensive error handling"""
