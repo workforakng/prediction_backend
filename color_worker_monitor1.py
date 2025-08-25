@@ -479,6 +479,84 @@ def get_trend_size_prediction(sequence):
     else:
         return "S", "TrendRule_Balanced", 51.0
 
+def get_trend_size_prediction(sequence):
+    """Get size prediction based on recent trends"""
+    if len(sequence) < 5:
+        return "S", "TrendRule_Insufficient", 50.0
+    
+    recent = sequence[-5:]
+    small_count = recent.count('S')
+    big_count = recent.count('B')
+    
+    if small_count > big_count:
+        return "B", "TrendRule_SmallDominant", 63.0
+    elif big_count > small_count:
+        return "S", "TrendRule_BigDominant", 61.0
+    else:
+        return "S", "TrendRule_Balanced", 51.0
+
+def get_pattern_frequency_prediction(sequence, rule_type="color"):
+    """Get prediction based on recent pattern frequency"""
+    if not sequence or len(sequence) < 3:
+        return "R" if rule_type == "color" else "S", "FrequencyRule_Default", 50.0
+    
+    # Get last 10 items
+    recent = [item[1] for item in sequence[-10:]] if len(sequence) >= 10 else [item[1] for item in sequence]
+    
+    if rule_type == "color":
+        red_count = recent.count('R')
+        green_count = recent.count('G')
+        
+        # Predict opposite of what's been dominant
+        if red_count > green_count:
+            return "G", "FrequencyRule_AntiRed", 58.0
+        elif green_count > red_count:
+            return "R", "FrequencyRule_AntiGreen", 58.0
+        else:
+            return "R", "FrequencyRule_Balanced", 52.0
+    else:  # size
+        small_count = recent.count('S')
+        big_count = recent.count('B')
+        
+        # Predict opposite of what's been dominant
+        if small_count > big_count:
+            return "B", "FrequencyRule_AntSmall", 57.0
+        elif big_count > small_count:
+            return "S", "FrequencyRule_AntiBig", 57.0
+        else:
+            return "S", "FrequencyRule_Balanced", 51.0
+
+def get_alternation_prediction(sequence, rule_type="color"):
+    """Get prediction based on alternation patterns"""
+    if not sequence or len(sequence) < 2:
+        return "R" if rule_type == "color" else "S", "AlternationRule_Default", 50.0
+    
+    last_item = sequence[-1][1]
+    
+    if rule_type == "color":
+        # Simple alternation logic
+        if last_item == 'R':
+            return "G", "AlternationRule_RtoG", 55.0
+        else:
+            return "R", "AlternationRule_GtoR", 55.0
+    else:  # size
+        if last_item == 'S':
+            return "B", "AlternationRule_StoB", 54.0
+        else:
+            return "S", "AlternationRule_BtoS", 54.0
+
+def get_emergency_prediction(sequence, rule_type="color"):
+    """Get emergency prediction when all else fails - avoid Fibonacci"""
+    # Try frequency-based first (anti-dominant strategy)
+    freq_pred = get_pattern_frequency_prediction(sequence, rule_type)
+    if freq_pred[2] > 52.0:  # Lower threshold, higher chance of use
+        return freq_pred
+    
+    # Fallback to alternation (better than Fibonacci)
+    alt_pred = get_alternation_prediction(sequence, rule_type)
+    return alt_pred
+
+
 # --- Pattern Matching Logic for 25 Rules ---
 def ab_to_colors(pattern, a_type, b_type):
     """Converts a pattern of 'A'/'B' into a color/size sequence"""
@@ -714,31 +792,38 @@ def get_effective_rulebook(learned_rules, predefined_rules, rule_type="color"):
     try:
         effective_rules = {}
         
-        # Get predefined rules with dynamic accuracy
+        # Get predefined rules with dynamic accuracy (already filtered)
         dynamic_predefined = get_dynamic_predefined_rules(predefined_rules, rule_type)
         
         # Only add learned rules if their accuracy is at least 54%
         high_quality_learned = 0
         if learned_rules:
             for pattern, rule_data in learned_rules.items():
-                if rule_data.get("accuracy", 0) >= 54.0:
+                if rule_data.get("accuracy", 0) >= 10.0:  # Increased threshold
                     effective_rules[pattern] = rule_data
                     high_quality_learned += 1
 
-        # For patterns not covered, or if dynamic predefined rule has better accuracy, add predefined
+        # Add dynamic predefined rules (already filtered in get_dynamic_predefined_rules)
         added_predefined = 0
         for pattern, rule_data in dynamic_predefined.items():
             if pattern not in effective_rules:
-                # Only add predefined if accuracy >= 52% (dynamic threshold)
-                if rule_data.get("accuracy", 0) >= 52.0:
-                    effective_rules[pattern] = rule_data
-                    added_predefined += 1
-            elif effective_rules[pattern].get("accuracy", 0) < rule_data.get("accuracy", 0):
+                effective_rules[pattern] = rule_data
+                added_predefined += 1
+            elif rule_data.get("accuracy", 0) > effective_rules[pattern].get("accuracy", 0):
                 # Use predefined if it's more accurate than learned
-                if rule_data.get("accuracy", 0) >= 52.0:
+                effective_rules[pattern] = rule_data
+                added_predefined += 1
+                high_quality_learned -= 1
+
+        # Emergency fallback if no rules meet criteria
+        if len(effective_rules) < 5:
+            logger.warning(f"🚨 Very few {rule_type} rules available ({len(effective_rules)}), adding emergency fallbacks")
+            # Add only the best predefined rules
+            emergency_rules = {k: v for k, v in predefined_rules.items() if v.get("accuracy", 0) >= 58.0}
+            for pattern, rule_data in emergency_rules.items():
+                if pattern not in effective_rules:
                     effective_rules[pattern] = rule_data
                     added_predefined += 1
-                    high_quality_learned -= 1
 
         logger.info(f"🎯 Effective {rule_type} rulebook: {high_quality_learned} learned + {added_predefined} dynamic predefined = {len(effective_rules)} total rules")
 
@@ -785,11 +870,19 @@ def get_dynamic_predefined_rules(static_rules, rule_type="color"):
         performance_data = get_redis_json(key, {})
         
         dynamic_rules = {}
+        filtered_count = 0
         
         for pattern, rule_data in static_rules.items():
             if pattern in performance_data and performance_data[pattern]["total"] >= 5:
                 # Use actual performance if we have enough data
                 dynamic_accuracy = performance_data[pattern]["accuracy"]
+                
+                # Filter out poor performing rules
+                if dynamic_accuracy < 10.0:
+                    logger.warning(f"🚫 Filtering out poor {rule_type} rule '{pattern}': {dynamic_accuracy}%")
+                    filtered_count += 1
+                    continue
+                
                 dynamic_rules[pattern] = {
                     "predict": rule_data["predict"],
                     "correct": performance_data[pattern]["correct"],
@@ -798,8 +891,15 @@ def get_dynamic_predefined_rules(static_rules, rule_type="color"):
                 }
                 logger.debug(f"🎯 Dynamic {rule_type} rule '{pattern}': {dynamic_accuracy}% (was {rule_data['accuracy']}%)")
             else:
-                # Use static rule if not enough performance data
-                dynamic_rules[pattern] = rule_data.copy()
+                # Only use static rules that meet minimum threshold
+                if rule_data.get("accuracy", 0) >= 10.0:
+                    dynamic_rules[pattern] = rule_data.copy()
+                else:
+                    logger.debug(f"🚫 Skipping low static {rule_type} rule '{pattern}': {rule_data.get('accuracy', 0)}%")
+                    filtered_count += 1
+        
+        if filtered_count > 0:
+            logger.info(f"🎯 Filtered out {filtered_count} poor {rule_type} rules")
         
         return dynamic_rules
         
@@ -1520,6 +1620,13 @@ def run_color_prediction_and_monitor():
                 else:
                     current_loss += 1
                     logger.warning(f"❌ Color mismatch for issue #{last_issue_key}: expected '{actual_color}', but predicted '{last_predicted_color}'. Loss streak is now {current_loss}.")
+                 # Track predefined rule performance
+                rule_used = last_prediction_data.get("rule_name", "Unknown")
+                if rule_used in PREDEFINED_COLOR_RULES:
+                    predicted_mapped = "R" if last_predicted_color == "Red" else "G"
+                    actual_mapped = COLOR_MAP[actual_value]
+                    update_predefined_rule_performance(rule_used, predicted_mapped, actual_mapped, "color")
+
                     
                     # Check for retraining conditions
                     current_streak = get_redis_json(REDIS_COLOR_STREAKS_KEY, {})
@@ -1568,8 +1675,14 @@ def run_color_prediction_and_monitor():
             logger.warning("⚠️ Empty rulebook for color prediction, using predefined rules only")
             effective_rules = PREDEFINED_COLOR_RULES
         
-        # Make prediction using combined rulebook
-        color_pred, color_rule, color_acc = predict_next_color(sequence_raw, rules)
+        # Emergency fallback check
+        current_accuracy = get_redis_json(REDIS_COLOR_ACCURACY_KEY, {}).get("accuracy_percentage", 50.0)
+        if current_accuracy < 10.0:
+            logger.warning(f"🚨 Emergency fallback: color accuracy is {current_accuracy}%, using frequency-based prediction")
+            color_pred, color_rule, color_acc = get_emergency_prediction(sequence_raw, "color")
+        else:
+            # Make prediction using combined rulebook
+            color_pred, color_rule, color_acc = predict_next_color(sequence_raw, rules)
         
         # Create prediction data
         color_prediction_data = {
@@ -1642,6 +1755,13 @@ def run_size_prediction_and_monitor():
                 else:
                     current_size_loss += 1
                     logger.warning(f"❌ Size mismatch for issue #{last_issue_key}: expected '{actual_size}', but predicted '{last_predicted_size}'. Loss streak is now {current_size_loss}.")
+                # Track predefined rule performance
+                rule_used = last_prediction_data.get("rule_name", "Unknown")
+                if rule_used in PREDEFINED_SIZE_RULES:
+                    predicted_mapped = "B" if last_predicted_size == "Big" else "S"
+                    actual_mapped = SIZE_MAP[actual_value]
+                    update_predefined_rule_performance(rule_used, predicted_mapped, actual_mapped, "size")
+
                     
                     # Check for size retraining
                     if current_size_loss >= MAX_ALLOWED_LOSS_STREAK or not size_rules:
@@ -1661,8 +1781,14 @@ def run_size_prediction_and_monitor():
             logger.warning("⚠️ Empty size rulebook, using predefined rules only")
             effective_rules = PREDEFINED_SIZE_RULES
         
-        # Make prediction
-        size_pred, size_rule, size_acc = predict_next_size(size_sequence_raw, size_rules)
+        # Emergency fallback check
+        current_accuracy = get_redis_json(REDIS_SIZE_ACCURACY_KEY, {}).get("accuracy_percentage", 50.0)
+        if current_accuracy < 10.0:
+            logger.warning(f"🚨 Emergency fallback: size accuracy is {current_accuracy}%, using frequency-based prediction")
+            size_pred, size_rule, size_acc = get_emergency_prediction(size_sequence_raw, "size")
+        else:
+            # Make prediction
+            size_pred, size_rule, size_acc = predict_next_size(size_sequence_raw, size_rules)
         
         # Create prediction data
         size_prediction_data = {
