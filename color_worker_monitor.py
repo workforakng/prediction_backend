@@ -721,7 +721,7 @@ def get_effective_rulebook(learned_rules, predefined_rules, rule_type="color"):
         high_quality_learned = 0
         if learned_rules:
             for pattern, rule_data in learned_rules.items():
-                if rule_data.get("accuracy", 0) >= 54.0:
+                if rule_data.get("accuracy", 0) >= 0.0:
                     effective_rules[pattern] = rule_data
                     high_quality_learned += 1
 
@@ -730,12 +730,12 @@ def get_effective_rulebook(learned_rules, predefined_rules, rule_type="color"):
         for pattern, rule_data in dynamic_predefined.items():
             if pattern not in effective_rules:
                 # Only add predefined if accuracy >= 52% (dynamic threshold)
-                if rule_data.get("accuracy", 0) >= 52.0:
+                if rule_data.get("accuracy", 0) >= 0.0:
                     effective_rules[pattern] = rule_data
                     added_predefined += 1
             elif effective_rules[pattern].get("accuracy", 0) < rule_data.get("accuracy", 0):
                 # Use predefined if it's more accurate than learned
-                if rule_data.get("accuracy", 0) >= 52.0:
+                if rule_data.get("accuracy", 0) >= 0.0:
                     effective_rules[pattern] = rule_data
                     added_predefined += 1
                     high_quality_learned -= 1
