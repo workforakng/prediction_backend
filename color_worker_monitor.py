@@ -364,7 +364,7 @@ PREDEFINED_SIZE_RULES = {
     "BBS": {"predict": "B", "correct": 51, "total": 100, "accuracy": 51.0},
     "SBS": {"predict": "B", "correct": 56, "total": 100, "accuracy": 56.0},
     "BSB": {"predict": "S", "correct": 54, "total": 100, "accuracy": 54.0},
-    #"SBB": {"predict": "S", "correct": 55, "total": 100, "accuracy": 55.0},
+    "SBB": {"predict": "S", "correct": 55, "total": 100, "accuracy": 55.0},
     #"BSS": {"predict": "B", "correct": 53, "total": 100, "accuracy": 53.0},
     
     # Complex patterns
@@ -388,12 +388,12 @@ PREDEFINED_SIZE_RULES = {
     "BSBBS": {"predict": "B", "correct": 61, "total": 100, "accuracy": 61.0},
     
     # Streak breakers
-    "SSSS": {"predict": "B", "correct": 71, "total": 100, "accuracy": 71.0},
-    "BBBB": {"predict": "S", "correct": 69, "total": 100, "accuracy": 69.0},
-    "SSSSS": {"predict": "S", "correct": 77, "total": 100, "accuracy": 77.0},
-    "BBBBB": {"predict": "B", "correct": 75, "total": 100, "accuracy": 75.0},
-    "SSSSSB": {"predict": "S", "correct": 79, "total": 100, "accuracy": 79.0},
-    "BBBBBS": {"predict": "B", "correct": 77, "total": 100, "accuracy": 77.0},
+    "SSSS": {"predict": "B", "correct": 55, "total": 100, "accuracy": 55.0},
+    "BBBB": {"predict": "S", "correct": 55, "total": 100, "accuracy": 55.0},
+    "SSSSS": {"predict": "S", "correct": 52, "total": 100, "accuracy": 52.0},
+    "BBBBB": {"predict": "B", "correct": 51, "total": 100, "accuracy": 51.0},
+    "SSSSSB": {"predict": "S", "correct": 56, "total": 100, "accuracy": 56.0},
+    "BBBBBS": {"predict": "B", "correct": 56, "total": 100, "accuracy": 56.0},
 }
 
 # Time-based prediction rules
