@@ -6,6 +6,42 @@
   <title>Prediction Dashboard</title>
 
   <style>
+    /* --- Add this entire block inside your style tag --- */
+
+  /* 1. Set body background for the effect and ensure content is positioned */
+  body {
+    background-color: #000; /* Required for the Matrix effect */
+    position: relative; /* Establishes a stacking context */
+  }
+
+  /* 2. Style the background canvases */
+  #matrix-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: -2; /* Farthest back layer */
+  }
+
+  #particles-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1; /* Middle layer, on top of Matrix */
+  }
+
+  /* 3. Lift existing content above the new backgrounds */
+  main, .status-bar-floating, .maintenance-notice, .theme-toggle-button {
+    position: relative;
+    z-index: 2; /* Ensures all your content is visible on top */
+  }
+
+  /* --- End of new styles --- */
+
+  :root {
+    ... /* Your existing styles continue here */
+  }
     /* --- 1. Custom Properties (CSS Variables) --- */
     :root {
       /* Colors */
@@ -523,6 +559,9 @@
 </head>
 <body>
 
+<canvas id="matrix-canvas"></canvas>
+  <div id="particles-container"></div>
+
   <div class="maintenance-notice">
     🚧 Testing New Settings. Play Safe. Keep eyes on streaks. 🚧
   </div>
@@ -996,5 +1035,39 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 </script>
+
+  <script>
+    const matrixCanvas = document.getElementById('matrix-canvas');
+    const matrixCtx = matrixCanvas.getContext('2d');
+    matrixCanvas.width = window.innerWidth;
+    matrixCanvas.height = window.innerHeight;
+    const characters = '01S23R45B678G9B';
+    const fontSize = 16;
+    const columns = Math.floor(matrixCanvas.width / fontSize);
+    const drops = [];
+    for (let x = 0; x < columns; x++) { drops[x] = 1; }
+    function drawMatrix() {
+        matrixCtx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+        matrixCtx.fillRect(0, 0, matrixCanvas.width, matrixCanvas.height);
+        matrixCtx.fillStyle = '#0F0';
+        matrixCtx.font = fontSize + 'px monospace';
+        for (let i = 0; i < drops.length; i++) {
+            const text = characters.charAt(Math.floor(Math.random() * characters.length));
+            matrixCtx.fillText(text, i * fontSize, drops[i] * fontSize);
+            if (drops[i] * fontSize > matrixCanvas.height && Math.random() > 0.975) {
+                drops[i] = 0;
+            }
+            drops[i]++;
+        }
+    }
+    setInterval(drawMatrix, 140);
+  </script>
+    
+  <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+
+  <script>
+      particlesJS('particles-container', { "particles": { "number": { "value": 100, "density": { "enable": true, "value_area": 800 } }, "color": { "value": "#00ff00" }, "shape": { "type": "circle" }, "opacity": { "value": 0.5, "random": true }, "size": { "value": 3, "random": true }, "line_linked": { "enable": true, "distance": 150, "color": "#00ff00", "opacity": 0.4, "width": 1 }, "move": { "enable": true, "speed": 2, "direction": "none", "random": false, "straight": false, "out_mode": "out", "bounce": false } }, "interactivity": { "detect_on": "canvas", "events": { "onhover": { "enable": true, "mode": "grab" }, "onclick": { "enable": true, "mode": "push" }, "resize": true }, "modes": { "grab": { "distance": 140, "line_linked": { "opacity": 1 } }, "push": { "particles_nb": 4 } } }, "retina_detect": true });
+  </script>
+
 </body>
 </html>
