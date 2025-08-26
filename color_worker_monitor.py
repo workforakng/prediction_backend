@@ -245,7 +245,7 @@ MAX_ALLOWED_LOSS_STREAK = 1
 TRAINING_WINDOW_SIZE = 100
 PATTERN_OVERRIDE_THRESHOLD = 16
 FALLBACK_STRATEGY = 3
-EMERGENCY_LOSS_STREAK = 8
+EMERGENCY_LOSS_STREAK = 5
 
 
 # --- PREDEFINED RULES FOR FALLBACK ---
@@ -1576,7 +1576,7 @@ def run_color_prediction_and_monitor():
         # Create prediction data
         color_prediction_data = {
             "issue": next_issue,
-            "next_color": "Red" if color_pred == "R" else "Green",
+            "next_color": color_pred,
             "rule_name": color_rule,
             "confidence": color_acc / 100.0 if color_acc else 0.5,
             "score": color_acc if color_acc else 50.0,  # ✅ Add score field
@@ -1648,7 +1648,12 @@ def run_size_prediction_and_monitor():
                     # Check for size retraining
                     if current_size_loss >= MAX_ALLOWED_LOSS_STREAK or not size_rules:
                         logger.warning(f"🔄 Retraining SIZE rules. Loss streak: {current_size_loss}, Rules count: {len(size_rules)}")
-                        new_size_rules = retrain_size_rules(size_sequence_raw)
+                        # Use consistent training window like color retraining
+                        if current_size_loss >= EMERGENCY_LOSS_STREAK:
+                        	train_data = size_sequence_raw[-300:]
+                        else:
+                        	train_data = size_sequence_raw[-TRAINING_WINDOW_SIZE:]
+                        new_size_rules = retrain_size_rules(train_data)  # ✅ NOW USES SLICED DATA
                         if new_size_rules:
                             size_rules.clear()
                             size_rules.update(new_size_rules)
@@ -1669,7 +1674,7 @@ def run_size_prediction_and_monitor():
         # Create prediction data
         size_prediction_data = {
             "issue": next_issue,
-            "next_size": "Big" if size_pred == "B" else "Small",
+            "next_size": size_pred,
             "rule_name": size_rule,
             "confidence": size_acc / 100.0 if size_acc else 0.5,
             "score": size_acc if size_acc else 50.0,  # ✅ Add score field
