@@ -241,7 +241,7 @@ MIN_OCCURRENCES = 8
 MIN_SIZE_OCCURRENCES = 8
 MAX_ALLOWED_LOSS_STREAK = 1
 TRAINING_WINDOW_SIZE = 10000
-EMERGENCY_LOSS_STREAK = 4
+EMERGENCY_LOSS_STREAK = 7
 
 # --- 25 Red-Green Pattern Rules ---
 RED_GREEN_PATTERNS = {
@@ -1567,15 +1567,36 @@ def run_size_prediction_and_monitor():
                     current_size_loss += 1
                     logger.warning(f"❌ Size mismatch for issue #{last_issue_key}: expected '{actual_size}', but predicted '{last_predicted_size}'. Loss streak is now {current_size_loss}.")
                     
-                    # Check for size retraining
-                    if current_size_loss >= MAX_ALLOWED_LOSS_STREAK or not size_rules:
-                        logger.warning(f"🔄 Retraining SIZE rules. Loss streak: {current_size_loss}, Rules count: {len(size_rules)}")
-                        new_size_rules = retrain_size_rules(size_sequence_raw)
-                        if new_size_rules:
-                            size_rules.clear()
-                            size_rules.update(new_size_rules)
-                            current_size_loss = 0
-                            logger.info(f"✅ Size rules updated: {len(size_rules)} total rules")
+                    # Check for retraining conditions
+                    current_size_streak = get_redis_json(REDIS_SIZE_STREAKS_KEY, {})
+                    current_size_lose_streak = current_size_streak.get("current_lose_streak", 0)
+
+                    if current_size_loss >= MAX_ALLOWED_LOSS_STREAK or current_size_lose_streak >= EMERGENCY_LOSS_STREAK:
+                        logger.warning(f"🚨 Triggering size rule retraining...")
+                        
+                        if current_size_lose_streak >= EMERGENCY_LOSS_STREAK:
+                            logger.warning(f"🚨 Emergency size retrain triggered: current_lose_streak = {current_size_lose_streak}")
+                            train_data = size_sequence_raw[-300:]
+                        else:
+                            logger.warning(f"📉 Regular size retrain triggered: current_loss = {current_size_loss}")
+                            train_data = size_sequence_raw[-TRAINING_WINDOW_SIZE:]
+
+                        with rules_lock:
+                            new_size_rules = retrain_size_rules(train_data)
+                            
+                            if new_size_rules:
+                                logger.info(f"🧠 Size model retrained at {datetime.now().isoformat()} with {len(new_size_rules)} rules.")
+                                logger.info("📊 Top 5 size patterns after retraining:")
+                                top_rules = sorted(new_size_rules.items(), key=lambda item: item[1]['total'], reverse=True)[:5]
+                                for rule_pattern, info in top_rules:
+                                    logger.info(f"🔍 {rule_pattern} → predict '{info['predict']}' | Accuracy: {info['accuracy']}% | Total: {info['total']}")
+                                
+                                size_rules.clear()
+                                size_rules.update(new_size_rules)
+                                current_size_loss = 0  # Reset after retraining
+                                logger.info("✅ Size rules updated successfully")
+                            else:
+                                logger.error("❌ Failed to retrain size rules")
         
         # Combine learned rules with predefined fallback rules
         with rules_lock:

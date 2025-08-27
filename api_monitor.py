@@ -453,7 +453,7 @@ class TokenManager:
 class LotteryPredictor:
     """Enhanced lottery predictor with Railway support and better error handling."""
     
-    def __init__(self, max_history_size=10000):
+    def __init__(self, max_history_size=100000):
         self.max_history_size = max_history_size
         self._data_lock = Lock()
         
