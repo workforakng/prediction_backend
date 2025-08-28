@@ -479,20 +479,143 @@ async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.error(f"❌ Error in status command: {e}")
 
 async def mode_winlimit_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    target = 15
-    if context.args:
+    logger.info(f"🎯 Mode winlimit command received from user {update.effective_user.id}")
+    
+    try:
+        target = 15
+        if context.args:
+            try:
+                target = int(context.args[0])
+                if target <= 0: target = 15
+            except (ValueError, IndexError):
+                target = 15
+        
+        bot_state["current_mode"] = "win_limit"
+        bot_state["win_target"] = target
+        save_state()
+        
+        logger.info(f"🎯 Mode changed to win-limit with target: {target}")
+        await safe_reply_text(update.message, f"⚙️ **Mode changed to: Win-Limit** (Target: {target} wins)")
+        
+    except Exception as e:
+        logger.error(f"❌ Error in mode_winlimit command: {e}")
+
+async def schedule_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logger.info(f"📅 Schedule command received from user {update.effective_user.id}")
+    
+    try:
+        if isinstance(update, Update):
+            message = update.message
+            args = context.args
+        else:
+            message = update
+            args = []
+
+        if args:
+            arg = args[0]
+            if ":" in arg:
+                try:
+                    time_parts = arg.split(':')
+                    hour, minute = int(time_parts[0]), int(time_parts[1])
+                    if not (0 <= hour <= 23 and 0 <= minute <= 59):
+                        raise ValueError("Time out of range")
+                    
+                    await add_or_remove_schedule(hour, minute, context)
+                    logger.info(f"⏰ Schedule updated for {hour:02d}:{minute:02d}")
+                    await safe_reply_text(message, f"✅ Schedule updated for **{hour:02d}:{minute:02d}**.", parse_mode='Markdown')
+                except (ValueError, IndexError):
+                    logger.warning(f"❌ Invalid time format: {arg}")
+                    await safe_reply_text(message, "❌ Invalid time format. Please use HH:MM (e.g., `8:12` or `22:45`).")
+                return
+            
+            elif arg.isdigit():
+                bot_state['auto_win_target'] = int(arg)
+                save_state()
+                logger.info(f"🎯 Auto-session win target set to {bot_state['auto_win_target']}")
+                await safe_reply_text(message, f"✅ Auto-session win target set to {bot_state['auto_win_target']}.")
+                return
+
+        buttons = []
+        for hour in range(8, 21):
+            row = []
+            time_str_hour = f"{hour:02d}:00"
+            text_hour = f"✅ {time_str_hour}" if time_str_hour in bot_state['schedule'] else f"🕘 {time_str_hour}"
+            row.append(InlineKeyboardButton(text_hour, callback_data=f"schedule_{time_str_hour}"))
+            
+            time_str_half = f"{hour:02d}:30"
+            text_half = f"✅ {time_str_half}" if time_str_half in bot_state['schedule'] else f"🕥 {time_str_half}"
+            row.append(InlineKeyboardButton(text_half, callback_data=f"schedule_{time_str_half}"))
+            buttons.append(row)
+
+        keyboard = InlineKeyboardMarkup(buttons)
+        await safe_reply_text(message,
+            f"Select auto-start times (Timezone: {bot_state['timezone']}).\n"
+            "To set a **custom time**, use `/schedule HH:MM`.\n"
+            f"The win target for auto-sessions is **{bot_state['auto_win_target']}**. To change it, use `/schedule <number>`.",
+            reply_markup=keyboard,
+            parse_mode='Markdown'
+        )
+        
+    except Exception as e:
+        logger.error(f"❌ Error in schedule command: {e}")
+
+async def view_schedule_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logger.info(f"👀 View schedule command received from user {update.effective_user.id}")
+    
+    try:
+        if not bot_state['schedule']:
+            await safe_reply_text(update.message, "No sessions are scheduled.")
+            return
+        
+        scheduled_times = sorted(bot_state['schedule'].keys())
+        message = "🗓️ **Scheduled Auto-Start Times:**\n" + "\n".join(f"- {t}" for t in scheduled_times)
+        await safe_reply_text(update.message, message, parse_mode='Markdown')
+        
+    except Exception as e:
+        logger.error(f"❌ Error in view_schedule command: {e}")
+
+async def clear_schedule_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logger.info(f"🗑️ Clear schedule command received from user {update.effective_user.id}")
+    
+    try:
+        for job_name in list(bot_state['schedule'].values()):
+            jobs = context.job_queue.get_jobs_by_name(job_name)
+            for job in jobs:
+                job.schedule_removal()
+        
+        schedule_count = len(bot_state['schedule'])
+        bot_state['schedule'] = {}
+        save_state()
+        
+        logger.info(f"✅ Cleared {schedule_count} scheduled sessions")
+        await safe_reply_text(update.message, "🗑️ All scheduled sessions have been cleared.")
+        
+    except Exception as e:
+        logger.error(f"❌ Error in clear_schedule command: {e}")
+
+async def set_timezone_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    logger.info(f"🌍 Set timezone command received from user {update.effective_user.id}")
+    
+    try:
+        if not context.args:
+            await safe_reply_text(update.message, f"Usage: `/set_timezone Timezone`\nExample: `/set_timezone Asia/Kolkata`\nCurrent: `{bot_state['timezone']}`")
+            return
+        
         try:
-            target = int(context.args[0])
-            if target <= 0: target = 15
-        except (ValueError, IndexError):
-            target = 15
-    
-    bot_state["current_mode"] = "win_limit"
-    bot_state["win_target"] = target
-    save_state()
-    
-    logger.info(f"🎯 Mode changed to win-limit with target: {target}")
-    await safe_reply_text(update.message, f"⚙️ **Mode changed to: Win-Limit** (Target: {target} wins)")
+            tz_str = context.args[0]
+            pytz.timezone(tz_str)
+            old_tz = bot_state['timezone']
+            bot_state['timezone'] = tz_str
+            save_state()
+            
+            logger.info(f"🌍 Timezone changed from {old_tz} to {tz_str}")
+            await safe_reply_text(update.message, f"✅ Timezone set to `{tz_str}`.")
+        except pytz.UnknownTimeZoneError:
+            logger.warning(f"❌ Invalid timezone attempted: {context.args[0]}")
+            await safe_reply_text(update.message, "❌ Invalid timezone. Please use a valid format like 'Asia/Kolkata' or 'UTC'.")
+            
+    except Exception as e:
+        logger.error(f"❌ Error in set_timezone command: {e}")
 
 # === 11. BUTTON CALLBACK WITH ERROR HANDLING ===
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -617,7 +740,7 @@ async def scheduled_job(context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         logger.error(f"❌ Unexpected error in scheduled_job: {e}")
 
-# === 13. OTHER FUNCTIONS ===
+# === 13. SCHEDULE MANAGEMENT FUNCTIONS ===
 async def add_or_remove_schedule(hour: int, minute: int, context: ContextTypes.DEFAULT_TYPE):
     time_str = f"{hour:02d}:{minute:02d}"
     job_name = f"auto_session_{time_str.replace(':', '')}"
@@ -670,6 +793,32 @@ async def auto_session_start(context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         logger.error(f"❌ Error in auto session start: {e}")
 
+async def auto_session_stop(context: ContextTypes.DEFAULT_TYPE):
+    if bot_state["is_running"]:
+        logger.info("🤖 Auto-session stopping...")
+        
+        try:
+            bot_state["is_running"] = False
+            
+            # Update today's max level at the end of a session
+            if bot_state['max_level_session'] > bot_state['today_max_level']:
+                bot_state['today_max_level'] = bot_state['max_level_session']
+            save_state()
+            
+            summary = (
+                f"🤖 **Auto-Session Closed** 🤖\n\n"
+                f"Total Session Wins: **{bot_state['session_win_count']}**\n"
+                f"Max Level Reached: **L{bot_state['max_level_session']}**"
+            )
+            await safe_send_message(context, CHAT_ID, summary, parse_mode='Markdown')
+            if STICKERS["stop"]:
+                await safe_send_sticker(context, CHAT_ID, STICKERS["stop"])
+            
+            logger.info(f"📊 Auto-session ended: {bot_state['session_win_count']} wins, L{bot_state['max_level_session']} max")
+            
+        except Exception as e:
+            logger.error(f"❌ Error in auto session stop: {e}")
+
 # === 14. MAIN APPLICATION SETUP ===
 def main():
     logger.info("🚀 Starting Telegram Bot application...")
@@ -697,17 +846,37 @@ def main():
     application.add_error_handler(error_handler)
     logger.info("✅ Global error handler registered")
     
-    # Add command handlers
+    # Add ALL command handlers
     application.add_handler(CommandHandler("start", start_command))
     application.add_handler(CommandHandler("stop", stop_command))
     application.add_handler(CommandHandler("status", status_command))
     application.add_handler(CommandHandler("mode_winlimit", mode_winlimit_command))
+    application.add_handler(CommandHandler("schedule", schedule_command))
+    application.add_handler(CommandHandler("view_schedule", view_schedule_command))
+    application.add_handler(CommandHandler("clear_schedule", clear_schedule_command))
+    application.add_handler(CommandHandler("set_timezone", set_timezone_command))
     application.add_handler(CallbackQueryHandler(button_callback))
     
-    logger.info("✅ Command handlers registered")
+    logger.info("✅ ALL command handlers registered")
 
-    # Setup job queue
+    # Setup job queue and reschedule existing jobs
     job_queue = application.job_queue
+    tz = pytz.timezone(bot_state['timezone'])
+    
+    schedule_count = 0
+    for time_str, job_name in bot_state['schedule'].items():
+        try:
+            hour, minute = map(int, time_str.split(':'))
+            job_queue.run_daily(
+                callback=auto_session_start,
+                time=time(hour=hour, minute=minute, tzinfo=tz),
+                name=job_name
+            )
+            schedule_count += 1
+        except Exception as e:
+            logger.error(f"❌ Error rescheduling job {job_name}: {e}")
+    
+    logger.info(f"📅 Rescheduled {schedule_count} jobs on startup")
     
     # Setup main prediction job
     now = datetime.now()
@@ -733,7 +902,7 @@ def main():
     logger.info("=" * 60)
 
     try:
-        logger.info("🔄 Starting bot polling....")
+        logger.info("🔄 Starting bot polling...")
         application.run_polling(allowed_updates=Update.ALL_TYPES)
     except Exception as e:
         logger.critical(f"💥 Fatal error during polling: {e}")
