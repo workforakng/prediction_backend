@@ -10,7 +10,7 @@ import logging
 import sys
 import redis
 from datetime import datetime, time
-from telegram.ext import Application, CommandHandler, ContextTypes, CallbackQueryHandler
+from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, CallbackQueryHandler, filters
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.error import BadRequest, NetworkError, TimedOut, Forbidden
 
@@ -166,12 +166,12 @@ async def safe_delete_message(message):
 
 # Log environment info
 if is_railway_environment():
-    logger.info(f"🚂 Telegram Bot starting on Railway - Service: {get_railway_service_name()}")
+    logger.info(f"🚂 Multi-Chat Telegram Bot starting on Railway - Service: {get_railway_service_name()}")
     logger.info(f"📁 Data directory: {DATA_DIR}")
     logger.info(f"🔍 Log level: {LOG_LEVEL}")
     logger.info("📡 Data source: Redis (direct connection)")
 else:
-    logger.info("🏠 Telegram Bot starting in local environment")
+    logger.info("🏠 Multi-Chat Telegram Bot starting in local environment")
     logger.info(f"🔍 Log level: {LOG_LEVEL}")
     if is_running_locally():
         logger.info("📡 Data source: API (local mode)")
@@ -190,6 +190,13 @@ REDIS_SIZE_PREDICTION_HISTORY_KEY = "lottery:size_prediction_history"
 REDIS_HISTORY_KEY = "lottery:history"
 REDIS_COLOR_ACCURACY_KEY = "lottery:color_accuracy"
 REDIS_SIZE_ACCURACY_KEY = "lottery:size_accuracy"
+
+# === MULTI-CHAT REDIS PERSISTENCE KEYS ===
+CHAT_STATE_PREFIX = "telegram_chat:"
+CHAT_SCHEDULES_PREFIX = "telegram_chat_schedules:"
+
+# === AUTHENTICATION CONFIG ===
+BOT_PASSWORD = "Risky"
 
 def initialize_redis():
     """Initialize Redis connection"""
@@ -229,6 +236,20 @@ def get_redis_json(key, default=None):
     except Exception as e:
         logger.error(f"Error getting Redis data for key {key}: {e}")
         return default
+
+def set_redis_json(key, data):
+    """Safely set JSON data to Redis"""
+    try:
+        if not redis_client:
+            logger.warning("Redis client not available for saving data")
+            return False
+        
+        json_data = json.dumps(data, indent=None, default=str)
+        redis_client.set(key, json_data)
+        return True
+    except Exception as e:
+        logger.error(f"Error setting Redis data for key {key}: {e}")
+        return False
 
 def get_data_from_source():
     """Get prediction data from Redis or API based on environment"""
@@ -281,21 +302,12 @@ if not initialize_redis():
 
 # === 8. BOT CONFIGURATION & STICKERS ===
 BOT_TOKEN = os.getenv('BOT_TOKEN')
-CHAT_ID = int(os.getenv('CHAT_ID', '0'))
-STATE_FILE = os.path.join(DATA_DIR, 'state.json')
-
-logger.info(f"💾 State file: {STATE_FILE}")
 
 if not BOT_TOKEN:
     logger.critical("❌ BOT_TOKEN not found in environment variables!")
     sys.exit(1)
 else:
     logger.info(f"✅ BOT_TOKEN loaded (ending with: ...{BOT_TOKEN[-6:]})")
-
-if CHAT_ID == 0:
-    logger.warning("⚠️ CHAT_ID not set or invalid!")
-else:
-    logger.info(f"📱 CHAT_ID configured: {CHAT_ID}")
 
 STICKERS = {
     "start": os.getenv('START_STICKER_ID'),
@@ -306,49 +318,47 @@ STICKERS = {
 sticker_count = sum(1 for s in STICKERS["wins"] if s) + (1 if STICKERS["start"] else 0) + (1 if STICKERS["stop"] else 0)
 logger.info(f"🎭 Loaded {sticker_count} stickers")
 
-# === 9. STATE MANAGEMENT ===
-def load_state():
-    """Loads bot state from a JSON file with comprehensive error handling."""
+# === 9. MULTI-CHAT STATE MANAGEMENT ===
+def load_chat_state(chat_id):
+    """Load bot state for specific chat from Redis"""
     default_tz = 'Asia/Kolkata'
-    logger.debug(f"📂 Loading state from: {STATE_FILE}")
     
-    try:
-        with open(STATE_FILE, 'r') as f:
-            state = json.load(f)
-            logger.info(f"✅ State loaded successfully from {STATE_FILE}")
-            
-            # Ensure all keys are present
-            state.setdefault('is_running', False)
-            state.setdefault('current_mode', 'continuous')
-            state.setdefault('win_target', 15)
-            state.setdefault('session_win_count', 0)
-            state.setdefault('current_level', 1)
-            state.setdefault('max_level_session', 1)
-            state.setdefault('last_predicted_issue', None)
-            state.setdefault('timezone', default_tz)
-            state.setdefault('schedule', {})
-            state.setdefault('auto_win_target', 10)
-            state.setdefault('today_total_wins', 0)
-            state.setdefault('today_date', datetime.now(pytz.timezone(state.get('timezone', default_tz))).strftime('%Y-%m-%d'))
-            state.setdefault('today_max_level', 1)
-            state.setdefault('today_session_count', 0)
-            
-            return state
-            
-    except FileNotFoundError:
-        logger.info(f"📄 State file not found, creating default state")
-        return create_default_state(default_tz)
-    except json.JSONDecodeError as e:
-        logger.error(f"❌ Invalid JSON in state file: {e}")
-        return create_default_state(default_tz)
-    except Exception as e:
-        logger.error(f"❌ Unexpected error loading state: {e}")
-        return create_default_state(default_tz)
+    # Load from Redis
+    redis_key = f"{CHAT_STATE_PREFIX}{chat_id}"
+    logger.debug(f"📂 Loading chat state from Redis: {redis_key}")
+    
+    redis_state = get_redis_json(redis_key)
+    if redis_state:
+        logger.info(f"✅ Chat state loaded successfully from Redis for chat {chat_id}")
+        
+        # Ensure all keys are present
+        redis_state.setdefault('authenticated', False)
+        redis_state.setdefault('is_running', False)
+        redis_state.setdefault('current_mode', 'continuous')
+        redis_state.setdefault('win_target', 15)
+        redis_state.setdefault('session_win_count', 0)
+        redis_state.setdefault('current_level', 1)
+        redis_state.setdefault('max_level_session', 1)
+        redis_state.setdefault('last_predicted_issue', None)
+        redis_state.setdefault('timezone', default_tz)
+        redis_state.setdefault('schedule', {})
+        redis_state.setdefault('auto_win_target', 10)
+        redis_state.setdefault('today_total_wins', 0)
+        redis_state.setdefault('today_date', datetime.now(pytz.timezone(redis_state.get('timezone', default_tz))).strftime('%Y-%m-%d'))
+        redis_state.setdefault('today_max_level', 1)
+        redis_state.setdefault('today_session_count', 0)
+        
+        return redis_state
+    
+    # Create default state for new chat
+    state = create_default_chat_state(default_tz)
+    save_chat_state(chat_id, state)
+    return state
 
-def create_default_state(default_tz):
-    """Create default state structure"""
+def create_default_chat_state(default_tz):
+    """Create default state structure for a chat"""
     return {
-        "is_running": False, "current_mode": "continuous", "win_target": 15,
+        "authenticated": False, "is_running": False, "current_mode": "continuous", "win_target": 15,
         "session_win_count": 0, "current_level": 1, "max_level_session": 1,
         "last_predicted_issue": None, "timezone": default_tz, "schedule": {},
         "auto_win_target": 10, "today_total_wins": 0,
@@ -356,37 +366,104 @@ def create_default_state(default_tz):
         "today_max_level": 1, "today_session_count": 0
     }
 
-def save_state():
-    """Saves the current bot state to a JSON file with error handling."""
-    try:
-        with open(STATE_FILE, 'w') as f:
-            json.dump(bot_state, f, indent=4)
-        logger.debug(f"💾 State saved successfully to {STATE_FILE}")
-    except Exception as e:
-        logger.error(f"❌ Error saving state to {STATE_FILE}: {e}")
+def save_chat_state(chat_id, state):
+    """Save chat state to Redis"""
+    redis_key = f"{CHAT_STATE_PREFIX}{chat_id}"
+    
+    if set_redis_json(redis_key, state):
+        logger.debug(f"💾 Chat state saved successfully to Redis for chat {chat_id}")
+        return True
+    else:
+        logger.error(f"❌ Failed to save chat state to Redis for chat {chat_id}")
+        return False
 
-bot_state = load_state()
+# === 10. AUTHENTICATION SYSTEM ===
+def is_authenticated(chat_id):
+    """Check if chat is authenticated"""
+    state = load_chat_state(chat_id)
+    return state.get('authenticated', False)
 
-# === 10. COMMAND HANDLERS WITH ERROR HANDLING ===
+def authenticate_chat(chat_id):
+    """Mark chat as authenticated"""
+    state = load_chat_state(chat_id)
+    state['authenticated'] = True
+    save_chat_state(chat_id, state)
+    logger.info(f"🔐 Chat {chat_id} authenticated successfully")
+
+async def require_auth(func):
+    """Decorator to require authentication before executing command"""
+    async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE):
+        chat_id = update.effective_chat.id
+        
+        if not is_authenticated(chat_id):
+            await safe_reply_text(update.message, 
+                "🔒 **Authentication Required**\n\n"
+                "Please send the password to access bot features.\n"
+                "Password hint: It's something that involves taking chances...",
+                parse_mode='Markdown'
+            )
+            return
+        
+        return await func(update, context)
+    
+    return wrapper
+
+# === 11. MESSAGE HANDLER FOR PASSWORD AUTHENTICATION ===
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle all text messages for password authentication"""
+    chat_id = update.effective_chat.id
+    message_text = update.message.text
+    
+    # Skip if already authenticated
+    if is_authenticated(chat_id):
+        return
+    
+    # Check password
+    if message_text and message_text.strip() == BOT_PASSWORD:
+        authenticate_chat(chat_id)
+        
+        chat_type = "group" if update.effective_chat.type in ['group', 'supergroup'] else "private chat"
+        
+        await safe_reply_text(update.message, 
+            f"✅ **Access Granted!**\n\n"
+            f"🆔 **Chat ID:** `{chat_id}`\n"
+            f"📊 **Chat Type:** {chat_type}\n"
+            f"🤖 You can now use all bot commands!\n\n"
+            f"**Quick Start:**\n"
+            f"• `/start` - Start prediction session\n"
+            f"• `/status` - Check current status\n"
+            f"• `/schedule` - Setup auto sessions\n"
+            f"• `/id` - Show chat ID",
+            parse_mode='Markdown'
+        )
+        
+        logger.info(f"🔐 New chat authenticated: {chat_id} ({chat_type})")
+    else:
+        await safe_reply_text(update.message, 
+            "❌ **Incorrect Password**\n\n"
+            "Please enter the correct password to access bot features.\n"
+            "Password hint: It's something that involves taking chances..."
+        )
+
+# === 12. COMMAND HANDLERS WITH MULTI-CHAT SUPPORT ===
+@require_auth
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.info(f"🎬 Start command received from user {update.effective_user.id}")
+    chat_id = update.effective_chat.id
+    logger.info(f"🎬 Start command received from chat {chat_id}")
     
     try:
-        if CHAT_ID == 0:
-            logger.error("❌ CHAT_ID not configured")
-            await safe_reply_text(update.message, "⚠️ **Error:** CHAT_ID not set.")
-            return
-
-        # Update daily session count
-        bot_state['today_session_count'] += 1
-        logger.info(f"📈 Session count incremented to {bot_state['today_session_count']}")
+        chat_state = load_chat_state(chat_id)
         
-        bot_state.update({
+        # Update daily session count
+        chat_state['today_session_count'] += 1
+        logger.info(f"📈 Session count incremented to {chat_state['today_session_count']} for chat {chat_id}")
+        
+        chat_state.update({
             "is_running": True, "current_level": 1,
             "session_win_count": 0, "max_level_session": 1,
             "last_predicted_issue": None
         })
-        save_state()
+        save_chat_state(chat_id, chat_state)
 
         try:
             logger.info("🌐 Fetching initial data")
@@ -395,13 +472,13 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 full_issue_number = response['size_prediction'].get('issue', 'N/A')
                 logger.info(f"✅ Data received, issue: {full_issue_number}")
                 
-                await safe_send_message(context, CHAT_ID, f"▶️ Starting prediction from mixpred.\nIssue: {full_issue_number}")
+                await safe_send_message(context, chat_id, f"▶️ Starting prediction from mixpred.\nIssue: {full_issue_number}")
             else:
                 logger.warning("⚠️ No size prediction data available")
-                await safe_send_message(context, CHAT_ID, "▶️ Starting prediction from mixpred.\nIssue: N/A")
+                await safe_send_message(context, chat_id, "▶️ Starting prediction from mixpred.\nIssue: N/A")
             
             if STICKERS["start"]:
-                await safe_send_sticker(context, CHAT_ID, STICKERS["start"])
+                await safe_send_sticker(context, chat_id, STICKERS["start"])
                 logger.debug("🎭 Start sticker sent")
             
         except Exception as e:
@@ -409,79 +486,108 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await safe_reply_text(update.message, "✅ Bot Started (with warnings)")
             
     except Exception as e:
-        logger.error(f"❌ Error in start command: {e}")
+        logger.error(f"❌ Error in start command for chat {chat_id}: {e}")
 
+@require_auth
 async def stop_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.info(f"⏹️ Stop command received from user {update.effective_user.id}")
+    chat_id = update.effective_chat.id
+    logger.info(f"⏹️ Stop command received from chat {chat_id}")
     
     try:
-        bot_state["is_running"] = False
+        chat_state = load_chat_state(chat_id)
+        chat_state["is_running"] = False
         
         # Update today's max level at the end of a session
-        if bot_state['max_level_session'] > bot_state['today_max_level']:
-            bot_state['today_max_level'] = bot_state['max_level_session']
-            logger.info(f"🏆 New daily max level: {bot_state['today_max_level']}")
+        if chat_state['max_level_session'] > chat_state['today_max_level']:
+            chat_state['today_max_level'] = chat_state['max_level_session']
+            logger.info(f"🏆 New daily max level: {chat_state['today_max_level']} for chat {chat_id}")
         
-        save_state()
+        save_chat_state(chat_id, chat_state)
         
         summary = (
             f"⏹️ **Session Closed** ⏹️\n\n"
-            f"Total Session Wins: **{bot_state['session_win_count']}**\n"
-            f"Max Level Reached: **L{bot_state['max_level_session']}**"
+            f"Total Session Wins: **{chat_state['session_win_count']}**\n"
+            f"Max Level Reached: **L{chat_state['max_level_session']}**"
         )
         await safe_reply_text(update.message, summary, parse_mode='Markdown')
         
         if STICKERS["stop"]:
-            await safe_send_sticker(context, CHAT_ID, STICKERS["stop"])
+            await safe_send_sticker(context, chat_id, STICKERS["stop"])
             logger.debug("🎭 Stop sticker sent")
         
-        logger.info(f"📊 Session ended: {bot_state['session_win_count']} wins, L{bot_state['max_level_session']} max")
+        logger.info(f"📊 Session ended: {chat_state['session_win_count']} wins, L{chat_state['max_level_session']} max for chat {chat_id}")
         
     except Exception as e:
-        logger.error(f"❌ Error in stop command: {e}")
+        logger.error(f"❌ Error in stop command for chat {chat_id}: {e}")
 
+@require_auth
 async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.info(f"📊 Status command received from user {update.effective_user.id}")
+    chat_id = update.effective_chat.id
+    logger.info(f"📊 Status command received from chat {chat_id}")
     
     try:
-        status_text = "Running" if bot_state["is_running"] else "Stopped"
-        tz = pytz.timezone(bot_state['timezone'])
+        chat_state = load_chat_state(chat_id)
+        status_text = "Running" if chat_state["is_running"] else "Stopped"
+        tz = pytz.timezone(chat_state['timezone'])
         
         now = datetime.now(tz)
         current_time_str = now.strftime('%I:%M:%S %p %Z')
         
         # Check for a new day and reset daily stats if needed
         current_date = now.strftime('%Y-%m-%d')
-        if current_date != bot_state['today_date']:
-            logger.info(f"📅 New day detected: {current_date}, resetting daily stats")
-            bot_state['today_total_wins'] = 0
-            bot_state['today_session_count'] = 0
-            bot_state['today_max_level'] = 1
-            bot_state['today_date'] = current_date
-            save_state()
+        if current_date != chat_state['today_date']:
+            logger.info(f"📅 New day detected: {current_date}, resetting daily stats for chat {chat_id}")
+            chat_state['today_total_wins'] = 0
+            chat_state['today_session_count'] = 0
+            chat_state['today_max_level'] = 1
+            chat_state['today_date'] = current_date
+            save_chat_state(chat_id, chat_state)
 
         message = (
             f"📊 **Bot Status** 📊\n\n"
-            f"🕒 Current Time: **{current_time_str}**\n\n"
-            f"**State**: {status_text}\n"
-            f"**Mode**: `{bot_state['current_mode']}` (Target: {bot_state.get('win_target', 'N/A')})\n\n"
+            f"🆔 **Chat ID:** `{chat_id}`\n"
+            f"🕒 **Current Time:** **{current_time_str}**\n\n"
+            f"**State:** {status_text}\n"
+            f"**Mode:** `{chat_state['current_mode']}` (Target: {chat_state.get('win_target', 'N/A')})\n\n"
             f"**-- Current Session --**\n"
-            f"Session Wins: **{bot_state['session_win_count']}**\n"
-            f"Max Level This Session: **L{bot_state['max_level_session']}**\n\n"
+            f"Session Wins: **{chat_state['session_win_count']}**\n"
+            f"Max Level This Session: **L{chat_state['max_level_session']}**\n\n"
             f"**-- Today's Stats --**\n"
-            f"Today's Total Wins: **{bot_state['today_total_wins']}**\n"
-            f"Today's Session Count: **{bot_state['today_session_count']}**\n"
-            f"Today's Max Level: **L{bot_state['today_max_level']}**"
+            f"Today's Total Wins: **{chat_state['today_total_wins']}**\n"
+            f"Today's Session Count: **{chat_state['today_session_count']}**\n"
+            f"Today's Max Level: **L{chat_state['today_max_level']}**"
         )
         await safe_reply_text(update.message, message, parse_mode='Markdown')
         
     except Exception as e:
-        logger.error(f"❌ Error in status command: {e}")
+        logger.error(f"❌ Error in status command for chat {chat_id}: {e}")
 
-async def mode_winlimit_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.info(f"🎯 Mode winlimit command received from user {update.effective_user.id}")
+async def id_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Show chat ID - works without authentication"""
+    chat_id = update.effective_chat.id
+    chat_type = update.effective_chat.type
+    chat_title = getattr(update.effective_chat, 'title', 'N/A')
+    username = getattr(update.effective_chat, 'username', 'N/A')
+    
+    chat_info = "Private Chat" if chat_type == 'private' else f"Group Chat: {chat_title}"
+    
+    message = (
+        f"🆔 **Chat Information**\n\n"
+        f"**Chat ID:** `{chat_id}`\n"
+        f"**Type:** {chat_info}\n"
+        f"**Username:** @{username}" if username != 'N/A' else f"**Username:** None"
+    )
+    
+    await safe_reply_text(update.message, message, parse_mode='Markdown')
+    logger.info(f"🆔 ID command executed for chat {chat_id} ({chat_type})")
+
+@require_auth
+async def winlimit_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_id = update.effective_chat.id
+    logger.info(f"🎯 Win limit command received from chat {chat_id}")
     
     try:
+        chat_state = load_chat_state(chat_id)
         target = 15
         if context.args:
             try:
@@ -490,26 +596,25 @@ async def mode_winlimit_command(update: Update, context: ContextTypes.DEFAULT_TY
             except (ValueError, IndexError):
                 target = 15
         
-        bot_state["current_mode"] = "win_limit"
-        bot_state["win_target"] = target
-        save_state()
+        chat_state["current_mode"] = "win_limit"
+        chat_state["win_target"] = target
+        save_chat_state(chat_id, chat_state)
         
-        logger.info(f"🎯 Mode changed to win-limit with target: {target}")
+        logger.info(f"🎯 Mode changed to win-limit with target: {target} for chat {chat_id}")
         await safe_reply_text(update.message, f"⚙️ **Mode changed to: Win-Limit** (Target: {target} wins)")
         
     except Exception as e:
-        logger.error(f"❌ Error in mode_winlimit command: {e}")
+        logger.error(f"❌ Error in winlimit command for chat {chat_id}: {e}")
 
+@require_auth
 async def schedule_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.info(f"📅 Schedule command received from user {update.effective_user.id}")
+    chat_id = update.effective_chat.id
+    logger.info(f"📅 Schedule command received from chat {chat_id}")
     
     try:
-        if isinstance(update, Update):
-            message = update.message
-            args = context.args
-        else:
-            message = update
-            args = []
+        chat_state = load_chat_state(chat_id)
+        message = update.message
+        args = context.args
 
         if args:
             arg = args[0]
@@ -520,104 +625,113 @@ async def schedule_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     if not (0 <= hour <= 23 and 0 <= minute <= 59):
                         raise ValueError("Time out of range")
                     
-                    await add_or_remove_schedule(hour, minute, context)
-                    logger.info(f"⏰ Schedule updated for {hour:02d}:{minute:02d}")
+                    await add_or_remove_schedule(chat_id, hour, minute, context)
+                    logger.info(f"⏰ Schedule updated for {hour:02d}:{minute:02d} in chat {chat_id}")
                     await safe_reply_text(message, f"✅ Schedule updated for **{hour:02d}:{minute:02d}**.", parse_mode='Markdown')
                 except (ValueError, IndexError):
-                    logger.warning(f"❌ Invalid time format: {arg}")
+                    logger.warning(f"❌ Invalid time format: {arg} in chat {chat_id}")
                     await safe_reply_text(message, "❌ Invalid time format. Please use HH:MM (e.g., `8:12` or `22:45`).")
                 return
             
             elif arg.isdigit():
-                bot_state['auto_win_target'] = int(arg)
-                save_state()
-                logger.info(f"🎯 Auto-session win target set to {bot_state['auto_win_target']}")
-                await safe_reply_text(message, f"✅ Auto-session win target set to {bot_state['auto_win_target']}.")
+                chat_state['auto_win_target'] = int(arg)
+                save_chat_state(chat_id, chat_state)
+                logger.info(f"🎯 Auto-session win target set to {chat_state['auto_win_target']} for chat {chat_id}")
+                await safe_reply_text(message, f"✅ Auto-session win target set to {chat_state['auto_win_target']}.")
                 return
 
         buttons = []
         for hour in range(8, 21):
             row = []
             time_str_hour = f"{hour:02d}:00"
-            text_hour = f"✅ {time_str_hour}" if time_str_hour in bot_state['schedule'] else f"🕘 {time_str_hour}"
-            row.append(InlineKeyboardButton(text_hour, callback_data=f"schedule_{time_str_hour}"))
+            text_hour = f"✅ {time_str_hour}" if time_str_hour in chat_state['schedule'] else f"🕘 {time_str_hour}"
+            row.append(InlineKeyboardButton(text_hour, callback_data=f"schedule_{chat_id}_{time_str_hour}"))
             
             time_str_half = f"{hour:02d}:30"
-            text_half = f"✅ {time_str_half}" if time_str_half in bot_state['schedule'] else f"🕥 {time_str_half}"
-            row.append(InlineKeyboardButton(text_half, callback_data=f"schedule_{time_str_half}"))
+            text_half = f"✅ {time_str_half}" if time_str_half in chat_state['schedule'] else f"🕥 {time_str_half}"
+            row.append(InlineKeyboardButton(text_half, callback_data=f"schedule_{chat_id}_{time_str_half}"))
             buttons.append(row)
 
         keyboard = InlineKeyboardMarkup(buttons)
         await safe_reply_text(message,
-            f"Select auto-start times (Timezone: {bot_state['timezone']}).\n"
+            f"Select auto-start times (Timezone: {chat_state['timezone']}).\n"
             "To set a **custom time**, use `/schedule HH:MM`.\n"
-            f"The win target for auto-sessions is **{bot_state['auto_win_target']}**. To change it, use `/schedule <number>`.",
+            f"The win target for auto-sessions is **{chat_state['auto_win_target']}**. To change it, use `/schedule <number>`.",
             reply_markup=keyboard,
             parse_mode='Markdown'
         )
         
     except Exception as e:
-        logger.error(f"❌ Error in schedule command: {e}")
+        logger.error(f"❌ Error in schedule command for chat {chat_id}: {e}")
 
-async def view_schedule_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.info(f"👀 View schedule command received from user {update.effective_user.id}")
+@require_auth
+async def viewschedule_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_id = update.effective_chat.id
+    logger.info(f"👀 View schedule command received from chat {chat_id}")
     
     try:
-        if not bot_state['schedule']:
+        chat_state = load_chat_state(chat_id)
+        if not chat_state['schedule']:
             await safe_reply_text(update.message, "No sessions are scheduled.")
             return
         
-        scheduled_times = sorted(bot_state['schedule'].keys())
+        scheduled_times = sorted(chat_state['schedule'].keys())
         message = "🗓️ **Scheduled Auto-Start Times:**\n" + "\n".join(f"- {t}" for t in scheduled_times)
         await safe_reply_text(update.message, message, parse_mode='Markdown')
         
     except Exception as e:
-        logger.error(f"❌ Error in view_schedule command: {e}")
+        logger.error(f"❌ Error in viewschedule command for chat {chat_id}: {e}")
 
-async def clear_schedule_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.info(f"🗑️ Clear schedule command received from user {update.effective_user.id}")
+@require_auth
+async def clearschedule_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_id = update.effective_chat.id
+    logger.info(f"🗑️ Clear schedule command received from chat {chat_id}")
     
     try:
-        for job_name in list(bot_state['schedule'].values()):
+        chat_state = load_chat_state(chat_id)
+        for job_name in list(chat_state['schedule'].values()):
             jobs = context.job_queue.get_jobs_by_name(job_name)
             for job in jobs:
                 job.schedule_removal()
         
-        schedule_count = len(bot_state['schedule'])
-        bot_state['schedule'] = {}
-        save_state()
+        schedule_count = len(chat_state['schedule'])
+        chat_state['schedule'] = {}
+        save_chat_state(chat_id, chat_state)
         
-        logger.info(f"✅ Cleared {schedule_count} scheduled sessions")
+        logger.info(f"✅ Cleared {schedule_count} scheduled sessions for chat {chat_id}")
         await safe_reply_text(update.message, "🗑️ All scheduled sessions have been cleared.")
         
     except Exception as e:
-        logger.error(f"❌ Error in clear_schedule command: {e}")
+        logger.error(f"❌ Error in clearschedule command for chat {chat_id}: {e}")
 
-async def set_timezone_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.info(f"🌍 Set timezone command received from user {update.effective_user.id}")
+@require_auth
+async def timezone_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_id = update.effective_chat.id
+    logger.info(f"🌍 Timezone command received from chat {chat_id}")
     
     try:
+        chat_state = load_chat_state(chat_id)
         if not context.args:
-            await safe_reply_text(update.message, f"Usage: `/set_timezone Timezone`\nExample: `/set_timezone Asia/Kolkata`\nCurrent: `{bot_state['timezone']}`")
+            await safe_reply_text(update.message, f"Usage: `/timezone Timezone`\nExample: `/timezone Asia/Kolkata`\nCurrent: `{chat_state['timezone']}`")
             return
         
         try:
             tz_str = context.args[0]
             pytz.timezone(tz_str)
-            old_tz = bot_state['timezone']
-            bot_state['timezone'] = tz_str
-            save_state()
+            old_tz = chat_state['timezone']
+            chat_state['timezone'] = tz_str
+            save_chat_state(chat_id, chat_state)
             
-            logger.info(f"🌍 Timezone changed from {old_tz} to {tz_str}")
+            logger.info(f"🌍 Timezone changed from {old_tz} to {tz_str} for chat {chat_id}")
             await safe_reply_text(update.message, f"✅ Timezone set to `{tz_str}`.")
         except pytz.UnknownTimeZoneError:
-            logger.warning(f"❌ Invalid timezone attempted: {context.args[0]}")
+            logger.warning(f"❌ Invalid timezone attempted: {context.args[0]} for chat {chat_id}")
             await safe_reply_text(update.message, "❌ Invalid timezone. Please use a valid format like 'Asia/Kolkata' or 'UTC'.")
             
     except Exception as e:
-        logger.error(f"❌ Error in set_timezone command: {e}")
+        logger.error(f"❌ Error in timezone command for chat {chat_id}: {e}")
 
-# === 11. BUTTON CALLBACK WITH ERROR HANDLING ===
+# === 13. BUTTON CALLBACK WITH MULTI-CHAT SUPPORT ===
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     
@@ -625,18 +739,32 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.answer()
         logger.debug(f"🔘 Button callback: {query.data}")
         
-        action, value = query.data.split('_', 1)
+        # Parse callback data: action_chatid_value
+        data_parts = query.data.split('_')
+        if len(data_parts) < 3:
+            logger.error(f"❌ Invalid callback data format: {query.data}")
+            return
+            
+        action = data_parts[0]
+        callback_chat_id = int(data_parts[1])
+        value = '_'.join(data_parts[2:])  # Rejoin in case value has underscores
+
+        # Verify the callback is for the current chat
+        current_chat_id = query.message.chat_id
+        if callback_chat_id != current_chat_id:
+            await query.answer("❌ This button is not for this chat")
+            return
 
         if action == "schedule":
             hour, minute = map(int, value.split(':'))
-            await add_or_remove_schedule(hour, minute, context)
+            await add_or_remove_schedule(callback_chat_id, hour, minute, context)
             
             # Safely delete the message before showing new schedule
             if await safe_delete_message(query.message):
-                logger.debug("Old schedule message deleted")
+                logger.debug(f"Old schedule message deleted for chat {callback_chat_id}")
             
             # Send new schedule as a fresh message instead of editing
-            await safe_send_message(context, query.message.chat_id, 
+            await safe_send_message(context, callback_chat_id, 
                 f"Schedule updated for {hour:02d}:{minute:02d}")
             
     except Exception as e:
@@ -646,190 +774,201 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except:
             pass
 
-# === 12. SCHEDULED JOB WITH ERROR HANDLING ===
+# === 14. SCHEDULED JOB WITH MULTI-CHAT SUPPORT ===
 async def scheduled_job(context: ContextTypes.DEFAULT_TYPE):
-    if not bot_state["is_running"]:
-        return
-
-    logger.debug("🔄 Running scheduled prediction check...")
-
+    logger.debug("🔄 Running scheduled prediction check for all authenticated chats...")
+    
     try:
-        logger.debug("🌐 Fetching data from source")
-        response = get_data_from_source()
+        # Get all authenticated chat IDs from Redis
+        pattern = f"{CHAT_STATE_PREFIX}*"
+        chat_keys = redis_client.keys(pattern)
         
-        if not response:
-            logger.error("❌ No data received from source")
-            return
-            
-        size_prediction_history = response.get('size_prediction_history', [])
-        if len(size_prediction_history) < 2:
-            logger.warning("⚠️ Insufficient size prediction history")
-            return
-            
-        last_completed = size_prediction_history[1]
-        
-        if bot_state["last_predicted_issue"] == last_completed.get('issue'):
-            predicted = last_completed.get('predicted_size')
-            actual = last_completed.get('actual_size')
-            
-            logger.info(f"🎯 Result check - Predicted: {predicted}, Actual: {actual}")
-
-            if predicted and actual and predicted == actual:  # WIN
-                bot_state["session_win_count"] += 1
-                bot_state["today_total_wins"] += 1
-                win_count = bot_state["session_win_count"]
+        for chat_key in chat_keys:
+            try:
+                chat_id = int(chat_key.replace(CHAT_STATE_PREFIX, ""))
+                chat_state = load_chat_state(chat_id)
                 
-                logger.info(f"🎉 WIN! Session wins: {win_count}, Today total: {bot_state['today_total_wins']}")
+                if not chat_state.get("authenticated", False) or not chat_state.get("is_running", False):
+                    continue
                 
-                try:
-                    win_sticker_id = STICKERS["wins"][win_count - 1]
-                    if win_sticker_id:
-                        await safe_send_sticker(context, CHAT_ID, win_sticker_id)
-                        logger.debug(f"🎭 Win sticker {win_count} sent")
-                    else: 
-                        raise IndexError
-                except (IndexError, KeyError, TypeError):
-                    await safe_send_message(context, CHAT_ID, f"Win {win_count}")
-                    logger.debug(f"💬 Win message {win_count} sent (no sticker)")
+                logger.debug(f"🔄 Processing scheduled job for chat {chat_id}")
                 
-                bot_state["current_level"] = 1
-
-                if bot_state['current_mode'] == 'win_limit' and bot_state['session_win_count'] >= bot_state['win_target']:
-                    logger.info(f"🎯 Target reached! {bot_state['session_win_count']}/{bot_state['win_target']}")
+                response = get_data_from_source()
+                if not response:
+                    continue
                     
-                    bot_state["is_running"] = False
+                size_prediction_history = response.get('size_prediction_history', [])
+                if len(size_prediction_history) < 2:
+                    continue
                     
-                    if bot_state['max_level_session'] > bot_state['today_max_level']:
-                        bot_state['today_max_level'] = bot_state['max_level_session']
-                    save_state()
+                last_completed = size_prediction_history[1]
+                
+                if chat_state["last_predicted_issue"] == last_completed.get('issue'):
+                    predicted = last_completed.get('predicted_size')
+                    actual = last_completed.get('actual_size')
                     
-                    summary = (
-                        f"🎯 **Target Reached & Session Closed** 🎯\n\n"
-                        f"Total Session Wins: **{bot_state['session_win_count']}**\n"
-                        f"Max Level Reached: **L{bot_state['max_level_session']}**"
-                    )
-                    await safe_send_message(context, CHAT_ID, summary, parse_mode='Markdown')
-                    if STICKERS["stop"]:
-                        await safe_send_sticker(context, CHAT_ID, STICKERS["stop"])
-                    return
-            else:  # LOSS
-                bot_state["current_level"] += 1
-                logger.info(f"❌ LOSS! Level increased to: {bot_state['current_level']}")
-        
-        if bot_state['current_level'] > bot_state['max_level_session']:
-            bot_state['max_level_session'] = bot_state['current_level']
-            logger.debug(f"📈 New session max level: {bot_state['max_level_session']}")
+                    logger.info(f"🎯 Result check for chat {chat_id} - Predicted: {predicted}, Actual: {actual}")
 
-        next_pred = response.get('size_prediction', {})
-        next_issue = next_pred.get('issue')
-        next_size = next_pred.get('next_size', 'N/A')
-        
-        if next_issue and next_size:
-            prediction_text = f"{next_issue[-4:]} {next_size.upper()}\nL{bot_state['current_level']}"
-            await safe_send_message(context, CHAT_ID, prediction_text)
-            
-            bot_state["last_predicted_issue"] = next_issue
-            save_state()
-            
-            logger.info(f"📤 Sent prediction: {next_issue[-4:]} {next_size.upper()} L{bot_state['current_level']}")
-        else:
-            logger.warning("⚠️ No next prediction data available")
+                    if predicted and actual and predicted == actual:  # WIN
+                        chat_state["session_win_count"] += 1
+                        chat_state["today_total_wins"] += 1
+                        win_count = chat_state["session_win_count"]
+                        
+                        logger.info(f"🎉 WIN for chat {chat_id}! Session wins: {win_count}, Today total: {chat_state['today_total_wins']}")
+                        
+                        try:
+                            win_sticker_id = STICKERS["wins"][win_count - 1]
+                            if win_sticker_id:
+                                await safe_send_sticker(context, chat_id, win_sticker_id)
+                                logger.debug(f"🎭 Win sticker {win_count} sent to chat {chat_id}")
+                            else: 
+                                raise IndexError
+                        except (IndexError, KeyError, TypeError):
+                            await safe_send_message(context, chat_id, f"Win {win_count}")
+                            logger.debug(f"💬 Win message {win_count} sent to chat {chat_id}")
+                        
+                        chat_state["current_level"] = 1
 
-    except KeyError as e:
-        logger.error(f"❌ Missing key in data: {e}")
+                        if chat_state['current_mode'] == 'win_limit' and chat_state['session_win_count'] >= chat_state['win_target']:
+                            logger.info(f"🎯 Target reached for chat {chat_id}! {chat_state['session_win_count']}/{chat_state['win_target']}")
+                            
+                            chat_state["is_running"] = False
+                            
+                            if chat_state['max_level_session'] > chat_state['today_max_level']:
+                                chat_state['today_max_level'] = chat_state['max_level_session']
+                            
+                            summary = (
+                                f"🎯 **Target Reached & Session Closed** 🎯\n\n"
+                                f"Total Session Wins: **{chat_state['session_win_count']}**\n"
+                                f"Max Level Reached: **L{chat_state['max_level_session']}**"
+                            )
+                            await safe_send_message(context, chat_id, summary, parse_mode='Markdown')
+                            if STICKERS["stop"]:
+                                await safe_send_sticker(context, chat_id, STICKERS["stop"])
+                            
+                            save_chat_state(chat_id, chat_state)
+                            continue
+                    else:  # LOSS
+                        chat_state["current_level"] += 1
+                        logger.info(f"❌ LOSS for chat {chat_id}! Level increased to: {chat_state['current_level']}")
+                
+                if chat_state['current_level'] > chat_state['max_level_session']:
+                    chat_state['max_level_session'] = chat_state['current_level']
+
+                next_pred = response.get('size_prediction', {})
+                next_issue = next_pred.get('issue')
+                next_size = next_pred.get('next_size', 'N/A')
+                
+                if next_issue and next_size:
+                    prediction_text = f"{next_issue[-4:]} {next_size.upper()}\nL{chat_state['current_level']}"
+                    await safe_send_message(context, chat_id, prediction_text)
+                    
+                    chat_state["last_predicted_issue"] = next_issue
+                    save_chat_state(chat_id, chat_state)
+                    
+                    logger.info(f"📤 Sent prediction to chat {chat_id}: {next_issue[-4:]} {next_size.upper()} L{chat_state['current_level']}")
+                
+            except Exception as e:
+                logger.error(f"❌ Error processing scheduled job for chat {chat_id}: {e}")
+
     except Exception as e:
         logger.error(f"❌ Unexpected error in scheduled_job: {e}")
 
-# === 13. SCHEDULE MANAGEMENT FUNCTIONS ===
-async def add_or_remove_schedule(hour: int, minute: int, context: ContextTypes.DEFAULT_TYPE):
+# === 15. SCHEDULE MANAGEMENT FUNCTIONS WITH MULTI-CHAT SUPPORT ===
+async def add_or_remove_schedule(chat_id, hour: int, minute: int, context: ContextTypes.DEFAULT_TYPE):
     time_str = f"{hour:02d}:{minute:02d}"
-    job_name = f"auto_session_{time_str.replace(':', '')}"
-    tz = pytz.timezone(bot_state['timezone'])
+    job_name = f"auto_session_{chat_id}_{time_str.replace(':', '')}"
+    chat_state = load_chat_state(chat_id)
+    tz = pytz.timezone(chat_state['timezone'])
     
     try:
-        if time_str in bot_state['schedule']:
+        if time_str in chat_state['schedule']:
             # Remove existing schedule
             jobs = context.job_queue.get_jobs_by_name(job_name)
             for job in jobs:
                 job.schedule_removal()
-            del bot_state['schedule'][time_str]
-            logger.info(f"❌ Removed schedule for {time_str}")
+            del chat_state['schedule'][time_str]
+            logger.info(f"❌ Removed schedule for {time_str} in chat {chat_id}")
         else:
             # Add new schedule
             context.job_queue.run_daily(
-                callback=auto_session_start,
+                callback=lambda ctx: auto_session_start(ctx, chat_id),
                 time=time(hour=hour, minute=minute, tzinfo=tz),
                 name=job_name
             )
-            bot_state['schedule'][time_str] = job_name
-            logger.info(f"✅ Added schedule for {time_str}")
+            chat_state['schedule'][time_str] = job_name
+            logger.info(f"✅ Added schedule for {time_str} in chat {chat_id}")
         
-        save_state()
+        save_chat_state(chat_id, chat_state)
     except Exception as e:
-        logger.error(f"❌ Error managing schedule: {e}")
+        logger.error(f"❌ Error managing schedule for chat {chat_id}: {e}")
 
-async def auto_session_start(context: ContextTypes.DEFAULT_TYPE):
-    logger.info("🤖 Auto-session starting...")
+async def auto_session_start(context: ContextTypes.DEFAULT_TYPE, chat_id: int):
+    logger.info(f"🤖 Auto-session starting for chat {chat_id}...")
     
     try:
-        # Update daily session count
-        bot_state['today_session_count'] += 1
+        chat_state = load_chat_state(chat_id)
         
-        bot_state['current_mode'] = 'win_limit'
-        bot_state['win_target'] = bot_state['auto_win_target']
-        bot_state.update({
+        # Update daily session count
+        chat_state['today_session_count'] += 1
+        
+        chat_state['current_mode'] = 'win_limit'
+        chat_state['win_target'] = chat_state['auto_win_target']
+        chat_state.update({
             "is_running": True, "current_level": 1,
             "session_win_count": 0, "max_level_session": 1,
             "last_predicted_issue": None
         })
-        save_state()
+        save_chat_state(chat_id, chat_state)
         
-        logger.info(f"🎯 Auto-session started with target: {bot_state['auto_win_target']} wins")
+        logger.info(f"🎯 Auto-session started with target: {chat_state['auto_win_target']} wins for chat {chat_id}")
         
-        await safe_send_message(context, CHAT_ID, f"🤖 Auto-session started! Target: {bot_state['auto_win_target']} wins.")
+        await safe_send_message(context, chat_id, f"🤖 Auto-session started! Target: {chat_state['auto_win_target']} wins.")
         if STICKERS["start"]:
-            await safe_send_sticker(context, CHAT_ID, STICKERS["start"])
+            await safe_send_sticker(context, chat_id, STICKERS["start"])
             
     except Exception as e:
-        logger.error(f"❌ Error in auto session start: {e}")
+        logger.error(f"❌ Error in auto session start for chat {chat_id}: {e}")
 
-async def auto_session_stop(context: ContextTypes.DEFAULT_TYPE):
-    if bot_state["is_running"]:
-        logger.info("🤖 Auto-session stopping...")
-        
-        try:
-            bot_state["is_running"] = False
+# === 16. NEW CHAT MEMBER HANDLER ===
+async def new_chat_member_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle when bot is added to a new group"""
+    chat_id = update.effective_chat.id
+    chat_type = update.effective_chat.type
+    chat_title = getattr(update.effective_chat, 'title', 'Unknown')
+    
+    # Check if bot was added
+    for member in update.message.new_chat_members:
+        if member.id == context.bot.id:
+            logger.info(f"🤖 Bot added to new {chat_type}: {chat_id} ({chat_title})")
             
-            # Update today's max level at the end of a session
-            if bot_state['max_level_session'] > bot_state['today_max_level']:
-                bot_state['today_max_level'] = bot_state['max_level_session']
-            save_state()
+            # Initialize chat state
+            load_chat_state(chat_id)
             
-            summary = (
-                f"🤖 **Auto-Session Closed** 🤖\n\n"
-                f"Total Session Wins: **{bot_state['session_win_count']}**\n"
-                f"Max Level Reached: **L{bot_state['max_level_session']}**"
+            welcome_message = (
+                f"👋 **Hello {chat_title}!**\n\n"
+                f"🤖 I'm your lottery prediction bot!\n"
+                f"🆔 **Your Chat ID:** `{chat_id}`\n\n"
+                f"🔒 **To get started, please send me the password.**\n"
+                f"Password hint: It's something that involves taking chances...\n\n"
+                f"Once authenticated, you can use:\n"
+                f"• `/start` - Start prediction session\n"
+                f"• `/status` - Check current status\n"
+                f"• `/schedule` - Setup auto sessions\n"
+                f"• `/id` - Show chat ID"
             )
-            await safe_send_message(context, CHAT_ID, summary, parse_mode='Markdown')
-            if STICKERS["stop"]:
-                await safe_send_sticker(context, CHAT_ID, STICKERS["stop"])
             
-            logger.info(f"📊 Auto-session ended: {bot_state['session_win_count']} wins, L{bot_state['max_level_session']} max")
-            
-        except Exception as e:
-            logger.error(f"❌ Error in auto session stop: {e}")
+            await safe_send_message(context, chat_id, welcome_message, parse_mode='Markdown')
+            break
 
-# === 14. MAIN APPLICATION SETUP ===
+# === 17. MAIN APPLICATION SETUP ===
 def main():
-    logger.info("🚀 Starting Telegram Bot application...")
+    logger.info("🚀 Starting Multi-Chat Telegram Bot application...")
     
     if not BOT_TOKEN:
         logger.critical("❌ BOT_TOKEN not found in environment variables!")
         print("!!! BOT_TOKEN not found. Please set it in Railway environment variables. !!!")
         sys.exit(1)
-
-    if CHAT_ID == 0:
-        logger.warning("⚠️ CHAT_ID not configured properly!")
 
     # Enhanced Application builder with increased timeouts
     application = (Application.builder()
@@ -840,43 +979,71 @@ def main():
                   .pool_timeout(30)
                   .build())
     
-    logger.info("✅ Telegram Application created with enhanced timeouts")
+    logger.info("✅ Multi-Chat Telegram Application created with enhanced timeouts")
     
     # Add global error handler
     application.add_error_handler(error_handler)
     logger.info("✅ Global error handler registered")
     
-    # Add ALL command handlers
+    # Add command handlers (simplified names without underscores)
     application.add_handler(CommandHandler("start", start_command))
     application.add_handler(CommandHandler("stop", stop_command))
     application.add_handler(CommandHandler("status", status_command))
-    application.add_handler(CommandHandler("mode_winlimit", mode_winlimit_command))
+    application.add_handler(CommandHandler("id", id_command))  # Works without auth
+    application.add_handler(CommandHandler("winlimit", winlimit_command))
     application.add_handler(CommandHandler("schedule", schedule_command))
-    application.add_handler(CommandHandler("view_schedule", view_schedule_command))
-    application.add_handler(CommandHandler("clear_schedule", clear_schedule_command))
-    application.add_handler(CommandHandler("set_timezone", set_timezone_command))
+    application.add_handler(CommandHandler("viewschedule", viewschedule_command))
+    application.add_handler(CommandHandler("clearschedule", clearschedule_command))
+    application.add_handler(CommandHandler("timezone", timezone_command))
     application.add_handler(CallbackQueryHandler(button_callback))
+    
+    # Add message handler for password authentication
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    
+    # Add new chat member handler
+    application.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, new_chat_member_handler))
     
     logger.info("✅ ALL command handlers registered")
 
-    # Setup job queue and reschedule existing jobs
+    # Setup job queue and reschedule existing jobs for all chats
     job_queue = application.job_queue
-    tz = pytz.timezone(bot_state['timezone'])
     
-    schedule_count = 0
-    for time_str, job_name in bot_state['schedule'].items():
-        try:
-            hour, minute = map(int, time_str.split(':'))
-            job_queue.run_daily(
-                callback=auto_session_start,
-                time=time(hour=hour, minute=minute, tzinfo=tz),
-                name=job_name
-            )
-            schedule_count += 1
-        except Exception as e:
-            logger.error(f"❌ Error rescheduling job {job_name}: {e}")
-    
-    logger.info(f"📅 Rescheduled {schedule_count} jobs on startup")
+    # Restore schedules for all authenticated chats
+    try:
+        pattern = f"{CHAT_STATE_PREFIX}*"
+        chat_keys = redis_client.keys(pattern)
+        total_schedules = 0
+        
+        for chat_key in chat_keys:
+            try:
+                chat_id = int(chat_key.replace(CHAT_STATE_PREFIX, ""))
+                chat_state = load_chat_state(chat_id)
+                
+                if not chat_state.get('authenticated', False):
+                    continue
+                
+                tz = pytz.timezone(chat_state['timezone'])
+                
+                for time_str, job_name in chat_state['schedule'].items():
+                    try:
+                        hour, minute = map(int, time_str.split(':'))
+                        job_queue.run_daily(
+                            callback=lambda ctx, cid=chat_id: auto_session_start(ctx, cid),
+                            time=time(hour=hour, minute=minute, tzinfo=tz),
+                            name=job_name
+                        )
+                        total_schedules += 1
+                        logger.info(f"📅 Restored schedule: {time_str} for chat {chat_id}")
+                    except Exception as e:
+                        logger.error(f"❌ Error rescheduling job {job_name} for chat {chat_id}: {e}")
+                        
+            except Exception as e:
+                logger.error(f"❌ Error processing chat schedules for {chat_key}: {e}")
+        
+        logger.info(f"📅 Rescheduled {total_schedules} jobs across all chats on startup")
+        
+    except Exception as e:
+        logger.error(f"❌ Error restoring schedules: {e}")
     
     # Setup main prediction job
     now = datetime.now()
@@ -889,14 +1056,15 @@ def main():
 
     # Final startup log
     logger.info("=" * 60)
-    logger.info("🤖 TELEGRAM BOT READY WITH ERROR HANDLING")
+    logger.info("🤖 MULTI-CHAT TELEGRAM BOT READY WITH REDIS PERSISTENCE")
     logger.info("=" * 60)
     logger.info(f"🌍 Environment: {'Railway' if is_railway_environment() else 'Local'}")
     logger.info(f"📱 Bot Token: ...{BOT_TOKEN[-6:]}")
-    logger.info(f"💬 Chat ID: {CHAT_ID}")
     logger.info(f"🔗 Data Source: {'Redis' if not is_running_locally() else 'API (local)'}")
+    logger.info(f"💾 Persistence: Multi-Chat Redis-based (survives redeployments)")
+    logger.info(f"🔐 Authentication: Password-based per chat")
     logger.info(f"🎭 Stickers: {sticker_count} loaded")
-    logger.info(f"🕐 Timezone: {bot_state['timezone']}")
+    logger.info(f"🔑 Password: {BOT_PASSWORD}")
     logger.info("🛡️ Enhanced error handling enabled")
     logger.info("🔇 HTTP request logging disabled")
     logger.info("=" * 60)
