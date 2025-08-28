@@ -96,7 +96,7 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
             return
             
         elif isinstance(context.error, Forbidden):
-            logger.error(f"Bot was blocked by user: {context.error}")
+            logger.error(f"Bot was blocked by user or lacks permissions: {context.error}")
             return
         
         # Log the full traceback for debugging
@@ -105,11 +105,23 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
     except Exception as e:
         logger.error(f"Error in error handler: {e}")
 
-# === 6. SAFE MESSAGE SENDING FUNCTIONS ===
+# === 6. ENHANCED SAFE MESSAGE SENDING FUNCTIONS ===
 async def safe_send_message(context: ContextTypes.DEFAULT_TYPE, chat_id: int, text: str, **kwargs):
-    """Safely send a message with error handling"""
+    """Safely send a message with enhanced permission error handling"""
     try:
         return await context.bot.send_message(chat_id=chat_id, text=text, **kwargs)
+    except Forbidden as e:
+        logger.warning(f"❌ Bot lacks permission to send messages to chat {chat_id}: {e}")
+        logger.info(f"💡 Solution: Promote bot to admin in chat {chat_id} with 'Send Messages' permission")
+        
+        # Try to get chat info for better logging
+        try:
+            chat = await context.bot.get_chat(chat_id)
+            logger.info(f"📋 Chat details: {chat.title} (Type: {chat.type})")
+        except:
+            pass
+            
+        return None
     except BadRequest as e:
         logger.warning(f"Failed to send message: {e}")
         return None
@@ -121,13 +133,21 @@ async def safe_send_message(context: ContextTypes.DEFAULT_TYPE, chat_id: int, te
         return None
 
 async def safe_reply_text(message, text: str, **kwargs):
-    """Safely reply to a message with error handling"""
+    """Safely reply to a message with enhanced error handling"""
     try:
         return await message.reply_text(text, **kwargs)
+    except Forbidden as e:
+        logger.warning(f"❌ Bot lacks permission to reply in chat {message.chat_id}: {e}")
+        logger.info(f"💡 Solution: Promote bot to admin in chat {message.chat_id}")
+        return None
     except BadRequest as e:
         if "Message to be replied not found" in str(e):
-            logger.warning("Original message not found, sending as new message")
-            return await safe_send_message(None, message.chat_id, text, **kwargs)
+            logger.warning("Original message not found, trying to send as new message")
+            # Try to send as new message instead
+            try:
+                return await safe_send_message(None, message.chat_id, text, **kwargs)
+            except:
+                return None
         else:
             logger.warning(f"Failed to reply: {e}")
             return None
@@ -136,9 +156,12 @@ async def safe_reply_text(message, text: str, **kwargs):
         return None
 
 async def safe_send_sticker(context: ContextTypes.DEFAULT_TYPE, chat_id: int, sticker: str):
-    """Safely send a sticker with error handling"""
+    """Safely send a sticker with enhanced error handling"""
     try:
         return await context.bot.send_sticker(chat_id=chat_id, sticker=sticker)
+    except Forbidden as e:
+        logger.warning(f"❌ Bot lacks permission to send stickers to chat {chat_id}: {e}")
+        return None
     except BadRequest as e:
         logger.warning(f"Failed to send sticker: {e}")
         return None
@@ -154,6 +177,9 @@ async def safe_delete_message(message):
     try:
         await message.delete()
         return True
+    except Forbidden as e:
+        logger.warning(f"❌ Bot lacks permission to delete message: {e}")
+        return False
     except BadRequest as e:
         if "Message can't be deleted" in str(e):
             logger.debug("Message can't be deleted - likely already deleted")
@@ -163,6 +189,34 @@ async def safe_delete_message(message):
     except Exception as e:
         logger.error(f"Unexpected error deleting message: {e}")
         return False
+
+# === 7. BOT PERMISSION CHECKER ===
+async def check_bot_admin_status(context: ContextTypes.DEFAULT_TYPE, chat_id: int):
+    """Check if bot has admin permissions in the chat"""
+    try:
+        bot_member = await context.bot.get_chat_member(chat_id, context.bot.id)
+        chat = await context.bot.get_chat(chat_id)
+        
+        if bot_member.status in ['administrator', 'creator']:
+            logger.info(f"✅ Bot is admin in {getattr(chat, 'title', 'Unknown')} ({chat_id})")
+            return True, True  # is_member, is_admin
+        elif bot_member.status == 'member':
+            if chat.type in ['group', 'supergroup']:
+                logger.warning(f"⚠️ Bot is not admin in {getattr(chat, 'title', 'Unknown')} ({chat_id}) - may not send messages")
+                return True, False  # is_member, not_admin
+            else:
+                # Private chat - should work fine
+                return True, True
+        else:
+            logger.warning(f"❌ Bot status in chat {chat_id}: {bot_member.status}")
+            return False, False
+            
+    except Forbidden:
+        logger.warning(f"❌ Bot was removed or blocked from chat {chat_id}")
+        return False, False
+    except Exception as e:
+        logger.error(f"❌ Error checking bot permissions for chat {chat_id}: {e}")
+        return False, False
 
 # Log environment info
 if is_railway_environment():
@@ -178,7 +232,7 @@ else:
     else:
         logger.info("📡 Data source: Redis (direct connection)")
 
-# === 7. REDIS CONFIGURATION ===
+# === 8. REDIS CONFIGURATION ===
 REDIS_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
 redis_client = None
 
@@ -300,7 +354,7 @@ if not initialize_redis():
     else:
         logger.warning("⚠️ Redis unavailable, will use API in local mode")
 
-# === 8. BOT CONFIGURATION & STICKERS ===
+# === 9. BOT CONFIGURATION & STICKERS ===
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 
 if not BOT_TOKEN:
@@ -318,7 +372,7 @@ STICKERS = {
 sticker_count = sum(1 for s in STICKERS["wins"] if s) + (1 if STICKERS["start"] else 0) + (1 if STICKERS["stop"] else 0)
 logger.info(f"🎭 Loaded {sticker_count} stickers")
 
-# === 9. MULTI-CHAT STATE MANAGEMENT ===
+# === 10. MULTI-CHAT STATE MANAGEMENT ===
 def load_chat_state(chat_id):
     """Load bot state for specific chat from Redis"""
     default_tz = 'Asia/Kolkata'
@@ -329,7 +383,7 @@ def load_chat_state(chat_id):
     
     redis_state = get_redis_json(redis_key)
     if redis_state:
-        logger.info(f"✅ Chat state loaded successfully from Redis for chat {chat_id}")
+        logger.debug(f"✅ Chat state loaded successfully from Redis for chat {chat_id}")
         
         # Ensure all keys are present
         redis_state.setdefault('authenticated', False)
@@ -377,7 +431,7 @@ def save_chat_state(chat_id, state):
         logger.error(f"❌ Failed to save chat state to Redis for chat {chat_id}")
         return False
 
-# === 10. AUTHENTICATION SYSTEM ===
+# === 11. AUTHENTICATION SYSTEM ===
 def is_authenticated(chat_id):
     """Check if chat is authenticated"""
     state = load_chat_state(chat_id)
@@ -390,7 +444,7 @@ def authenticate_chat(chat_id):
     save_chat_state(chat_id, state)
     logger.info(f"🔐 Chat {chat_id} authenticated successfully")
 
-async def require_auth(func):
+def require_auth(func):
     """Decorator to require authentication before executing command"""
     async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE):
         chat_id = update.effective_chat.id
@@ -399,7 +453,7 @@ async def require_auth(func):
             await safe_reply_text(update.message, 
                 "🔒 **Authentication Required**\n\n"
                 "Please send the password to access bot features.\n"
-                "Password hint: It's something that involves taking chances...",
+                "Password hint: Ask Owner...",
                 parse_mode='Markdown'
             )
             return
@@ -408,7 +462,7 @@ async def require_auth(func):
     
     return wrapper
 
-# === 11. MESSAGE HANDLER FOR PASSWORD AUTHENTICATION ===
+# === 12. MESSAGE HANDLER FOR PASSWORD AUTHENTICATION ===
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle all text messages for password authentication"""
     chat_id = update.effective_chat.id
@@ -424,10 +478,21 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         chat_type = "group" if update.effective_chat.type in ['group', 'supergroup'] else "private chat"
         
+        # Check bot permissions after authentication
+        is_member, is_admin = await check_bot_admin_status(context, chat_id)
+        
+        permission_status = ""
+        if update.effective_chat.type in ['group', 'supergroup']:
+            if is_admin:
+                permission_status = "✅ Bot has admin permissions"
+            else:
+                permission_status = "⚠️ Bot needs admin permissions for full functionality"
+        
         await safe_reply_text(update.message, 
             f"✅ **Access Granted!**\n\n"
             f"🆔 **Chat ID:** `{chat_id}`\n"
             f"📊 **Chat Type:** {chat_type}\n"
+            f"{permission_status}\n"
             f"🤖 You can now use all bot commands!\n\n"
             f"**Quick Start:**\n"
             f"• `/start` - Start prediction session\n"
@@ -442,10 +507,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await safe_reply_text(update.message, 
             "❌ **Incorrect Password**\n\n"
             "Please enter the correct password to access bot features.\n"
-            "Password hint: It's something that involves taking chances..."
+            "Password hint: Ask Owner..."
         )
 
-# === 12. COMMAND HANDLERS WITH MULTI-CHAT SUPPORT ===
+# === 13. COMMAND HANDLERS WITH MULTI-CHAT SUPPORT ===
 @require_auth
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
@@ -543,10 +608,15 @@ async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             chat_state['today_date'] = current_date
             save_chat_state(chat_id, chat_state)
 
+        # Check bot permissions
+        is_member, is_admin = await check_bot_admin_status(context, chat_id)
+        permission_status = "✅ Admin" if is_admin else "⚠️ Member" if is_member else "❌ No access"
+
         message = (
             f"📊 **Bot Status** 📊\n\n"
             f"🆔 **Chat ID:** `{chat_id}`\n"
-            f"🕒 **Current Time:** **{current_time_str}**\n\n"
+            f"🕒 **Current Time:** **{current_time_str}**\n"
+            f"🔐 **Bot Status:** {permission_status}\n\n"
             f"**State:** {status_text}\n"
             f"**Mode:** `{chat_state['current_mode']}` (Target: {chat_state.get('win_target', 'N/A')})\n\n"
             f"**-- Current Session --**\n"
@@ -569,13 +639,18 @@ async def id_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_title = getattr(update.effective_chat, 'title', 'N/A')
     username = getattr(update.effective_chat, 'username', 'N/A')
     
+    # Check bot permissions
+    is_member, is_admin = await check_bot_admin_status(context, chat_id)
+    permission_status = "✅ Admin" if is_admin else "⚠️ Member" if is_member else "❌ No access"
+    
     chat_info = "Private Chat" if chat_type == 'private' else f"Group Chat: {chat_title}"
     
     message = (
         f"🆔 **Chat Information**\n\n"
         f"**Chat ID:** `{chat_id}`\n"
         f"**Type:** {chat_info}\n"
-        f"**Username:** @{username}" if username != 'N/A' else f"**Username:** None"
+        f"**Username:** @{username}" if username != 'N/A' else f"**Username:** None\n"
+        f"**Bot Status:** {permission_status}"
     )
     
     await safe_reply_text(update.message, message, parse_mode='Markdown')
@@ -731,7 +806,7 @@ async def timezone_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         logger.error(f"❌ Error in timezone command for chat {chat_id}: {e}")
 
-# === 13. BUTTON CALLBACK WITH MULTI-CHAT SUPPORT ===
+# === 14. BUTTON CALLBACK WITH MULTI-CHAT SUPPORT ===
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     
@@ -774,7 +849,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except:
             pass
 
-# === 14. SCHEDULED JOB WITH MULTI-CHAT SUPPORT ===
+# === 15. SCHEDULED JOB WITH MULTI-CHAT SUPPORT (FIXED) ===
 async def scheduled_job(context: ContextTypes.DEFAULT_TYPE):
     logger.debug("🔄 Running scheduled prediction check for all authenticated chats...")
     
@@ -817,15 +892,16 @@ async def scheduled_job(context: ContextTypes.DEFAULT_TYPE):
                         logger.info(f"🎉 WIN for chat {chat_id}! Session wins: {win_count}, Today total: {chat_state['today_total_wins']}")
                         
                         try:
-                            win_sticker_id = STICKERS["wins"][win_count - 1]
+                            win_sticker_id = STICKERS["wins"][win_count - 1] if win_count <= len(STICKERS["wins"]) else None
                             if win_sticker_id:
                                 await safe_send_sticker(context, chat_id, win_sticker_id)
                                 logger.debug(f"🎭 Win sticker {win_count} sent to chat {chat_id}")
                             else: 
-                                raise IndexError
-                        except (IndexError, KeyError, TypeError):
+                                await safe_send_message(context, chat_id, f"Win {win_count}")
+                                logger.debug(f"💬 Win message {win_count} sent to chat {chat_id}")
+                        except Exception as e:
                             await safe_send_message(context, chat_id, f"Win {win_count}")
-                            logger.debug(f"💬 Win message {win_count} sent to chat {chat_id}")
+                            logger.debug(f"💬 Win message {win_count} sent to chat {chat_id} (sticker failed)")
                         
                         chat_state["current_level"] = 1
 
@@ -867,6 +943,8 @@ async def scheduled_job(context: ContextTypes.DEFAULT_TYPE):
                     save_chat_state(chat_id, chat_state)
                     
                     logger.info(f"📤 Sent prediction to chat {chat_id}: {next_issue[-4:]} {next_size.upper()} L{chat_state['current_level']}")
+                else:
+                    save_chat_state(chat_id, chat_state)
                 
             except Exception as e:
                 logger.error(f"❌ Error processing scheduled job for chat {chat_id}: {e}")
@@ -874,7 +952,7 @@ async def scheduled_job(context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         logger.error(f"❌ Unexpected error in scheduled_job: {e}")
 
-# === 15. SCHEDULE MANAGEMENT FUNCTIONS WITH MULTI-CHAT SUPPORT ===
+# === 16. SCHEDULE MANAGEMENT FUNCTIONS WITH MULTI-CHAT SUPPORT (FIXED) ===
 async def add_or_remove_schedule(chat_id, hour: int, minute: int, context: ContextTypes.DEFAULT_TYPE):
     time_str = f"{hour:02d}:{minute:02d}"
     job_name = f"auto_session_{chat_id}_{time_str.replace(':', '')}"
@@ -890,9 +968,9 @@ async def add_or_remove_schedule(chat_id, hour: int, minute: int, context: Conte
             del chat_state['schedule'][time_str]
             logger.info(f"❌ Removed schedule for {time_str} in chat {chat_id}")
         else:
-            # Add new schedule
+            # Add new schedule - FIXED: Use lambda with asyncio.create_task
             context.job_queue.run_daily(
-                callback=lambda ctx: auto_session_start(ctx, chat_id),
+                lambda ctx: asyncio.create_task(auto_session_start(ctx, chat_id)),
                 time=time(hour=hour, minute=minute, tzinfo=tz),
                 name=job_name
             )
@@ -908,6 +986,11 @@ async def auto_session_start(context: ContextTypes.DEFAULT_TYPE, chat_id: int):
     
     try:
         chat_state = load_chat_state(chat_id)
+        
+        # Check if chat is still authenticated
+        if not chat_state.get('authenticated', False):
+            logger.warning(f"⚠️ Skipping auto-session for unauthenticated chat {chat_id}")
+            return
         
         # Update daily session count
         chat_state['today_session_count'] += 1
@@ -930,7 +1013,7 @@ async def auto_session_start(context: ContextTypes.DEFAULT_TYPE, chat_id: int):
     except Exception as e:
         logger.error(f"❌ Error in auto session start for chat {chat_id}: {e}")
 
-# === 16. NEW CHAT MEMBER HANDLER ===
+# === 17. NEW CHAT MEMBER HANDLER (ENHANCED) ===
 async def new_chat_member_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handle when bot is added to a new group"""
     chat_id = update.effective_chat.id
@@ -945,12 +1028,29 @@ async def new_chat_member_handler(update: Update, context: ContextTypes.DEFAULT_
             # Initialize chat state
             load_chat_state(chat_id)
             
+            # Check bot permissions
+            is_member, is_admin = await check_bot_admin_status(context, chat_id)
+            
             welcome_message = (
                 f"👋 **Hello {chat_title}!**\n\n"
                 f"🤖 I'm your lottery prediction bot!\n"
                 f"🆔 **Your Chat ID:** `{chat_id}`\n\n"
+            )
+            
+            if not is_admin and chat_type in ['group', 'supergroup']:
+                welcome_message += (
+                    f"⚠️ **Important:** I need admin permissions to function properly!\n"
+                    f"Please promote me to admin with 'Send Messages' permission.\n\n"
+                    f"**How to promote me:**\n"
+                    f"1. Go to Group Settings → Administrators\n"
+                    f"2. Add Administrator → Select me (@{context.bot.username})\n"
+                    f"3. Grant 'Send Messages' permission\n"
+                    f"4. Save changes\n\n"
+                )
+            
+            welcome_message += (
                 f"🔒 **To get started, please send me the password.**\n"
-                f"Password hint: It's something that involves taking chances...\n\n"
+                f"Password hint: Ask Owner...\n\n"
                 f"Once authenticated, you can use:\n"
                 f"• `/start` - Start prediction session\n"
                 f"• `/status` - Check current status\n"
@@ -958,10 +1058,12 @@ async def new_chat_member_handler(update: Update, context: ContextTypes.DEFAULT_
                 f"• `/id` - Show chat ID"
             )
             
-            await safe_send_message(context, chat_id, welcome_message, parse_mode='Markdown')
+            result = await safe_send_message(context, chat_id, welcome_message, parse_mode='Markdown')
+            if result is None:
+                logger.warning(f"⚠️ Could not send welcome message to chat {chat_id} - likely needs admin permissions")
             break
 
-# === 17. MAIN APPLICATION SETUP ===
+# === 18. MAIN APPLICATION SETUP (FIXED) ===
 def main():
     logger.info("🚀 Starting Multi-Chat Telegram Bot application...")
     
@@ -976,7 +1078,7 @@ def main():
                   .connect_timeout(30)
                   .read_timeout(30)
                   .write_timeout(30)
-                  .pool_timeout(30)
+                  .pool_timeout=30)
                   .build())
     
     logger.info("✅ Multi-Chat Telegram Application created with enhanced timeouts")
@@ -1027,8 +1129,9 @@ def main():
                 for time_str, job_name in chat_state['schedule'].items():
                     try:
                         hour, minute = map(int, time_str.split(':'))
+                        # FIXED: Use lambda with asyncio.create_task
                         job_queue.run_daily(
-                            callback=lambda ctx, cid=chat_id: auto_session_start(ctx, cid),
+                            lambda ctx, cid=chat_id: asyncio.create_task(auto_session_start(ctx, cid)),
                             time=time(hour=hour, minute=minute, tzinfo=tz),
                             name=job_name
                         )
@@ -1045,28 +1148,34 @@ def main():
     except Exception as e:
         logger.error(f"❌ Error restoring schedules: {e}")
     
-    # Setup main prediction job
+    # Setup main prediction job - FIXED: Use lambda with asyncio.create_task
     now = datetime.now()
     delay = (60 - now.second + 2) % 60
     if delay == 0: 
         delay = 60
     
-    job_queue.run_repeating(scheduled_job, interval=60, first=delay)
+    job_queue.run_repeating(
+        lambda ctx: asyncio.create_task(scheduled_job(ctx)), 
+        interval=60, 
+        first=delay
+    )
     logger.info(f"⏰ Main prediction job scheduled (starts in {delay}s)")
 
     # Final startup log
     logger.info("=" * 60)
-    logger.info("🤖 MULTI-CHAT TELEGRAM BOT READY WITH REDIS PERSISTENCE")
+    logger.info("🤖 MULTI-CHAT TELEGRAM BOT READY WITH ENHANCED PERMISSIONS")
     logger.info("=" * 60)
     logger.info(f"🌍 Environment: {'Railway' if is_railway_environment() else 'Local'}")
     logger.info(f"📱 Bot Token: ...{BOT_TOKEN[-6:]}")
     logger.info(f"🔗 Data Source: {'Redis' if not is_running_locally() else 'API (local)'}")
     logger.info(f"💾 Persistence: Multi-Chat Redis-based (survives redeployments)")
     logger.info(f"🔐 Authentication: Password-based per chat")
+    logger.info(f"🛡️ Permissions: Enhanced error handling with admin detection")
     logger.info(f"🎭 Stickers: {sticker_count} loaded")
     logger.info(f"🔑 Password: {BOT_PASSWORD}")
     logger.info("🛡️ Enhanced error handling enabled")
     logger.info("🔇 HTTP request logging disabled")
+    logger.info("⚠️ Note: Bot requires admin permissions in groups for full functionality")
     logger.info("=" * 60)
 
     try:
