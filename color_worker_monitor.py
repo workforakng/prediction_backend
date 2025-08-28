@@ -1576,10 +1576,12 @@ def run_size_prediction_and_monitor():
                         
                         if current_size_lose_streak >= EMERGENCY_LOSS_STREAK:
                             logger.warning(f"🚨 Emergency size retrain triggered: current_lose_streak = {current_size_lose_streak}")
-                            train_data = size_sequence_raw[-300:]
+                            train_data = size_sequence_raw
+                            #[-300:]
                         else:
                             logger.warning(f"📉 Regular size retrain triggered: current_loss = {current_size_loss}")
-                            train_data = size_sequence_raw[-TRAINING_WINDOW_SIZE:]
+                            train_data = size_sequence_raw
+                            #[-TRAINING_WINDOW_SIZE:]
 
                         with rules_lock:
                             new_size_rules = retrain_size_rules(train_data)
