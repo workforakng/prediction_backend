@@ -145,7 +145,8 @@ async def safe_reply_text(message, text: str, **kwargs):
             logger.warning("Original message not found, trying to send as new message")
             # Try to send as new message instead
             try:
-                return await safe_send_message(None, message.chat_id, text, **kwargs)
+                # Fixed: Use context parameter properly
+                return await message.bot.send_message(chat_id=message.chat_id, text=text, **kwargs)
             except:
                 return None
         else:
@@ -1072,13 +1073,13 @@ def main():
         print("!!! BOT_TOKEN not found. Please set it in Railway environment variables. !!!")
         sys.exit(1)
 
-    # Enhanced Application builder with increased timeouts
+    # Enhanced Application builder with correct syntax - FIXED
     application = (Application.builder()
                   .token(BOT_TOKEN)
                   .connect_timeout(30)
                   .read_timeout(30)
                   .write_timeout(30)
-                  .pool_timeout=(30)
+                  .pool_timeout(30)
                   .build())
     
     logger.info("✅ Multi-Chat Telegram Application created with enhanced timeouts")
