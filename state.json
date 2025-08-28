@@ -1,0 +1,20 @@
+{
+    "is_running": false,
+    "current_mode": "win_limit",
+    "win_target": 10,
+    "session_win_count": 10,
+    "current_level": 1,
+    "max_level_session": 3,
+    "last_predicted_issue": "20250828100010296",
+    "timezone": "Asia/Kolkata",
+    "schedule": {
+        "08:00": "auto_session_0800",
+        "09:20": "auto_session_0920",
+        "10:14": "auto_session_1014"
+    },
+    "auto_win_target": 10,
+    "today_total_wins": 85,
+    "today_date": "2025-08-28",
+    "today_max_level": 8,
+    "today_session_count": 7
+}

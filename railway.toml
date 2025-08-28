@@ -1,0 +1,27 @@
+[build]
+watchPatterns = ["src/**", "package.json"]
+
+[services]
+  [services.web]
+    name = "web"
+    source = "app.py"
+    [services.web.build]
+      watchPatterns = ["app.py", "templates/**", "static/**", "requirements.txt"]
+      
+  [services.worker]
+    name = "worker"  
+    source = "worker.py"
+    [services.worker.build]
+      watchPatterns = ["worker.py", "requirements.txt"]
+      
+  [services.color-worker]
+    name = "color-worker"
+    source = "color_worker_monitor.py" 
+    [services.color-worker.build]
+      watchPatterns = ["color_worker_monitor.py", "requirements.txt"]
+      
+  [services.bot]
+    name = "bot"
+    source = "bot.py"
+    [services.bot.build]
+      watchPatterns = ["bot.py", "requirements.txt"]
