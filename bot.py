@@ -733,7 +733,7 @@ def main():
     logger.info("=" * 60)
 
     try:
-        logger.info("🔄 Starting bot polling...")
+        logger.info("🔄 Starting bot polling....")
         application.run_polling(allowed_updates=Update.ALL_TYPES)
     except Exception as e:
         logger.critical(f"💥 Fatal error during polling: {e}")
