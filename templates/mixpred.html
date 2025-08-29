@@ -425,8 +425,8 @@
     .timer { font-weight: 700; font-size: 1.2rem; color: #ffd700; }
     .error-message { color: #d32f2f; background: #ffcdd2; border-radius: 8px; padding: 0.5rem; margin-top: var(--spacing-sm); font-weight: 600; display: none; }
 
-    /* --- 9. Telegram Notification Modal Styles (COMMENTED) --- */
-    /*
+    /* --- 9. Telegram Notification Modal Styles --- */
+    
     .telegram-modal {
       position: fixed;
       top: 0;
@@ -445,7 +445,7 @@
       color: var(--text-color);
       padding: 2rem;
       border-radius: var(--border-radius-md);
-      max-width: 400px;
+      max-width: 450px;
       text-align: center;
       box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
       position: relative;
@@ -497,7 +497,7 @@
     .close-modal-btn:hover {
       background: #5a6268;
     }
-    */
+    
 
     /* --- 10. Animations --- */
     @keyframes pulse {
@@ -566,6 +566,30 @@
     🚧 Testing New Settings. Play Safe. Keep eyes on streaks. 🚧
   </div>
 -->
+
+  <!-- Telegram Modal -->
+  <div id="telegram-modal" class="telegram-modal" style="display: none;">
+    <div class="telegram-modal-content">
+      <h3>🤖 Get Smart Telegram Bot!</h3>
+      <p>
+        Smart win bot with multi-chat support, Password Required, and persistent storage. 
+        unlimited groups and private chats.
+      </p>
+      <p>
+        <strong>Features:</strong><br>
+        • Multi-chat support<br>
+        • Session management<br>
+        • Auto scheduling<br>
+        • Win tracking
+      </p>
+      <a href="https://t.me/Sizep_bot" class="telegram-btn" target="_blank">
+        🤖 Add Bot to Group
+      </a>
+      <br>
+      <button class="close-modal-btn" onclick="closeTelegramModal()">Close</button>
+    </div>
+  </div>
+
   <main>
     <section class="section">
         <div class="prediction-container">
@@ -736,7 +760,7 @@
 <script>
 // Global variables
 let lastApiTimestamp = null;
-let refreshGate = { '3': false, '5': false };
+let refreshGate = { '3': false, '5': false, '10': false };
 
 // Theme Toggle Functionality
 function toggleTheme() {
@@ -768,12 +792,12 @@ function loadThemePreference() {
     updateThemeButton(savedTheme === 'dark');
 }
 
-// Telegram Modal Functions (COMMENTED)
-/*
+// Telegram Modal Functions
 function showTelegramModal() {
   const modal = document.getElementById('telegram-modal');
   if (modal) {
     modal.style.display = 'flex';
+    console.log('🤖 Telegram modal shown');
   }
 }
 
@@ -782,16 +806,23 @@ function closeTelegramModal() {
   if (modal) {
     modal.style.display = 'none';
     localStorage.setItem('telegram-modal-shown', 'true');
+    console.log('🤖 Telegram modal closed and remembered');
   }
 }
 
 function checkFirstTimeVisitor() {
   const hasVisited = localStorage.getItem('telegram-modal-shown');
+  console.log('👁️ Checking first time visitor, hasVisited:', hasVisited);
   if (!hasVisited) {
-    setTimeout(showTelegramModal, 2000);
+    console.log('🆕 First time visitor detected, showing modal in 2 seconds');
+    setTimeout(() => {
+      console.log('⏰ Timeout reached, showing telegram modal');
+      showTelegramModal();
+    }, 2000);
+  } else {
+    console.log('🔄 Returning visitor, modal will not be shown');
   }
 }
-*/
 
 // Utility Functions
 function formatTimestamp(isoString) {
@@ -817,16 +848,60 @@ function createHistoryChip(text) {
 }
 
 function showErrorMessage(message) {
-  const errorDiv = document.getElementById('error-message');
+  // Create error div if it doesn't exist
+  let errorDiv = document.getElementById('error-message');
+  if (!errorDiv) {
+    errorDiv = document.createElement('div');
+    errorDiv.id = 'error-message';
+    errorDiv.className = 'error-message';
+    document.body.appendChild(errorDiv);
+  }
+  
   errorDiv.textContent = message;
   errorDiv.style.display = "block";
   setTimeout(() => errorDiv.style.display = "none", 5000);
+}
+
+// Simulate data for local testing
+function simulateDataLoad() {
+  console.log('🧪 Simulating data load for local testing');
+  const mockIssue = '202508301000' + String(Math.floor(Math.random() * 10000)).padStart(4, '0');
+  const sizeOptions = ['Big', 'Small'];
+  const colorOptions = ['Red', 'Green'];
+  const mockSize = sizeOptions[Math.floor(Math.random() * sizeOptions.length)];
+  const mockColor = colorOptions[Math.floor(Math.random() * colorOptions.length)];
+  
+  // Update predictions
+  document.getElementById('size-issue-display').innerHTML = `Size #<strong>${mockIssue.slice(-4)}</strong>`;
+  document.getElementById('size-prediction-display').innerHTML = `<div class="pred-box ${mockSize}">${mockSize}</div>`;
+  
+  document.getElementById('color-issue-display').innerHTML = `Color #<strong>${mockIssue.slice(-4)}</strong>`;
+  document.getElementById('color-prediction-display').innerHTML = `<div class="pred-box ${mockColor}">${mockColor}</div>`;
+  
+  // Update history tables with mock data
+  const mockHistory = Array.from({length: 10}, (_, i) => ({
+    issue: mockIssue - i,
+    predicted: Math.random() > 0.5 ? 'Big' : 'Small',
+    actual: Math.random() > 0.5 ? 'Big' : 'Small'
+  }));
+  
+  updateSizeHistoryTable(mockHistory);
+  updateColorHistoryTable(mockHistory.map(h => ({...h, predicted: Math.random() > 0.5 ? 'Red' : 'Green', actual: Math.random() > 0.5 ? 'Red' : 'Green'})));
+  
+  console.log('✅ Mock data loaded successfully');
 }
 
 // Main Data Loading Function
 async function loadAllData() {
   try {
     document.getElementById('last-updated-time').textContent = formatTimestamp(new Date().toISOString());
+    
+    // ✅ FIXED: Enhanced local testing detection
+    if (window.location.protocol === 'file:') {
+      console.log('📁 Local file detected - using simulation mode');
+      simulateDataLoad();
+      return;
+    }
     
     const res = await fetch('/api/v2/insights?t=' + Date.now());
     if (!res.ok) throw new Error(`API Error: ${res.statusText} (${res.status})`);
@@ -845,7 +920,12 @@ async function loadAllData() {
     updateColorStreaks(data.color_streaks);
     
     lastApiTimestamp = new Date().toISOString();
-    document.getElementById('error-message').style.display = 'none';
+    
+    // Hide error message if it exists
+    const errorDiv = document.getElementById('error-message');
+    if (errorDiv) {
+      errorDiv.style.display = 'none';
+    }
     
   } catch (err) {
     console.error("❌ Failed to load data:", err);
@@ -887,13 +967,14 @@ function updateSizeHistoryTable(sizeHistory) {
   const sizeTbody = document.getElementById('size-history-tbody');
   if (sizeHistory && sizeHistory.length > 0) {
     sizeTbody.innerHTML = sizeHistory.slice(0, 15).map(item => {
-      const actualSize = item.actual_size;
-      const isCorrect = actualSize !== null && item.predicted_size === actualSize;
+      const actualSize = item.actual_size || item.actual;
+      const predictedSize = item.predicted_size || item.predicted;
+      const isCorrect = actualSize !== null && predictedSize === actualSize;
       return `
         <tr>
           <td>${String(item.issue).slice(-4)}</td>
-          <td>${createHistoryChip(item.predicted_size)}</td>
-          <td title="${item.rule_name}">${(item.rule_name || 'N/A').substring(0, 10)}${item.rule_name?.length > 10 ? '...' : ''}</td>
+          <td>${createHistoryChip(predictedSize)}</td>
+          <td title="${item.rule_name || 'Mock'}">${(item.rule_name || 'Mock').substring(0, 10)}${(item.rule_name || 'Mock').length > 10 ? '...' : ''}</td>
           <td>${createHistoryChip(actualSize)}</td>
           <td class="${actualSize ? (isCorrect ? 'correct' : 'incorrect') : ''}">
             ${actualSize ? (isCorrect ? '✔' : '✘') : '?'}
@@ -910,13 +991,14 @@ function updateColorHistoryTable(colorHistory) {
   const colorTbody = document.getElementById('color-history-tbody');
   if (colorHistory && colorHistory.length > 0) {
     colorTbody.innerHTML = colorHistory.slice(0, 15).map(item => {
-      const actualColor = item.actual_color;
-      const isCorrect = actualColor !== null && item.predicted_color === actualColor;
+      const actualColor = item.actual_color || item.actual;
+      const predictedColor = item.predicted_color || item.predicted;
+      const isCorrect = actualColor !== null && predictedColor === actualColor;
       return `
         <tr>
           <td>${String(item.issue).slice(-4)}</td>
-          <td>${createHistoryChip(item.predicted_color)}</td>
-          <td title="${item.rule_name}">${(item.rule_name || 'N/A').substring(0, 10)}${item.rule_name?.length > 10 ? '...' : ''}</td>
+          <td>${createHistoryChip(predictedColor)}</td>
+          <td title="${item.rule_name || 'Mock'}">${(item.rule_name || 'Mock').substring(0, 10)}${(item.rule_name || 'Mock').length > 10 ? '...' : ''}</td>
           <td>${createHistoryChip(actualColor)}</td>
           <td class="${actualColor ? (isCorrect ? 'correct' : 'incorrect') : ''}">
             ${actualColor ? (isCorrect ? '✔' : '✘') : '?'}
@@ -962,11 +1044,12 @@ function updateStreakTable(tbody, data) {
   }
 }
 
-// Auto-Refresh System
+// ✅ FIXED Auto-Refresh System - Refreshes at 3, 5, 10 seconds
 function checkRefreshTime() {
   const now = new Date();
   const currentSecond = now.getSeconds();
-  const targetSeconds = [3, 5];
+  const targetSeconds = [3, 5, 10];
+  
   for (const second of targetSeconds) {
     if (currentSecond === second && !refreshGate[second]) {
       console.log(`🔄 Auto-refresh triggered at ${second} seconds`);
@@ -978,22 +1061,24 @@ function checkRefreshTime() {
   }
 }
 
+// ✅ FIXED Countdown Display - Continuous countdown from 3rd second
 function updateCountdownDisplay() {
   const countdownElement = document.getElementById('countdown-timer');
   const now = new Date();
   const currentSecond = now.getSeconds();
-  let remaining;
-  let nextRefreshPoint;
-  if (currentSecond < 3) {
-    nextRefreshPoint = 3;
-  } else if (currentSecond < 5) {
-    nextRefreshPoint = 5;
-  } else {
-    nextRefreshPoint = 60 + 3;
+  
+  // ✅ Calculate seconds since the 3rd second of the minute
+  let secondsSince3rd = currentSecond - 3;
+  if (secondsSince3rd < 0) {
+    secondsSince3rd += 60; // If current second is before 3rd second, add 60
   }
-  remaining = nextRefreshPoint - currentSecond;
+  
+  // ✅ Remaining seconds until next 3rd second
+  const remaining = 60 - secondsSince3rd;
   const emoji = remaining <= 3 ? '⚡' : '⏳';
+  
   countdownElement.textContent = `Next update in: ${remaining}s ${emoji}`;
+  
   if (remaining <= 3) {
     countdownElement.style.animation = 'pulse 0.5s ease-in-out infinite';
   } else {
@@ -1004,31 +1089,48 @@ function updateCountdownDisplay() {
 // Initialize Application
 function init() {
   console.log('🚀 Initializing Merged Prediction Dashboard...');
+  console.log('📍 Protocol:', window.location.protocol);
+  console.log('🌐 Host:', window.location.host);
+  
   loadThemePreference(); // Load theme preference on init
-  /* checkFirstTimeVisitor(); */ // Check if Telegram modal should be shown
+  
+  // ✅ FIXED: Enhanced first time visitor check for local testing
+  setTimeout(() => {
+    checkFirstTimeVisitor(); // Check if Telegram modal should be shown
+  }, 100); // Small delay to ensure DOM is ready
+  
   loadAllData();
+  
+  // Updated timer to check both refresh and countdown every second
   setInterval(() => {
     updateCountdownDisplay();
     checkRefreshTime();
   }, 1000);
 
   // Add event listener for the theme toggle button
-  document.getElementById('theme-toggle-button').addEventListener('click', toggleTheme);
+  const themeButton = document.getElementById('theme-toggle-button');
+  if (themeButton) {
+    themeButton.addEventListener('click', toggleTheme);
+  }
   
-  // Close modal when clicking outside
-  /*
+  // ✅ FIXED: Enhanced modal click handling for local testing
   document.addEventListener('click', (e) => {
     const modal = document.getElementById('telegram-modal');
-    if (e.target === modal) {
+    if (modal && e.target === modal) {
+      console.log('🖱️ Modal backdrop clicked, closing modal');
       closeTelegramModal();
     }
   });
-  */
 
   console.log('✅ Dashboard initialized successfully');
 }
 
-window.addEventListener('load', init);
+// ✅ Enhanced initialization for better local testing support
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
 
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) {
