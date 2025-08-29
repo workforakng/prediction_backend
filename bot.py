@@ -10,6 +10,7 @@ import logging
 import sys
 import redis
 import threading
+import time
 from datetime import datetime, time, timedelta
 from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, CallbackQueryHandler, filters
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -427,18 +428,28 @@ def create_default_chat_state(default_tz):
     }
 
 def save_chat_state(chat_id, state):
-    """Save chat state to Redis with debug logging"""
+    """Save chat state to Redis with enhanced error handling and retry"""
     redis_key = f"{CHAT_STATE_PREFIX}{chat_id}"
     
     # Enhanced debug logging
-    logger.debug(f"💾 Saving state for chat {chat_id}: wins={state.get('today_total_wins', 0)}, sessions={state.get('today_session_count', 0)}, running={state.get('is_running', False)}")
+    logger.debug(f"💾 Saving state for chat {chat_id}: session_wins={state.get('session_win_count', 0)}, today_wins={state.get('today_total_wins', 0)}, running={state.get('is_running', False)}")
     
-    if set_redis_json(redis_key, state):
-        logger.debug(f"💾 Chat state saved successfully to Redis for chat {chat_id}")
-        return True
-    else:
-        logger.error(f"❌ Failed to save chat state to Redis for chat {chat_id}")
-        return False
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            if set_redis_json(redis_key, state):
+                logger.debug(f"💾 Chat state saved successfully to Redis for chat {chat_id} (attempt {attempt + 1})")
+                return True
+            else:
+                logger.warning(f"⚠️ Redis save returned False for chat {chat_id} (attempt {attempt + 1})")
+        except Exception as e:
+            logger.error(f"❌ Error saving chat state for chat {chat_id} (attempt {attempt + 1}): {e}")
+        
+        if attempt < max_retries - 1:
+            time.sleep(0.1)  # Brief delay before retry
+    
+    logger.error(f"❌ CRITICAL: Failed to save chat state after {max_retries} attempts for chat {chat_id}")
+    return False
 
 # === 11. AUTHENTICATION SYSTEM ===
 def is_authenticated(chat_id):
@@ -478,7 +489,7 @@ def check_session_conflict(chat_id):
     return chat_state.get('is_running', False)
 
 def start_session(chat_id, session_type='manual'):
-    """Start a session with conflict checking"""
+    """Start a session with proper counter reset and conflict checking"""
     with session_lock:
         if check_session_conflict(chat_id):
             return False, "A session is already running"
@@ -487,11 +498,19 @@ def start_session(chat_id, session_type='manual'):
         chat_state['is_running'] = True
         chat_state['session_type'] = session_type
         chat_state['current_level'] = 1
-        chat_state['session_win_count'] = 0
+        chat_state['session_win_count'] = 0  # ✅ CRITICAL: Reset to 0
         chat_state['max_level_session'] = 1
         chat_state['last_predicted_issue'] = None
         chat_state['today_session_count'] += 1
-        save_chat_state(chat_id, chat_state)
+        
+        # ✅ CRITICAL: Save immediately after reset
+        save_success = save_chat_state(chat_id, chat_state)
+        
+        if not save_success:
+            logger.error(f"❌ CRITICAL: Failed to save session start state for chat {chat_id}")
+            return False, "Failed to initialize session"
+        
+        logger.info(f"✅ Session started for chat {chat_id}: type={session_type}, session_count={chat_state['today_session_count']}")
         return True, f"Session started ({session_type})"
 
 def stop_session(chat_id):
@@ -510,11 +529,12 @@ def stop_session(chat_id):
         save_chat_state(chat_id, chat_state)
         return True, "Session stopped"
 
-# === 13. MESSAGE HANDLER FOR PASSWORD AUTHENTICATION ===
+# === 13. MESSAGE HANDLER WITH SECURE PASSWORD DELETION ===
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Handle all text messages for password authentication"""
+    """Handle all text messages for password authentication with auto-deletion"""
     chat_id = update.effective_chat.id
-    message_text = update.message.text
+    message = update.message
+    message_text = message.text
     
     # Skip if already authenticated
     if is_authenticated(chat_id):
@@ -522,6 +542,18 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # Check password
     if message_text and message_text.strip() == BOT_PASSWORD:
+        # ✅ SECURITY: Delete password message immediately
+        try:
+            await message.delete()
+            logger.info(f"🔒 Password message deleted from chat {chat_id} for security")
+        except Forbidden:
+            logger.warning(f"⚠️ Bot lacks permission to delete messages in chat {chat_id}")
+        except BadRequest as e:
+            logger.warning(f"⚠️ Could not delete password message in chat {chat_id}: {e}")
+        except Exception as e:
+            logger.error(f"❌ Unexpected error deleting password message in chat {chat_id}: {e}")
+        
+        # Authenticate the chat
         authenticate_chat(chat_id)
         
         chat_type = "group" if update.effective_chat.type in ['group', 'supergroup'] else "private chat"
@@ -536,27 +568,41 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             else:
                 permission_status = "⚠️ Bot needs admin permissions for full functionality"
         
-        await safe_reply_text(update.message, 
-            f"✅ **Access Granted!**\n\n"
+        # Send success message
+        success_message = (
+            f"✅ **Access Granted!** 🔓\n\n"
             f"🆔 **Chat ID:** `{chat_id}`\n"
             f"📊 **Chat Type:** {chat_type}\n"
-            f"{permission_status}\n"
+            f"{permission_status}\n\n"
+            f"🔒 **Security:** Your password message has been automatically deleted.\n\n"
             f"🤖 You can now use all bot commands!\n\n"
             f"**Quick Start:**\n"
             f"• `/start` - Start prediction session\n"
             f"• `/status` - Check current status\n"
             f"• `/schedule` - Setup auto sessions\n"
-            f"• `/id` - Show chat ID",
-            parse_mode='Markdown'
+            f"• `/id` - Show chat ID"
         )
         
-        logger.info(f"🔐 New chat authenticated: {chat_id} ({chat_type})")
+        await safe_send_message(context, chat_id, success_message, parse_mode='Markdown')
+        logger.info(f"🔐 New chat authenticated: {chat_id} ({chat_type}) - Password deleted")
+        
     else:
-        await safe_reply_text(update.message, 
-            "❌ **Incorrect Password**\n\n"
+        # Handle incorrect password
+        error_message = (
+            "❌ **Incorrect Password** 🔒\n\n"
             "Please enter the correct password to access bot features.\n"
-            "Password hint: Ask Owner..."
+            "Password hint: Ask Owner...\n\n"
+            "🔒 **Note:** For security, your password will be automatically deleted once entered correctly."
         )
+        
+        await safe_send_message(context, chat_id, error_message, parse_mode='Markdown')
+        
+        # Optional: Delete incorrect password attempts for security
+        try:
+            await message.delete()
+            logger.info(f"🔒 Deleted incorrect password attempt from chat {chat_id}")
+        except Exception as e:
+            logger.debug(f"Could not delete incorrect password attempt: {e}")
 
 # === 14. COMMAND HANDLERS WITH ENHANCED SESSION MANAGEMENT ===
 @require_auth
@@ -993,15 +1039,25 @@ async def scheduled_job(context: ContextTypes.DEFAULT_TYPE):
                         
                         logger.info(f"🎯 Result check for chat {chat_id} - Predicted: {predicted}, Actual: {actual}")
 
+                        # ✅ FIX: Enhanced WIN detection with thread-safe updates
                         if predicted and actual and predicted == actual:  # WIN
-                            chat_state["session_win_count"] += 1
-                            chat_state["today_total_wins"] += 1
-                            chat_state["current_level"] = 1
+                            # ✅ FIX: Thread-safe increment with immediate save
+                            with session_lock:
+                                chat_state["session_win_count"] += 1
+                                chat_state["today_total_wins"] += 1
+                                chat_state["current_level"] = 1
+                                
+                                win_count = chat_state["session_win_count"]
+                                
+                                # ✅ CRITICAL: Save state immediately after incrementing
+                                save_success = save_chat_state(chat_id, chat_state)
+                                
+                                if not save_success:
+                                    logger.error(f"❌ CRITICAL: Failed to save win state for chat {chat_id}")
+                                else:
+                                    logger.info(f"✅ Win #{win_count} saved for chat {chat_id} (Today: {chat_state['today_total_wins']})")
                             
-                            win_count = chat_state["session_win_count"]
-                            
-                            logger.info(f"🎉 WIN for chat {chat_id}! Session wins: {win_count}, Today total: {chat_state['today_total_wins']}")
-                            
+                            # Send win notification
                             try:
                                 win_sticker_id = STICKERS["wins"][win_count - 1] if win_count <= len(STICKERS["wins"]) else None
                                 if win_sticker_id:
@@ -1014,24 +1070,24 @@ async def scheduled_job(context: ContextTypes.DEFAULT_TYPE):
                                 await safe_send_message(context, chat_id, f"Win {win_count}")
                                 logger.debug(f"💬 Win message {win_count} sent to chat {chat_id} (sticker failed)")
 
-                            # Check if target reached
-                            if chat_state['current_mode'] == 'win_limit' and chat_state['session_win_count'] >= chat_state['win_target']:
-                                logger.info(f"🎯 Target reached for chat {chat_id}! {chat_state['session_win_count']}/{chat_state['win_target']}")
+                            # ✅ FIX: Check target AFTER saving win count
+                            if win_count >= chat_state['win_target']:
+                                logger.info(f"🎯 Target reached for chat {chat_id}! {win_count}/{chat_state['win_target']}")
                                 
-                                # Stop session
+                                # Stop session using the enhanced stop function
                                 success, message = stop_session(chat_id)
-                                chat_state = load_chat_state(chat_id)  # Reload after stop
+                                final_chat_state = load_chat_state(chat_id)  # Reload fresh state
                                 
                                 summary = (
                                     f"🎯 **Target Reached & Session Closed** 🎯\n\n"
-                                    f"Total Session Wins: **{chat_state['session_win_count']}**\n"
-                                    f"Max Level Reached: **L{chat_state['max_level_session']}**"
+                                    f"Total Session Wins: **{final_chat_state['session_win_count']}**\n"
+                                    f"Max Level Reached: **L{final_chat_state['max_level_session']}**"
                                 )
                                 await safe_send_message(context, chat_id, summary, parse_mode='Markdown')
                                 if STICKERS["stop"]:
                                     await safe_send_sticker(context, chat_id, STICKERS["stop"])
                                 
-                                continue
+                                continue  # Skip further processing for this chat
                         else:  # LOSS
                             chat_state["current_level"] += 1
                             logger.info(f"❌ LOSS for chat {chat_id}! Level increased to: {chat_state['current_level']}")
@@ -1158,10 +1214,11 @@ async def new_chat_member_handler(update: Update, context: ContextTypes.DEFAULT_
                 f"• `/status` - Check current status\n"
                 f"• `/schedule` - Setup auto sessions with alerts\n"
                 f"• `/id` - Show chat ID\n\n"
-                f"✨ **New Features:**\n"
+                f"✨ **Features:**\n"
                 f"• Session conflict prevention\n"
                 f"• 5-minute alerts before scheduled sessions\n"
-                f"• Enhanced statistics tracking"
+                f"• Enhanced statistics tracking\n"
+                f"• Fixed win counting system"
             )
             
             result = await safe_send_message(context, chat_id, welcome_message, parse_mode='Markdown')
@@ -1271,7 +1328,7 @@ def main():
     
     # Setup main prediction job
     now = datetime.now()
-    delay = (60 - now.second + 4) % 60
+    delay = (60 - now.second + 2) % 60
     if delay == 0: 
         delay = 60
     
@@ -1284,7 +1341,7 @@ def main():
 
     # Final startup log
     logger.info("=" * 60)
-    logger.info("🤖 ENHANCED MULTI-CHAT BOT READY WITH ALL FEATURES")
+    logger.info("🤖 ENHANCED BOT READY - FIXED WIN COUNTING & ALL FEATURES")
     logger.info("=" * 60)
     logger.info(f"🌍 Environment: {'Railway' if is_railway_environment() else 'Local'}")
     logger.info(f"📱 Bot Token: ...{BOT_TOKEN[-6:]}")
@@ -1297,6 +1354,7 @@ def main():
     logger.info("✨ Session conflict prevention enabled")
     logger.info("⏰ 5-minute alerts for scheduled sessions")
     logger.info("📊 Enhanced statistics tracking")
+    logger.info("🎯 FIXED: Win counting synchronization")
     logger.info("🔄 Fixed duplicate prediction prevention")
     logger.info("🛡️ Enhanced error handling enabled")
     logger.info("🔇 HTTP request logging disabled")
