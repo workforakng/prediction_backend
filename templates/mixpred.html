@@ -382,7 +382,62 @@
       text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
     }
 
-    /* --- 8. Floating Status Bar & Theme Toggle Button --- */
+    /* --- 8. Simplified Telegram Bot Section Styles --- */
+    .telegram-section {
+      background: linear-gradient(135deg, #0088cc, #005999);
+      color: var(--white);
+      padding: var(--spacing-md);
+      border-radius: var(--border-radius-md);
+      margin-bottom: var(--spacing-md);
+      text-align: center;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      box-shadow: 0 4px 12px rgba(0, 136, 204, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(10px);
+    }
+
+    .telegram-section h3 {
+      font-size: 1.3rem;
+      margin-bottom: 1rem;
+      font-weight: 700;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+    }
+
+    .telegram-section p {
+      margin-bottom: 1rem;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+    }
+
+    .telegram-btn {
+      background: linear-gradient(135deg, #ffd700, #ffb300);
+      color: #333;
+      padding: 0.8rem 2rem;
+      border: none;
+      border-radius: 25px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+      margin-top: 1rem;
+      box-shadow: 0 4px 12px rgba(255, 215, 0, 0.4);
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .telegram-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(255, 215, 0, 0.6);
+      background: linear-gradient(135deg, #ffed4a, #ffd700);
+    }
+
+    .telegram-btn:active {
+      transform: translateY(0);
+    }
+
+    /* --- 9. Floating Status Bar & Theme Toggle Button --- */
     .status-bar-floating {
       position: fixed;
       bottom: 0;
@@ -425,80 +480,6 @@
     .timer { font-weight: 700; font-size: 1.2rem; color: #ffd700; }
     .error-message { color: #d32f2f; background: #ffcdd2; border-radius: 8px; padding: 0.5rem; margin-top: var(--spacing-sm); font-weight: 600; display: none; }
 
-    /* --- 9. Telegram Notification Modal Styles --- */
-    
-    .telegram-modal {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.8);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 2000;
-    }
-
-    .telegram-modal-content {
-      background: var(--white);
-      color: var(--text-color);
-      padding: 2rem;
-      border-radius: var(--border-radius-md);
-      max-width: 450px;
-      text-align: center;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-      position: relative;
-    }
-
-    .telegram-modal h3 {
-      color: var(--primary-color);
-      margin-bottom: 1rem;
-      font-size: 1.3rem;
-    }
-
-    .telegram-modal p {
-      margin-bottom: 1.5rem;
-      line-height: 1.5;
-    }
-
-    .telegram-btn {
-      background: linear-gradient(135deg, #0088cc, #005999);
-      color: var(--white);
-      padding: 0.8rem 1.5rem;
-      border: none;
-      border-radius: 25px;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      text-decoration: none;
-      display: inline-block;
-      margin: 0.5rem;
-      box-shadow: 0 4px 8px rgba(0, 136, 204, 0.3);
-      transition: all 0.3s ease;
-    }
-
-    .telegram-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 12px rgba(0, 136, 204, 0.4);
-    }
-
-    .close-modal-btn {
-      background: #6c757d;
-      color: var(--white);
-      padding: 0.6rem 1.2rem;
-      border: none;
-      border-radius: 20px;
-      font-size: 0.9rem;
-      cursor: pointer;
-      margin-left: 0.5rem;
-    }
-
-    .close-modal-btn:hover {
-      background: #5a6268;
-    }
-    
-
     /* --- 10. Animations --- */
     @keyframes pulse {
       0%, 100% { opacity: 1; }
@@ -510,7 +491,7 @@
       to { opacity: 1; transform: translateY(0); }
     }
 
-    .pred-box, .section, .disclaimer {
+    .pred-box, .section, .disclaimer, .telegram-section {
       animation: fadeIn 0.5s ease-out;
     }
 
@@ -544,6 +525,7 @@
       table { font-size: 0.8rem; }
       th, td { padding: 0.5rem 0.3rem; }
       .disclaimer { font-size: 0.8rem; padding: var(--spacing-sm); }
+      .telegram-section { font-size: 0.85rem; padding: var(--spacing-sm); }
       .maintenance-notice { font-size: 0.85rem; padding: 0.8rem; }
       .streak-table { font-size: 0.7rem; }
       .streak-table th, .streak-table td { padding: 0.3rem 0.2rem; font-size: 0.65rem; }
@@ -553,6 +535,10 @@
       }
       .streak-table-title {
         font-size: 0.9rem;
+      }
+      .telegram-btn {
+        padding: 0.6rem 1.5rem;
+        font-size: 1rem;
       }
     }
   </style>
@@ -566,29 +552,6 @@
     🚧 Testing New Settings. Play Safe. Keep eyes on streaks. 🚧
   </div>
 -->
-
-  <!-- Telegram Modal -->
-  <div id="telegram-modal" class="telegram-modal" style="display: none;">
-    <div class="telegram-modal-content">
-      <h3>🤖 Get Smart Telegram Bot!</h3>
-      <p>
-        Smart win bot with multi-chat support, Password Required, and persistent storage. 
-        unlimited groups and private chats.
-      </p>
-      <p>
-        <strong>Features:</strong><br>
-        • Multi-chat support<br>
-        • Session management<br>
-        • Auto scheduling<br>
-        • Win tracking
-      </p>
-      <a href="https://t.me/Sizep_bot" class="telegram-btn" target="_blank">
-        🤖 Add Bot to Group
-      </a>
-      <br>
-      <button class="close-modal-btn" onclick="closeTelegramModal()">Close</button>
-    </div>
-  </div>
 
   <main>
     <section class="section">
@@ -746,6 +709,16 @@
       <strong><a href="https://justpaste.it/mixpred">https://justpaste.it/mixpred</a></strong>
       </p>
     </section>
+
+    <!-- Simplified Telegram Bot Section -->
+    <section class="telegram-section">
+      <h3>🤖 Smart Telegram Bot</h3>
+      <p>Get our advanced prediction bot with multi-chat support, password protection, start,stop,win stickers and persistent storage! Automated sessions scheduling. 
+      For adding bot to your group and Password contact me at Email: mixpred@protonmail.com</p>
+      <a href="https://t.me/Sizep_bot" class="telegram-btn" target="_blank">
+        🤖 Add Bot to Group or chat.
+      </a>
+    </section>
   </main>
   
   <footer class="status-bar-floating">
@@ -790,38 +763,6 @@ function loadThemePreference() {
         document.body.classList.add('dark-mode');
     }
     updateThemeButton(savedTheme === 'dark');
-}
-
-// Telegram Modal Functions
-function showTelegramModal() {
-  const modal = document.getElementById('telegram-modal');
-  if (modal) {
-    modal.style.display = 'flex';
-    console.log('🤖 Telegram modal shown');
-  }
-}
-
-function closeTelegramModal() {
-  const modal = document.getElementById('telegram-modal');
-  if (modal) {
-    modal.style.display = 'none';
-    localStorage.setItem('telegram-modal-shown', 'true');
-    console.log('🤖 Telegram modal closed and remembered');
-  }
-}
-
-function checkFirstTimeVisitor() {
-  const hasVisited = localStorage.getItem('telegram-modal-shown');
-  console.log('👁️ Checking first time visitor, hasVisited:', hasVisited);
-  if (!hasVisited) {
-    console.log('🆕 First time visitor detected, showing modal in 2 seconds');
-    setTimeout(() => {
-      console.log('⏰ Timeout reached, showing telegram modal');
-      showTelegramModal();
-    }, 2000);
-  } else {
-    console.log('🔄 Returning visitor, modal will not be shown');
-  }
 }
 
 // Utility Functions
@@ -896,7 +837,7 @@ async function loadAllData() {
   try {
     document.getElementById('last-updated-time').textContent = formatTimestamp(new Date().toISOString());
     
-    // ✅ FIXED: Enhanced local testing detection
+    // Enhanced local testing detection
     if (window.location.protocol === 'file:') {
       console.log('📁 Local file detected - using simulation mode');
       simulateDataLoad();
@@ -1044,7 +985,7 @@ function updateStreakTable(tbody, data) {
   }
 }
 
-// ✅ FIXED Auto-Refresh System - Refreshes at 3, 5, 10 seconds
+// Auto-Refresh System - Refreshes at 3, 5, 10 seconds
 function checkRefreshTime() {
   const now = new Date();
   const currentSecond = now.getSeconds();
@@ -1061,19 +1002,19 @@ function checkRefreshTime() {
   }
 }
 
-// ✅ FIXED Countdown Display - Continuous countdown from 3rd second
+// Countdown Display - Continuous countdown from 3rd second
 function updateCountdownDisplay() {
   const countdownElement = document.getElementById('countdown-timer');
   const now = new Date();
   const currentSecond = now.getSeconds();
   
-  // ✅ Calculate seconds since the 3rd second of the minute
+  // Calculate seconds since the 3rd second of the minute
   let secondsSince3rd = currentSecond - 3;
   if (secondsSince3rd < 0) {
     secondsSince3rd += 60; // If current second is before 3rd second, add 60
   }
   
-  // ✅ Remaining seconds until next 3rd second
+  // Remaining seconds until next 3rd second
   const remaining = 60 - secondsSince3rd;
   const emoji = remaining <= 3 ? '⚡' : '⏳';
   
@@ -1093,12 +1034,6 @@ function init() {
   console.log('🌐 Host:', window.location.host);
   
   loadThemePreference(); // Load theme preference on init
-  
-  // ✅ FIXED: Enhanced first time visitor check for local testing
-  setTimeout(() => {
-    checkFirstTimeVisitor(); // Check if Telegram modal should be shown
-  }, 100); // Small delay to ensure DOM is ready
-  
   loadAllData();
   
   // Updated timer to check both refresh and countdown every second
@@ -1112,20 +1047,11 @@ function init() {
   if (themeButton) {
     themeButton.addEventListener('click', toggleTheme);
   }
-  
-  // ✅ FIXED: Enhanced modal click handling for local testing
-  document.addEventListener('click', (e) => {
-    const modal = document.getElementById('telegram-modal');
-    if (modal && e.target === modal) {
-      console.log('🖱️ Modal backdrop clicked, closing modal');
-      closeTelegramModal();
-    }
-  });
 
   console.log('✅ Dashboard initialized successfully');
 }
 
-// ✅ Enhanced initialization for better local testing support
+// Enhanced initialization for better local testing support
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', init);
 } else {
@@ -1154,7 +1080,7 @@ document.addEventListener('visibilitychange', () => {
         matrixCtx.fillStyle = 'rgba(0, 0, 0, 0.05)';
         matrixCtx.fillRect(0, 0, matrixCanvas.width, matrixCanvas.height);
         matrixCtx.fillStyle = '#0F0';
-        matrixCtx.font = fontSize + 'px monospace';
+        matmatrixCtx.font = fontSize + 'px monospace';
         for (let i = 0; i < drops.length; i++) {
             const text = characters.charAt(Math.floor(Math.random() * characters.length));
             matrixCtx.fillText(text, i * fontSize, drops[i] * fontSize);
