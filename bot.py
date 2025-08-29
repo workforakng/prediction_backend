@@ -1328,7 +1328,7 @@ def main():
     
     # Setup main prediction job
     now = datetime.now()
-    delay = (60 - now.second + 2) % 60
+    delay = (60 - now.second + 4) % 60
     if delay == 0: 
         delay = 60
     
