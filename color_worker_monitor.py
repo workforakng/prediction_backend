@@ -1694,16 +1694,33 @@ def initialize_predefined_rules():
         logger.error(f"❌ Error initializing predefined rules: {e}")
 
 def calculate_next_run_time():
-    """Calculate the next run time (59th second)"""
-    now_utc = datetime.now(pytz.utc)
-    current_sec = now_utc.second
-    
-    # Target 59th second of current minute, or next minute if past 59th second
-    target_time = now_utc.replace(second=59, microsecond=0)
-    if current_sec >= 59:
-        target_time += timedelta(minutes=1)
-    
-    return target_time, (target_time - now_utc).total_seconds()
+    """✅ ENHANCED: Calculate the next run time (0.5th second of next minute)"""
+    try:
+        now_utc = datetime.now(pytz.utc)
+        current_sec = now_utc.second
+        current_microsecond = now_utc.microsecond
+        
+        # Target 0.5 seconds (500,000 microseconds) of next minute
+        target_time = now_utc.replace(second=0, microsecond=500000)
+        
+        # If we're past 0.5 seconds of current minute, move to next minute
+        if current_sec > 0 or (current_sec == 0 and current_microsecond >= 500000):
+            target_time = target_time + timedelta(minutes=1)
+        
+        sleep_duration = (target_time - now_utc).total_seconds()
+        
+        # Ensure positive sleep duration
+        if sleep_duration <= 0:
+            target_time += timedelta(minutes=1)
+            sleep_duration = (target_time - now_utc).total_seconds()
+        
+        return target_time, max(0.1, sleep_duration)  # Minimum 0.1 second
+        
+    except Exception as e:
+        logger.error(f"❌ Error calculating next run time: {e}")
+        # Fallback: run in 60 seconds
+        now = datetime.now(pytz.utc)
+        return now + timedelta(seconds=60), 60.0
 
 def main_worker_loop():
     """Main color worker loop with predefined rule support"""
