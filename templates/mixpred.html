@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Prediction Dashboard</title>
+
+  <style>
+    /* --- Add this entire block inside your style tag --- */
+
+  /* 1. Set body background for the effect and ensure content is positioned */
+  body {
+    background-color: #000; /* Required for the Matrix effect */
+    position: relative; /* Establishes a stacking context */
+  }
+
+  /* 2. Style the background canvases */
+  #matrix-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: -2; /* Farthest back layer */
+  }
+
+  #particles-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1; /* Middle layer, on top of Matrix */
+  }
+
+  /* 3. Lift existing content above the new backgrounds */
+  main, .status-bar-floating, .maintenance-notice, .theme-toggle-button {
+    position: relative;
+    z-index: 2; /* Ensures all your content is visible on top */
+  }
+
+  /* --- End of new styles --- */
+
+  :root {
+    ... /* Your existing styles continue here */
+  }
+    /* --- 1. Custom Properties (CSS Variables) --- */
+    :root {
+      /* Colors */
+      --primary-color: #667eea;
+      --secondary-color: #764ba2;
+      --header-bg: rgba(42, 63, 102, 0.95);
+      --text-color: #333;
+      --light-text-color: #e0e0e0;
+      --white: #fff;
+      --section-bg: rgba(255, 255, 255, 0.95);
+      --border-color: rgba(255, 255, 255, 0.2);
+      --table-header-bg: linear-gradient(135deg, #2a3f66, #1a2642);
+      --table-header-bg-light: #f1f1f1;
+      --table-header-color: #333;
+
+      /* New Streak Table Variables */
+      --streak-section-bg: #f8faff;
+      --streak-table-header-bg: #b3cde0;
+      --streak-table-header-color: #2a3f66;
+      --streak-table-cell-bg: rgba(255, 255, 255, 0.8);
+      
+      /* Gradients */
+      --body-gradient: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+      --green-gradient: linear-gradient(135deg, #4caf50, #2e7d32);
+      --red-gradient: linear-gradient(135deg, #ff5252, #d32f2f);
+      --big-gradient: linear-gradient(135deg, #ff9800, #f57c00);
+      --small-gradient: linear-gradient(135deg, #3f51b5, #303f9f);
+      --pending-gradient: linear-gradient(135deg, #9e9e9e, #616161);
+      
+      /* Spacing & Sizes */
+      --spacing-sm: 1rem;
+      --spacing-md: 1.5rem;
+      --border-radius-md: 15px;
+      --box-shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.1);
+
+      /* Fonts */
+      --font-family-base: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    /* --- Dark Mode Variables --- */
+    body.dark-mode {
+        --primary-color: #1a237e;
+        --secondary-color: #303f9f;
+        --header-bg: rgba(26, 35, 126, 0.95);
+        --text-color: #e0e0e0;
+        --light-text-color: #333;
+        --white: #121212;
+        --section-bg: rgba(25, 25, 25, 0.95);
+        --border-color: rgba(0, 0, 0, 0.2);
+        --table-header-bg: linear-gradient(135deg, #0d123d, #090b20);
+        --table-header-bg-light: #2c2c2c;
+        --table-header-color: #e0e0e0;
+
+        /* New Streak Table Variables for dark mode */
+        --streak-section-bg: #1e1e1e;
+        --streak-table-header-bg: #444;
+        --streak-table-header-color: #eee;
+        --streak-table-cell-bg: #333;
+
+        --body-gradient: linear-gradient(135deg, var(--secondary-color) 0%, var(--primary-color) 100%);
+        --green-gradient: linear-gradient(135deg, #66bb6a, #43a047);
+        --red-gradient: linear-gradient(135deg, #ef5350, #e53935);
+        --big-gradient: linear-gradient(135deg, #ffb300, #fb8c00);
+        --small-gradient: linear-gradient(135deg, #7986cb, #5c6bc0);
+        --pending-gradient: linear-gradient(135deg, #757575, #424242);
+    }
+
+    /* --- 2. Reset & Base Styles --- */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-family-base);
+      background: var(--body-gradient);
+      color: var(--white);
+      min-height: 100vh;
+      padding-bottom: 180px;
+      transition: background-color 0.5s ease;
+    }
+    
+    h2 {
+      font-weight: 300;
+      text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+    }
+    
+    h2 strong {
+      font-weight: 700;
+    }
+
+    /* --- 3. Maintenance Notice Styles --- */
+    .maintenance-notice {
+      background: linear-gradient(135deg, #ff5722, #d32f2f);
+      color: var(--white);
+      padding: 1rem;
+      text-align: center;
+      font-weight: 600;
+      font-size: 0.95rem;
+      position: sticky;
+      top: 0;
+      z-index: 1001;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      animation: maintenanceBlink 2s ease-in-out infinite;
+    }
+
+    @keyframes maintenanceBlink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+
+    /* --- 4. Layout & Structure --- */
+    main {
+      padding: var(--spacing-md);
+      max-width: 800px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: var(--spacing-md);
+    }
+    
+    .section {
+      background: var(--section-bg);
+      border-radius: var(--border-radius-md);
+      padding: var(--spacing-md);
+      box-shadow: var(--box-shadow-lg);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--border-color);
+      margin-bottom: var(--spacing-md);
+      color: var(--text-color);
+    }
+
+    .prediction-container {
+      text-align: center;
+    }
+
+    #issue-display, #color-issue-display, #size-issue-display {
+        font-size: 1.8rem;
+        margin-bottom: var(--spacing-sm);
+        color: var(--text-color); 
+    }
+    
+    .section-title {
+        font-size: 1.5rem;
+        color: var(--text-color);
+        border-bottom: 2px solid var(--primary-color);
+        padding-bottom: 0.5rem;
+        margin-bottom: var(--spacing-sm);
+    }
+
+    .pred-box {
+      font-size: 5rem;
+      font-weight: 700;
+      color: var(--white);
+      /* Shortened padding for smaller box */
+      padding: 0.8rem 1.2rem;
+      border-radius: var(--border-radius-md);
+      display: inline-block;
+      min-width: 200px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+      border: 2px solid var(--border-color);
+    }
+    
+    .pred-box.Green { background: var(--green-gradient); }
+    .pred-box.Red { background: var(--red-gradient); }
+    .pred-box.Big { background: var(--big-gradient); }
+    .pred-box.Small { background: var(--small-gradient); }
+    .pred-box.Pending { background: var(--pending-gradient); }
+
+    /* --- 5. Table Styles --- */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+
+    /* Fixed table header visibility in dark mode */
+    thead {
+      background: var(--table-header-bg-light);
+      color: var(--table-header-color);
+    }
+    body.dark-mode thead {
+      background: var(--table-header-bg);
+      color: var(--table-header-color);
+    }
+
+    th, td {
+      padding: 0.8rem 0.6rem;
+      text-align: center;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+      vertical-align: middle;
+    }
+
+    body.dark-mode td {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    tbody tr:hover {
+      background: rgba(102, 126, 234, 0.1);
+    }
+    
+    .correct { color: #2e7d32; font-weight: 700; }
+    .incorrect { color: #c62828; font-weight: 700; }
+
+    .history-chip {
+      display: inline-block;
+      padding: 0.3rem 0.8rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--white);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .history-chip.Green { background: var(--green-gradient); }
+    .history-chip.Red { background: var(--red-gradient); }
+    .history-chip.Big { background: var(--big-gradient); }
+    .history-chip.Small { background: var(--small-gradient); }
+    .history-chip.Pending { background: var(--pending-gradient); }
+
+    /* --- 6. Fixed Side-by-Side Streak Tables --- */
+    .streak-tables-container {
+      display: flex;
+      gap: 1rem;
+      align-items: flex-start;
+      justify-content: center;
+      flex-wrap: nowrap;
+    }
+
+    /* Fixed to use new variables */
+    .streak-table-section {
+      flex: 0 1 45%;
+      max-width: 45%;
+      min-width: 200px;
+      background: var(--streak-section-bg);
+      border: 1px solid #e1e6ef;
+      padding: 0.8rem;
+      border-radius: 8px;
+    }
+    
+    body.dark-mode .streak-table-section {
+        border-color: #333;
+    }
+
+    .streak-table-title {
+      font-size: 1rem;
+      font-weight: 600;
+      text-align: center;
+      margin-bottom: 0.6rem;
+      color: #5a73d8;
+      border-bottom: 1px solid rgba(102, 126, 234, 0.3);
+      padding-bottom: 0.4rem;
+    }
+    
+    body.dark-mode .streak-table-title {
+        color: #e0e0e0;
+        border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Font size increased */
+    .streak-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem; 
+    }
+
+    /* Fixed to use new variables */
+    .streak-table th {
+      background: var(--streak-table-header-bg);
+      color: var(--streak-table-header-color);
+      padding: 0.4rem 0.3rem;
+      text-align: center;
+      font-weight: 600;
+      font-size: 0.85rem;
+      border: 1px solid #e1e6ef;
+    }
+    
+    body.dark-mode .streak-table th {
+        border-color: #555;
+    }
+
+    /* Fixed to use new variables */
+    .streak-table td {
+      padding: 0.35rem 0.3rem;
+      text-align: center;
+      border: 1px solid #e1e6ef;
+      background: var(--streak-table-cell-bg);
+      font-size: 0.85rem;
+    }
+    
+    body.dark-mode .streak-table td {
+        border-color: #555;
+    }
+
+    .streak-table tbody tr:nth-child(even) {
+      background: rgba(179, 205, 224, 0.1);
+    }
+    
+    body.dark-mode .streak-table tbody tr:nth-child(even) {
+        background: rgba(179, 205, 224, 0.05);
+    }
+
+    .streak-table tbody tr:hover {
+      background: rgba(102, 126, 234, 0.1);
+    }
+
+    /* --- 7. Disclaimer Styles --- */
+    .disclaimer {
+      background: rgba(220, 53, 69, 0.9);
+      color: var(--white);
+      padding: var(--spacing-md);
+      border-radius: var(--border-radius-md);
+      margin-bottom: var(--spacing-md);
+      text-align: center;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(10px);
+    }
+
+    .disclaimer h3 {
+      font-size: 1.2rem;
+      margin-bottom: 0.8rem;
+      font-weight: 700;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+    }
+
+    .disclaimer strong {
+      font-weight: 700;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+    }
+
+    /* --- 8. Simplified Telegram Bot Section Styles --- */
+    .telegram-section {
+      background: linear-gradient(135deg, #0088cc, #005999);
+      color: var(--white);
+      padding: var(--spacing-md);
+      border-radius: var(--border-radius-md);
+      margin-bottom: var(--spacing-md);
+      text-align: center;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      box-shadow: 0 4px 12px rgba(0, 136, 204, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(10px);
+    }
+
+    .telegram-section h3 {
+      font-size: 1.3rem;
+      margin-bottom: 1rem;
+      font-weight: 700;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+    }
+
+    .telegram-section p {
+      margin-bottom: 1rem;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+    }
+
+    .telegram-btn {
+      background: linear-gradient(135deg, #ffd700, #ffb300);
+      color: #333;
+      padding: 0.8rem 2rem;
+      border: none;
+      border-radius: 25px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+      margin-top: 1rem;
+      box-shadow: 0 4px 12px rgba(255, 215, 0, 0.4);
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .telegram-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(255, 215, 0, 0.6);
+      background: linear-gradient(135deg, #ffed4a, #ffd700);
+    }
+
+    .telegram-btn:active {
+      transform: translateY(0);
+    }
+
+    /* --- 9. Floating Status Bar & Theme Toggle Button --- */
+    .status-bar-floating {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: rgba(42, 63, 102, 0.95);
+      padding: var(--spacing-sm);
+      text-align: center;
+      color: var(--white);
+      box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(10px);
+      z-index: 1000;
+    }
+
+    .theme-toggle-button {
+      position: fixed;
+      bottom: 120px; /* Adjusted to be above the status bar */
+      right: 20px;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: var(--primary-color);
+      color: var(--white);
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 1.5rem;
+      z-index: 1001;
+      transition: background-color 0.3s ease, transform 0.2s ease;
+    }
+
+    .theme-toggle-button:hover {
+      transform: scale(1.05);
+    }
+
+    #timestamp-display { font-size: 0.8rem; opacity: 0.8; }
+    .timer { font-weight: 700; font-size: 1.2rem; color: #ffd700; }
+    .error-message { color: #d32f2f; background: #ffcdd2; border-radius: 8px; padding: 0.5rem; margin-top: var(--spacing-sm); font-weight: 600; display: none; }
+
+    /* --- 10. Animations --- */
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .pred-box, .section, .disclaimer, .telegram-section {
+      animation: fadeIn 0.5s ease-out;
+    }
+
+    /* --- 11. Responsive Design --- */
+    @media (max-width: 768px) {
+      .dashboard-grid {
+        grid-template-columns: 1fr;
+      }
+      .streak-tables-container {
+        flex-direction: row;
+        flex-wrap: nowrap;
+        gap: 0.5rem;
+        justify-content: space-between;
+      }
+
+      .streak-table-section {
+        flex: 1 1 48%;
+        max-width: 48%;
+        min-width: unset;
+        padding: 0.5rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      body {
+        padding-bottom: 200px;
+      }
+      main { padding: var(--spacing-sm); }
+      .pred-box { font-size: 3.5rem; min-width: 240px; }
+      #issue-display, #color-issue-display, #size-issue-display { font-size: 1.5rem; }
+      table { font-size: 0.8rem; }
+      th, td { padding: 0.5rem 0.3rem; }
+      .disclaimer { font-size: 0.8rem; padding: var(--spacing-sm); }
+      .telegram-section { font-size: 0.85rem; padding: var(--spacing-sm); }
+      .maintenance-notice { font-size: 0.85rem; padding: 0.8rem; }
+      .streak-table { font-size: 0.7rem; }
+      .streak-table th, .streak-table td { padding: 0.3rem 0.2rem; font-size: 0.65rem; }
+      .streak-table-section { padding: 0.6rem; }
+      .streak-tables-container {
+        gap: 0.3rem;
+      }
+      .streak-table-title {
+        font-size: 0.9rem;
+      }
+      .telegram-btn {
+        padding: 0.6rem 1.5rem;
+        font-size: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<!--<canvas id="matrix-canvas"></canvas>
+  <div id="particles-container"></div>-->
+<!--
+  <div class="maintenance-notice">
+    🚧 Testing New Settings. Play Safe. Keep eyes on streaks. 🚧
+  </div>
+-->
+
+  <main>
+    <section class="section">
+        <div class="prediction-container">
+            <h2 id="size-issue-display">Size #<strong>----</strong></h2>
+            <div id="size-prediction-display">
+                <div class="pred-box Pending">Loading...</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section">
+        <h2 class="section-title">Size History 📜</h2>
+        <div style="overflow-x: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Issue #</th>
+                <th>Predicted</th>
+                <th>Rule</th>
+                <th>Actual</th>
+                <th>Result</th>
+              </tr>
+            </thead>
+            <tbody id="size-history-tbody">
+              <tr><td colspan="5">Loading history...</td></tr>
+            </tbody>
+          </table>
+        </div>
+    </section>
+
+    <section class="section">
+    <div>Streaks data from issue 20250824100011330, DateTime: 25/08/2025 4:00 AM IST </div>
+        <div class="streak-tables-container">
+          <div class="streak-table-section">
+            <div class="streak-table-title">Size Win Streak</div>
+            <table class="streak-table">
+              <thead>
+                <tr>
+                  <th>Level Win</th>
+                  <th>Count</th>
+                </tr>
+              </thead>
+              <tbody id="size-win-streak-table-body">
+                <tr>
+                  <td colspan="2">Loading...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="streak-table-section">
+            <div class="streak-table-title">Size Loss Streak</div>
+            <table class="streak-table">
+              <thead>
+                <tr>
+                  <th>Level Lost</th>
+                  <th>Count</th>
+                </tr>
+              </thead>
+              <tbody id="size-lose-streak-table-body">
+                <tr>
+                  <td colspan="2">Loading...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+    </section>
+
+    <section class="section">
+        <div class="prediction-container">
+            <h2 id="color-issue-display">Color #<strong>----</strong></h2>
+            <div id="color-prediction-display">
+                <div class="pred-box Pending">Loading...</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section">
+        <h2 class="section-title">Color History 📜</h2>
+        <div style="overflow-x: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Issue #</th>
+                <th>Predicted</th>
+                <th>Rule</th>
+                <th>Actual</th>
+                <th>Result</th>
+              </tr>
+            </thead>
+            <tbody id="color-history-tbody">
+              <tr><td colspan="5">Loading history...</td></tr>
+            </tbody>
+          </table>
+        </div>
+    </section>
+
+    <section class="section">
+    <div>Streaks data from issue 20250824100011330, DateTime: 25/08/2025 4:00 AM IST </div>
+        <div class="streak-tables-container">
+          <div class="streak-table-section">
+            <div class="streak-table-title">Color Win Streak</div>
+            <table class="streak-table">
+              <thead>
+                <tr>
+                  <th>Level Win</th>
+                  <th>Count</th>
+                </tr>
+              </thead>
+              <tbody id="color-win-streak-table-body">
+                <tr>
+                  <td colspan="2">Loading...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="streak-table-section">
+            <div class="streak-table-title">Color Loss Streak</div>
+            <table class="streak-table">
+              <thead>
+                <tr>
+                  <th>Level Lost</th>
+                  <th>Count</th>
+                </tr>
+              </thead>
+              <tbody id="color-lose-streak-table-body">
+                <tr>
+                  <td colspan="2">Loading...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+    </section>
+
+    <section class="disclaimer">
+      <h3>⚠️ Important Disclaimer</h3>
+      <p>
+        <strong>This website is created for educational and analysis purposes only</strong>. 
+        The predictions shown here are based on algorithmic analysis.
+      </p>
+      <p>
+        <strong>We do not bear any responsibility or risk</strong> for any losses.
+      </p>
+      <P>
+        <strong>Email:mixpred@protonmail.com</strong>
+      </p>
+      <P>
+        <strong>Please bookmark this below website for future updates.</strong>
+      </p>
+      <p>
+      <strong><a href="https://justpaste.it/mixpred">https://justpaste.it/mixpred</a></strong>
+      </p>
+    </section>
+
+    <!-- Simplified Telegram Bot Section -->
+    <section class="telegram-section">
+      <h3>🤖 Smart Telegram Bot</h3>
+      <p>Get our advanced prediction bot with multi-chat support, password protection, start,stop,win stickers and persistent storage! Automated sessions scheduling. 
+      For adding bot to your group and Password contact me at Email: mixpred@protonmail.com</p>
+      <a href="https://t.me/Sizep_bot" class="telegram-btn" target="_blank">
+        🤖 Add Bot to Group or chat.
+      </a>
+    </section>
+  </main>
+  
+  <footer class="status-bar-floating">
+    <div id="timestamp-display">Last Updated: <span id="last-updated-time">--</span></div>
+    <div class="timer" id="countdown-timer">Next update in: -- seconds ⏳</div>
+  </footer>
+  
+  <button id="theme-toggle-button" class="theme-toggle-button">
+    ☀️
+  </button>
+
+<script>
+// Global variables
+let lastApiTimestamp = null;
+let refreshGate = { '3': false, '5': false, '10': false };
+
+// Theme Toggle Functionality
+function toggleTheme() {
+    const body = document.body;
+    body.classList.toggle('dark-mode');
+    const isDarkMode = body.classList.contains('dark-mode');
+    localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
+    updateThemeButton(isDarkMode);
+}
+
+function updateThemeButton(isDarkMode) {
+    const button = document.getElementById('theme-toggle-button');
+    if (isDarkMode) {
+        button.innerHTML = '🌙';
+        button.style.backgroundColor = 'var(--section-bg)';
+        button.style.color = 'var(--text-color)';
+    } else {
+        button.innerHTML = '☀️';
+        button.style.backgroundColor = 'var(--primary-color)';
+        button.style.color = 'var(--white)';
+    }
+}
+
+function loadThemePreference() {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark') {
+        document.body.classList.add('dark-mode');
+    }
+    updateThemeButton(savedTheme === 'dark');
+}
+
+// Utility Functions
+function formatTimestamp(isoString) {
+  try {
+    if (!isoString) return '--';
+    const date = new Date(isoString);
+    if (isNaN(date.getTime())) return '--';
+    return date.toLocaleString('en-US', {
+      hour: '2-digit', 
+      minute: '2-digit', 
+      second: '2-digit', 
+      hour12: true
+    });
+  } catch (e) {
+    console.error('Error formatting timestamp:', e);
+    return '--';
+  }
+}
+
+function createHistoryChip(text) {
+  const safeText = text || 'Pending';
+  return `<span class="history-chip ${safeText}">${safeText}</span>`;
+}
+
+function showErrorMessage(message) {
+  // Create error div if it doesn't exist
+  let errorDiv = document.getElementById('error-message');
+  if (!errorDiv) {
+    errorDiv = document.createElement('div');
+    errorDiv.id = 'error-message';
+    errorDiv.className = 'error-message';
+    document.body.appendChild(errorDiv);
+  }
+  
+  errorDiv.textContent = message;
+  errorDiv.style.display = "block";
+  setTimeout(() => errorDiv.style.display = "none", 5000);
+}
+
+// Simulate data for local testing
+function simulateDataLoad() {
+  console.log('🧪 Simulating data load for local testing');
+  const mockIssue = '202508301000' + String(Math.floor(Math.random() * 10000)).padStart(4, '0');
+  const sizeOptions = ['Big', 'Small'];
+  const colorOptions = ['Red', 'Green'];
+  const mockSize = sizeOptions[Math.floor(Math.random() * sizeOptions.length)];
+  const mockColor = colorOptions[Math.floor(Math.random() * colorOptions.length)];
+  
+  // Update predictions
+  document.getElementById('size-issue-display').innerHTML = `Size #<strong>${mockIssue.slice(-4)}</strong>`;
+  document.getElementById('size-prediction-display').innerHTML = `<div class="pred-box ${mockSize}">${mockSize}</div>`;
+  
+  document.getElementById('color-issue-display').innerHTML = `Color #<strong>${mockIssue.slice(-4)}</strong>`;
+  document.getElementById('color-prediction-display').innerHTML = `<div class="pred-box ${mockColor}">${mockColor}</div>`;
+  
+  // Update history tables with mock data
+  const mockHistory = Array.from({length: 10}, (_, i) => ({
+    issue: mockIssue - i,
+    predicted: Math.random() > 0.5 ? 'Big' : 'Small',
+    actual: Math.random() > 0.5 ? 'Big' : 'Small'
+  }));
+  
+  updateSizeHistoryTable(mockHistory);
+  updateColorHistoryTable(mockHistory.map(h => ({...h, predicted: Math.random() > 0.5 ? 'Red' : 'Green', actual: Math.random() > 0.5 ? 'Red' : 'Green'})));
+  
+  console.log('✅ Mock data loaded successfully');
+}
+
+// Main Data Loading Function
+async function loadAllData() {
+  try {
+    document.getElementById('last-updated-time').textContent = formatTimestamp(new Date().toISOString());
+    
+    // Enhanced local testing detection
+    if (window.location.protocol === 'file:') {
+      console.log('📁 Local file detected - using simulation mode');
+      simulateDataLoad();
+      return;
+    }
+    
+    const res = await fetch('/api/v2/insights?t=' + Date.now());
+    if (!res.ok) throw new Error(`API Error: ${res.statusText} (${res.status})`);
+    
+    const data = await res.json();
+    console.log('✅ Data loaded successfully.');
+    
+    // Update Size section
+    updateNextSizePrediction(data.size_prediction);
+    updateSizeHistoryTable(data.size_prediction_history);
+    updateSizeStreaks(data.size_streaks);
+
+    // Update Color section
+    updateNextColorPrediction(data.color_prediction);
+    updateColorHistoryTable(data.color_prediction_history);
+    updateColorStreaks(data.color_streaks);
+    
+    lastApiTimestamp = new Date().toISOString();
+    
+    // Hide error message if it exists
+    const errorDiv = document.getElementById('error-message');
+    if (errorDiv) {
+      errorDiv.style.display = 'none';
+    }
+    
+  } catch (err) {
+    console.error("❌ Failed to load data:", err);
+    showErrorMessage(`Failed to load data: ${err.message}`);
+    document.getElementById('size-issue-display').innerHTML = `Size #<strong>----</strong>`;
+    document.getElementById('size-prediction-display').innerHTML = `<div class="pred-box Pending">Error</div>`;
+    document.getElementById('color-issue-display').innerHTML = `Color #<strong>----</strong>`;
+    document.getElementById('color-prediction-display').innerHTML = `<div class="pred-box Pending">Error</div>`;
+  }
+}
+
+// Next Prediction Update Functions
+function updateNextSizePrediction(prediction) {
+  const issueDisplay = document.getElementById('size-issue-display');
+  const predictionDisplay = document.getElementById('size-prediction-display');
+  if (prediction && prediction.next_size && prediction.issue) {
+    issueDisplay.innerHTML = `Size #<strong>${String(prediction.issue).slice(-4)}</strong>`;
+    predictionDisplay.innerHTML = `<div class="pred-box ${prediction.next_size}">${prediction.next_size === "Small" ? "Small" : prediction.next_size}</div>`;
+  } else {
+    issueDisplay.innerHTML = `Awaiting Next Issue...`;
+    predictionDisplay.innerHTML = `<div class="pred-box Pending">Pending</div>`;
+  }
+}
+
+function updateNextColorPrediction(prediction) {
+  const issueDisplay = document.getElementById('color-issue-display');
+  const predictionDisplay = document.getElementById('color-prediction-display');
+  if (prediction && prediction.next_color && prediction.issue) {
+    issueDisplay.innerHTML = `Color #<strong>${String(prediction.issue).slice(-4)}</strong>`;
+    predictionDisplay.innerHTML = `<div class="pred-box ${prediction.next_color}">${prediction.next_color}</div>`;
+  } else {
+    issueDisplay.innerHTML = `Awaiting Next Issue...`;
+    predictionDisplay.innerHTML = `<div class="pred-box Pending">Pending</div>`;
+  }
+}
+
+// History Table Update Functions
+function updateSizeHistoryTable(sizeHistory) {
+  const sizeTbody = document.getElementById('size-history-tbody');
+  if (sizeHistory && sizeHistory.length > 0) {
+    sizeTbody.innerHTML = sizeHistory.slice(0, 15).map(item => {
+      const actualSize = item.actual_size || item.actual;
+      const predictedSize = item.predicted_size || item.predicted;
+      const isCorrect = actualSize !== null && predictedSize === actualSize;
+      return `
+        <tr>
+          <td>${String(item.issue).slice(-4)}</td>
+          <td>${createHistoryChip(predictedSize)}</td>
+          <td title="${item.rule_name || 'Mock'}">${(item.rule_name || 'Mock').substring(0, 10)}${(item.rule_name || 'Mock').length > 10 ? '...' : ''}</td>
+          <td>${createHistoryChip(actualSize)}</td>
+          <td class="${actualSize ? (isCorrect ? 'correct' : 'incorrect') : ''}">
+            ${actualSize ? (isCorrect ? '✔' : '✘') : '?'}
+          </td>
+        </tr>
+      `;
+    }).join('');
+  } else {
+    sizeTbody.innerHTML = '<tr><td colspan="5">No size history available.</td></tr>';
+  }
+}
+
+function updateColorHistoryTable(colorHistory) {
+  const colorTbody = document.getElementById('color-history-tbody');
+  if (colorHistory && colorHistory.length > 0) {
+    colorTbody.innerHTML = colorHistory.slice(0, 15).map(item => {
+      const actualColor = item.actual_color || item.actual;
+      const predictedColor = item.predicted_color || item.predicted;
+      const isCorrect = actualColor !== null && predictedColor === actualColor;
+      return `
+        <tr>
+          <td>${String(item.issue).slice(-4)}</td>
+          <td>${createHistoryChip(predictedColor)}</td>
+          <td title="${item.rule_name || 'Mock'}">${(item.rule_name || 'Mock').substring(0, 10)}${(item.rule_name || 'Mock').length > 10 ? '...' : ''}</td>
+          <td>${createHistoryChip(actualColor)}</td>
+          <td class="${actualColor ? (isCorrect ? 'correct' : 'incorrect') : ''}">
+            ${actualColor ? (isCorrect ? '✔' : '✘') : '?'}
+          </td>
+        </tr>
+      `;
+    }).join('');
+  } else {
+    colorTbody.innerHTML = '<tr><td colspan="5">No color history available.</td></tr>';
+  }
+}
+
+// Streak Update Functions
+function updateSizeStreaks(sizeStreaks) {
+  if (!sizeStreaks) return;
+  const winTbody = document.getElementById('size-win-streak-table-body');
+  const loseTbody = document.getElementById('size-lose-streak-table-body');
+  updateStreakTable(winTbody, sizeStreaks.win_streak_distribution);
+  updateStreakTable(loseTbody, sizeStreaks.lose_streak_distribution);
+}
+
+function updateColorStreaks(colorStreaks) {
+  if (!colorStreaks) return;
+  const winTbody = document.getElementById('color-win-streak-table-body');
+  const loseTbody = document.getElementById('color-lose-streak-table-body');
+  updateStreakTable(winTbody, colorStreaks.win_streak_distribution);
+  updateStreakTable(loseTbody, colorStreaks.lose_streak_distribution);
+}
+
+function updateStreakTable(tbody, data) {
+  if (data) {
+    const rows = Object.entries(data)
+      .sort((a, b) => parseInt(a[0]) - parseInt(b))
+      .map(([level, count]) => `
+        <tr>
+          <td>${level}</td>
+          <td>${count}</td>
+        </tr>
+      `).join('');
+    tbody.innerHTML = rows || '<tr><td colspan="2">No data</td></tr>';
+  } else {
+    tbody.innerHTML = '<tr><td colspan="2">No data</td></tr>';
+  }
+}
+
+// Auto-Refresh System - Refreshes at 3, 5, 10 seconds
+function checkRefreshTime() {
+  const now = new Date();
+  const currentSecond = now.getSeconds();
+  const targetSeconds = [3, 5, 10];
+  
+  for (const second of targetSeconds) {
+    if (currentSecond === second && !refreshGate[second]) {
+      console.log(`🔄 Auto-refresh triggered at ${second} seconds`);
+      loadAllData();
+      refreshGate[second] = true;
+    } else if (currentSecond !== second) {
+      refreshGate[second] = false;
+    }
+  }
+}
+
+// Countdown Display - Continuous countdown from 3rd second
+function updateCountdownDisplay() {
+  const countdownElement = document.getElementById('countdown-timer');
+  const now = new Date();
+  const currentSecond = now.getSeconds();
+  
+  // Calculate seconds since the 3rd second of the minute
+  let secondsSince3rd = currentSecond - 3;
+  if (secondsSince3rd < 0) {
+    secondsSince3rd += 60; // If current second is before 3rd second, add 60
+  }
+  
+  // Remaining seconds until next 3rd second
+  const remaining = 60 - secondsSince3rd;
+  const emoji = remaining <= 3 ? '⚡' : '⏳';
+  
+  countdownElement.textContent = `Next update in: ${remaining}s ${emoji}`;
+  
+  if (remaining <= 3) {
+    countdownElement.style.animation = 'pulse 0.5s ease-in-out infinite';
+  } else {
+    countdownElement.style.animation = '';
+  }
+}
+
+// Initialize Application
+function init() {
+  console.log('🚀 Initializing Merged Prediction Dashboard...');
+  console.log('📍 Protocol:', window.location.protocol);
+  console.log('🌐 Host:', window.location.host);
+  
+  loadThemePreference(); // Load theme preference on init
+  loadAllData();
+  
+  // Updated timer to check both refresh and countdown every second
+  setInterval(() => {
+    updateCountdownDisplay();
+    checkRefreshTime();
+  }, 1000);
+
+  // Add event listener for the theme toggle button
+  const themeButton = document.getElementById('theme-toggle-button');
+  if (themeButton) {
+    themeButton.addEventListener('click', toggleTheme);
+  }
+
+  console.log('✅ Dashboard initialized successfully');
+}
+
+// Enhanced initialization for better local testing support
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) {
+    console.log('👁️ Page became visible, refreshing data...');
+    loadAllData();
+  }
+});
+</script>
+
+  <script>/*
+    const matrixCanvas = document.getElementById('matrix-canvas');
+    const matrixCtx = matrixCanvas.getContext('2d');
+    matrixCanvas.width = window.innerWidth;
+    matrixCanvas.height = window.innerHeight;
+    const characters = '01S23R45B678G9B';
+    const fontSize = 16;
+    const columns = Math.floor(matrixCanvas.width / fontSize);
+    const drops = [];
+    for (let x = 0; x < columns; x++) { drops[x] = 1; }
+    function drawMatrix() {
+        matrixCtx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+        matrixCtx.fillRect(0, 0, matrixCanvas.width, matrixCanvas.height);
+        matrixCtx.fillStyle = '#0F0';
+        matmatrixCtx.font = fontSize + 'px monospace';
+        for (let i = 0; i < drops.length; i++) {
+            const text = characters.charAt(Math.floor(Math.random() * characters.length));
+            matrixCtx.fillText(text, i * fontSize, drops[i] * fontSize);
+            if (drops[i] * fontSize > matrixCanvas.height && Math.random() > 0.975) {
+                drops[i] = 0;
+            }
+            drops[i]++;
+        }
+    }
+    setInterval(drawMatrix, 140);
+  </script>
+    
+  <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+
+  <script>
+      particlesJS('particles-container', { "particles": { "number": { "value": 100, "density": { "enable": true, "value_area": 800 } }, "color": { "value": "#00ff00" }, "shape": { "type": "circle" }, "opacity": { "value": 0.5, "random": true }, "size": { "value": 3, "random": true }, "line_linked": { "enable": true, "distance": 150, "color": "#00ff00", "opacity": 0.4, "width": 1 }, "move": { "enable": true, "speed": 2, "direction": "none", "random": false, "straight": false, "out_mode": "out", "bounce": false } }, "interactivity": { "detect_on": "canvas", "events": { "onhover": { "enable": true, "mode": "grab" }, "onclick": { "enable": true, "mode": "push" }, "resize": true }, "modes": { "grab": { "distance": 140, "line_linked": { "opacity": 1 } }, "push": { "particles_nb": 4 } } }, "retina_detect": true });
+ */ </script>
+</body>
+</html>

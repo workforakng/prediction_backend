@@ -1,0 +1,35 @@
+[build]
+watchPatterns = ["*.py", "requirements.txt"]
+
+[services]
+  [services.web]
+    name = "web"
+    source = "app.py"
+    [services.web.build]
+      watchPatterns = ["app.py", "templates/**", "static/**", "requirements.txt"]
+    [services.web.deploy]
+      startCommand = "gunicorn --bind 0.0.0.0:$PORT app:app --workers 4 --log-file -"
+      
+  [services.worker]
+    name = "worker"  
+    source = "worker.py"
+    [services.worker.build]
+      watchPatterns = ["worker.py", "requirements.txt"]
+    [services.worker.deploy]
+      startCommand = "python worker.py"
+      
+  [services.color-worker]
+    name = "color-worker"
+    source = "color_worker_monitor.py" 
+    [services.color-worker.build]
+      watchPatterns = ["color_worker_monitor.py", "requirements.txt"]
+    [services.color-worker.deploy]
+      startCommand = "python color_worker_monitor.py"
+      
+  [services.bot]
+    name = "bot"
+    source = "bot.py"
+    [services.bot.build]
+      watchPatterns = ["bot.py", "requirements.txt"]
+    [services.bot.deploy]
+      startCommand = "python bot.py"
