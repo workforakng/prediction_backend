@@ -1,10 +1,12 @@
 <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>WinGo Lottery Prediction Dashboard</title>
 <style>
+  /* --- Reset & base styles --- */
   * {
     box-sizing: border-box;
     margin: 0;
@@ -21,6 +23,7 @@
     line-height: 1.5;
   }
 
+  /* --- Header --- */
   header {
     background: #2a3f66;
     color: white;
@@ -76,10 +79,12 @@
     flex-direction: column;
   }
 
+  /* --- Prediction numbers bubbles --- */
   .prediction-numbers {
     display: flex;
     gap: 0.8rem;
     margin-top: 0.4rem;
+    justify-content: center;
   }
 
   .number-bubble {
@@ -115,6 +120,7 @@
     border-radius: 3px;
   }
 
+  /* Chips styles */
   .chip {
     display: inline-flex;
     align-items: center;
@@ -134,7 +140,15 @@
   .chip.gray { background: #bdbdbd; color: #333; }
   .chip.blue { background: #2196f3; color: #fff; }
   .chip.gold { background: #ffc107; color: #333; }
+  
+  .chip.Result-Green { background-color: #4caf50; color: #fff; }
+  .chip.Result-Red { background-color: #e53935; color: #fff; }
+  .chip.Result-Violet { background-color: #9c27b0; color: #fff; }
+  .chip.Result-Pending { background-color: #bdbdbd; color: #333; }
+  .chip.Result-Big { background-color: #ff9800; color: #fff; }
+  .chip.Result-Small { background-color: #3f51b5; color: #fff; }
 
+  /* Prediction details and percentages */
   .prediction-detail {
     font-weight: 600;
     font-size: 1.1rem;
@@ -151,6 +165,7 @@
     margin-right: 0.6rem;
   }
 
+  /* Previous draw styles */
   .previous-draw {
     font-weight: 600;
     font-size: 1.1rem;
@@ -161,6 +176,7 @@
     color: #d32f2f;
   }
 
+  /* Table Styles */
   table {
     width: 100%;
     border-collapse: separate;
@@ -187,33 +203,13 @@
   th:last-child, td:last-child {
     padding-right: 0.6rem;
   }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: #eef4ff; cursor: pointer; }
 
-  table th:nth-child(1), table td:nth-child(1) { width: 10%; }
-  table th:nth-child(2), table td:nth-child(2) { width: 25%; }
-  table th:nth-child(3), table td:nth-child(3) { width: 25%; }
-  table th:nth-child(4), table td:nth-child(4) { width: 10%; }
-  table th:nth-child(5), table td:nth-child(5) { width: 10%; }
-  table th:nth-child(6), table td:nth-child(6) { width: 10%; }
+  .correct { color: #2e7d32; font-weight: 700; }
+  .incorrect { color: #c62828; font-weight: 700; }
 
-
-  tbody tr:last-child td {
-    border-bottom: none;
-  }
-
-  tbody tr:hover {
-    background: #eef4ff;
-    cursor: pointer;
-  }
-
-  .correct {
-    color: #2e7d32;
-    font-weight: 700;
-  }
-  .incorrect {
-    color: #c62828;
-    font-weight: 700;
-  }
-
+  /* Timestamp and timer styles */
   #timestamp-display {
     text-align: center;
     font-size: 0.9rem;
@@ -233,6 +229,7 @@
     box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
   }
 
+  /* Error message */
   .error-message {
     color: #d32f2f;
     background: #ffebee;
@@ -246,60 +243,68 @@
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   }
 
-  .combined-performance-streaks {
+  /* Combined performance streaks */
+  .performance-streaks-container {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.5rem; /* Adjusted */
-    margin-bottom: 0.8rem; /* Adjusted */
-    padding: 0.6rem; /* Adjusted */
-    background: white;
-    border-radius: 10px;
-    box-shadow: 0 4px 12px rgba(42,63,102,0.08);
+    gap: 1rem;
+    margin-bottom: 0.8rem;
   }
 
-  .combined-performance-streaks > .inner-section {
-    flex: 1 1 calc(50% - 0.25rem); /* Adjusted */
+  .performance-streaks-container > .inner-section {
+    flex: 1 1 calc(50% - 0.5rem);
+    background: #f8faff;
+    border: 1px solid #e1e6ef;
+    padding: 0.8rem;
+    border-radius: 8px;
+  }
+  
+  .performance-streaks-container > .full-width-section {
+      flex: 1 1 100%;
+      background: #f8faff;
+      border: 1px solid #e1e6ef;
+      padding: 0.8rem;
+      border-radius: 8px;
   }
 
-  .combined-performance-streaks h3 {
-    font-size: 1rem; /* Adjusted */
+  .performance-streaks-container h3 {
+    font-size: 1rem;
     color: #3f51b5;
-    margin-bottom: 0.1rem; /* Adjusted */
+    margin: 0 0 0.5rem 0;
     border-bottom: 1px dashed #c5cae9;
-    padding-bottom: 0.1rem;
+    padding-bottom: 0.3rem;
   }
 
   .accuracy-grid, .streaks-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(50px, 1fr)); /* Adjusted */
-    gap: 0.1rem;
-    margin-top: 0.1rem; /* Adjusted */
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    gap: 0.5rem;
   }
 
   .stat-card {
-    background: #f8faff;
+    background: #fff;
     border: 1px solid #e1e6ef;
     border-radius: 8px;
-    padding: 0.2rem 0.1rem; /* Adjusted */
+    padding: 0.4rem 0.2rem;
     text-align: center;
     box-shadow: 0 1px 4px rgba(0,0,0,0.05);
-    font-size: 1rem; /* Adjusted */
+    font-size: 1rem;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    min-height: 55px; /* Adjusted */
+    min-height: 55px;
   }
 
   .stat-label {
     color: #555;
     font-weight: 500;
-    margin-bottom: 0.1em;
-    font-size: 1em; /* Adjusted */
+    margin-bottom: 0.2em;
+    font-size: 0.85em;
   }
 
   .stat-value {
     font-weight: 700;
-    font-size: 1rem; /* Adjusted */
+    font-size: 1.1rem;
     color: #2a3f66;
     line-height: 1.1;
   }
@@ -309,16 +314,14 @@
   }
 
   .streak-detail-row {
-    font-size: 0.9em; /* Adjusted */
+    font-size: 0.9em;
     color: #777;
-    margin-top: 0.1em;
+    margin-top: 0.2em;
     line-height: 1.2;
   }
-  .streak-detail-row strong {
-    color: #333;
-    font-weight: 600;
-  }
+  .streak-detail-row strong { color: #333; font-weight: 600; }
 
+  /* Button bar and buttons */
   .button-bar {
     display: flex;
     justify-content: flex-end;
@@ -339,18 +342,11 @@
     transition: background 0.2s ease, transform 0.1s ease;
     box-shadow: 0 1px 3px rgba(0,0,0,0.15);
   }
-  .dashboard-btn:hover {
-    background: #1253a2;
-    transform: translateY(-1px);
-  }
-  .dashboard-btn:active {
-    transform: translateY(0);
-    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-  }
+  .dashboard-btn:hover { background: #1253a2; transform: translateY(-1px); }
+  .dashboard-btn:active { transform: translateY(0); box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
 
-  #raw-json-section {
-    margin-top: 1.5rem;
-  }
+  /* Raw JSON display */
+  #raw-json-section { margin-top: 1.5rem; }
   #raw-json-dropdown {
     font-size: 0.85rem;
     padding: 0.3rem 0.5rem;
@@ -388,163 +384,9 @@
     font-size: 0.75em;
     transition: background 0.2s;
   }
-  #copy-json-btn:hover {
-    background: #1253a2;
-  }
+  #copy-json-btn:hover { background: #1253a2; }
 
-  @media (max-width: 600px) {
-    .combined-performance-streaks {
-      flex-direction: column;
-      padding: 0.1rem;
-    }
-    .combined-performance-streaks > .inner-section {
-      flex: 1 1 100%;
-    }
-    .combined-performance-streaks > .inner-section + .inner-section {
-        margin-top: 0.1rem;
-    }
-    .accuracy-grid, .streaks-grid {
-      grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
-    }
-  }
-
-  @media (max-width: 600px) {
-    header {
-      font-size: 1.2rem;
-      padding: 0.8rem 0.8rem;
-    }
-    h2 {
-      font-size: 1.05rem;
-      margin-top: 1rem;
-      margin-bottom: 0.6rem;
-    }
-    .section {
-      padding: 0.8rem;
-      margin-bottom: 1rem;
-      border-radius: 6px;
-    }
-    .button-bar {
-      flex-direction: column;
-      align-items: stretch;
-      gap: 0.5rem;
-      margin-top: 0.6rem;
-      margin-bottom: 1rem;
-    }
-    .dashboard-btn {
-      padding: 0.4em 0.8em;
-      font-size: 0.85rem;
-    }
-    .number-bubble {
-      width: 45px;
-      height: 45px;
-      font-size: 1.6rem;
-    }
-    .bubble-pct {
-      font-size: 0.75rem;
-    }
-    .prediction-detail, .percentages {
-      font-size: 0.9rem;
-    }
-    .chip {
-      font-size: 0.75em;
-      padding: 0.2em 0.7em;
-    }
-    table {
-      font-size: 0.7rem;
-    }
-    th, td {
-      padding: 0.3rem 0.1rem;
-    }
-    .accuracy-grid, .streaks-grid {
-      grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
-      gap: 0.1rem;
-    }
-    .stat-card {
-      padding: 0.4rem 0.2rem;
-      font-size: 1rem;
-      min-height: 60px;
-    }
-    .stat-value {
-      font-size: 1rem;
-    }
-    .streak-detail-row {
-      font-size: 1em;
-    }
-    .timer {
-      font-size: 1rem;
-      padding: 0.5rem;
-    }
-    #timestamp-display {
-      font-size: 0.8rem;
-    }
-    #raw-json-dropdown {
-      font-size: 0.75rem;
-      padding: 0.2rem 0.4rem;
-    }
-    #copy-json-btn {
-      padding: 0.2rem 0.6rem;
-      font-size: 0.7em;
-    }
-    table th:nth-child(1), table td:nth-child(1) { width: 15%; }
-    table th:nth-child(2), table td:nth-child(2) { width: 25%; }
-    table th:nth-child(3), table td:nth-child(3) { width: 25%; }
-    table th:nth-child(4), table td:nth-child(4),
-    table th:nth-child(5), table td:nth-child(5),
-    table th:nth-child(6), table td:nth-child(6) { width: 10%; }
-  }
-
-  @media (max-width: 400px) {
-    .prediction-numbers {
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 0.5rem;
-    }
-    .number-bubble {
-      width: 40px;
-      height: 40px;
-      font-size: 1.4rem;
-    }
-    .previous-draw strong {
-      font-size: 1rem;
-    }
-  }
-
-  /* Shrink Previous Draw section */
-  #previous-draw-actions-section {
-    padding: 0.6rem 0.8rem !important;
-    margin-bottom: 0.8rem !important;
-  }
-  #previous-draw-actions-section h2 {
-    margin-bottom: 0.3rem !important;
-    padding-bottom: 0 !important;
-    font-size: 1.1rem;
-  }
-  #previous-draw {
-    margin-top: 0.2rem !important;
-    margin-bottom: 0.3rem !important;
-    font-size: 1rem;
-  }
-  .button-bar {
-    margin-top: 0 !important;
-    margin-bottom: 0.3rem !important;
-    gap: 0.4rem !important;
-  }
-
-  /* Shrink Sequence Pattern Analysis section */
-  #sequence-analysis-section {
-    padding: 0.6rem 0.8rem !important;
-    margin-bottom: 0.8rem !important;
-  }
-  #sequence-analysis-section h2 {
-    margin-bottom: 0.4rem !important;
-    font-size: 1.1rem;
-  }
-  #sequence-analysis {
-    font-size: 0.85rem;
-    line-height: 1.3;
-  }
-
-  /* NEW STYLES FOR AI TOGGLE BUTTON AND BADGE */
+  /* AI TOGGLE BUTTON AND BADGE */
   .ai-toggle-btn {
     background: #fffde7;
     color: #1976d2;
@@ -560,11 +402,7 @@
     box-shadow: 0 1px 2px rgba(255,214,0,0.10);
     outline: none;
   }
-  .ai-toggle-btn.active {
-    background: #ffd600;
-    color: #2a3f66;
-    border: 1px solid #1976d2;
-  }
+  .ai-toggle-btn.active { background: #ffd600; color: #2a3f66; border: 1px solid #1976d2; }
   .ai-badge {
     display: inline-block;
     background: #ffd600;
@@ -579,9 +417,163 @@
     box-shadow: 0 1px 4px rgba(255,214,0,0.10);
     letter-spacing: 1px;
   }
-  .ai-badge[disabled] {
-    background: #eee;
-    color: #aaa;
+  .ai-badge[disabled] { background: #eee; color: #aaa; }
+
+  /* AI Prediction Section */
+  #ai-prediction-section {
+    background: #e8f0fe;
+    border: 1px solid #b3cde0;
+    text-align: center;
+  }
+  #ai-prediction-section h2, #ai-big-small-accuracy-section h2 { color: #1a4d8d; border-bottom-color: #1a4d8d; margin-top: 0; }
+  #ai-prediction-value { font-size: 3rem; font-weight: 700; color: #007bff; margin-bottom: 0.2rem; display: flex; justify-content: center; align-items: center; gap: 0.5em; }
+  #ai-prediction-meta { font-size: 0.9em; color: #555; margin-top: 0.5em; }
+
+  /* AI Big/Small Accuracy Section */
+  #ai-big-small-accuracy-section { background: #e8f0fe; border: 1px solid #b3cde0; text-align: center; }
+  #ai-big-small-accuracy-value { font-size: 2.2rem; font-weight: 700; color: #28a745; margin-bottom: 0.2rem; }
+  #ai-big-small-accuracy-meta { font-size: 0.9em; color: #555; margin-top: 0.5em; }
+
+  /* --- Color Prediction Section --- */
+  #color-prediction-section {
+    background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+    border: 1px solid #ddd;
+  }
+  #color-prediction-display { text-align: center; }
+  .color-pred-box {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: 10px;
+    display: inline-block;
+    min-width: 150px;
+    margin: 0.5rem auto;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.4);
+  }
+  .color-pred-box.Red { background-color: #e53935; }
+  .color-pred-box.Green { background-color: #4caf50; }
+  .color-pred-box.Pending { background-color: #9e9e9e; }
+  #color-prediction-meta {
+    font-size: 0.9em;
+    color: #666;
+    margin-top: 0.8rem;
+    line-height: 1.4;
+  }
+  #color-prediction-meta strong { color: #333; }
+  #color-pred-sequence {
+    font-family: monospace;
+    font-size: 1.1em;
+    background: #eef4ff;
+    padding: 2px 6px;
+    border-radius: 4px;
+    letter-spacing: 2px;
+  }
+
+  /* --- Size Prediction Section --- */
+  #size-prediction-section {
+    background: linear-gradient(135deg, #fff9c4 0%, #f7e98e 100%);
+    border: 1px solid #ddd;
+  }
+  #size-prediction-display { text-align: center; }
+  .size-pred-box {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: 10px;
+    display: inline-block;
+    min-width: 150px;
+    margin: 0.5rem auto;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.4);
+  }
+  .size-pred-box.Big { background-color: #ff9800; }
+  .size-pred-box.Small { background-color: #3f51b5; }
+  .size-pred-box.Pending { background-color: #9e9e9e; }
+  #size-prediction-meta {
+    font-size: 0.9em;
+    color: #666;
+    margin-top: 0.8rem;
+    line-height: 1.4;
+  }
+  #size-prediction-meta strong { color: #333; }
+  #size-pred-sequence {
+    font-family: monospace;
+    font-size: 1.1em;
+    background: #eef4ff;
+    padding: 2px 6px;
+    border-radius: 4px;
+    letter-spacing: 2px;
+  }
+
+  /* Rule accuracy tables */
+  #color-rule-accuracy-table, #size-rule-accuracy-table {
+    width: 100%;
+    margin-top: 0.5rem;
+    font-size: 0.9em;
+  }
+  #color-rule-accuracy-table th, #color-rule-accuracy-table td,
+  #size-rule-accuracy-table th, #size-rule-accuracy-table td {
+    padding: 0.3rem;
+    font-size: 0.75rem;
+    border-color: #e1e6ef;
+  }
+  #color-rule-accuracy-table thead, #size-rule-accuracy-table thead { background-color: #3f51b5; }
+  #color-rule-accuracy-table td:nth-child(2), #color-rule-accuracy-table td:nth-child(3),
+  #size-rule-accuracy-table td:nth-child(2), #size-rule-accuracy-table td:nth-child(3) {
+      font-weight: 600;
+  }
+  
+  .history-chip {
+    display: inline-block;
+    padding: 0.2em 0.8em;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    vertical-align: middle;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  }
+  .history-chip.Red { background-color: #e53935; color: #fff; }
+  .history-chip.Green { background-color: #4caf50; color: #fff; }
+  .history-chip.Big { background-color: #ff9800; color: #fff; }
+  .history-chip.Small { background-color: #3f51b5; color: #fff; }
+  .history-chip.Pending { background-color: #bdbdbd; color: #333; }
+  .history-chip.Violet { background-color: #9c27b0; color: #fff; }
+
+  .streak-distribution-table {
+      width: 100%;
+      margin-top: 0.5rem;
+      font-size: 0.8em;
+      border-collapse: collapse;
+  }
+  .streak-distribution-table th, .streak-distribution-table td {
+      border: 1px solid #e1e6ef;
+      padding: 0.3rem;
+      text-align: center;
+  }
+  .streak-distribution-table thead {
+      background-color: #b3cde0;
+      color: #2a3f66;
+      font-weight: 600;
+  }
+  .streak-distribution-table tbody tr:hover {
+      background-color: #eef4ff;
+  }
+
+  /* Responsive adjustments */
+  @media (max-width: 600px) {
+    header { font-size: 1.2rem; padding: 0.8rem; }
+    h2 { font-size: 1.05rem; margin-top: 1rem; margin-bottom: 0.6rem; }
+    .section { padding: 0.8rem; margin-bottom: 1rem; border-radius: 6px; }
+    .button-bar { flex-direction: column; align-items: stretch; gap: 0.5rem; margin-top: 0.6rem; margin-bottom: 1rem; }
+    .number-bubble { width: 45px; height: 45px; font-size: 1.6rem; }
+    table { font-size: 0.7rem; }
+    .performance-streaks-container { flex-direction: column; }
+    .performance-streaks-container > .inner-section,
+    .performance-streaks-container > .full-width-section { flex: 1 1 100%; }
+    .color-pred-box, .size-pred-box { font-size: 2rem; padding: 0.8rem 1.5rem; }
   }
 </style>
 </head>
@@ -595,13 +587,67 @@
   <div class="timer" id="countdown-timer">Next update in: -- seconds ⏳</div>
   <div class="error-message" id="error-message"></div>
 
+  <section class="section">
+    <h2 style="border-bottom: none; margin: 0;">Actions & Status 🎯
+      <div class="button-bar" style="margin-top: 0; margin-bottom: 0;">
+        <button class="dashboard-btn" onclick="manualRefresh()">Refresh 🔄</button>
+        <button class="dashboard-btn" onclick="window.location.href='/api/simulator/'">Simulator 🎮</button>
+        <button class="dashboard-btn ai-toggle-btn" id="ai-toggle-btn" onclick="toggleAI()" aria-pressed="false" title="Enable or disable AI prediction">
+          <span id="ai-toggle-btn-label">Start AI 🤖</span>
+        </button>
+      </div>
+    </h2>
+    <div class="previous-draw" id="previous-draw" style="margin-top: 0.8rem; text-align: center;">Loading...</div>
+  </section>
+
+  <div class="flex-row">
+    <section class="section" id="ai-prediction-section" style="flex: 1 1 48%;">
+      <h2>AI Predicted Number 🧠</h2>
+      <div id="ai-prediction-value">--</div>
+      <div id="ai-prediction-display-badge"></div>
+      <div id="ai-prediction-meta">
+        Issue: <span id="ai-issue">--</span> | Last AI Run: <span id="ai-timestamp">--</span>
+      </div>
+    </section>
+    <section class="section" id="ai-big-small-accuracy-section" style="flex: 1 1 48%;">
+      <h2>AI Big/Small Accuracy 📊</h2>
+      <div id="ai-big-small-accuracy-value">--</div>
+      <div id="ai-big-small-accuracy-meta">
+          Calculated on <span id="ai-accuracy-timestamp">--</span> |
+          Correct: <span id="ai-accuracy-correct">--</span> |
+          Total: <span id="ai-accuracy-total">--</span>
+      </div>
+    </section>
+  </div>
+
+  <div class="flex-row">
+    <section class="section" id="color-prediction-section" style="flex: 1 1 48%;">
+        <h2>Color Pattern Prediction (Red/Green) 🎨</h2>
+        <div id="color-prediction-display">
+            <div class="color-pred-box Pending">Pending</div>
+            <div id="color-prediction-meta">
+                Awaiting data...
+            </div>
+        </div>
+    </section>
+    <section class="section" id="size-prediction-section" style="flex: 1 1 48%;">
+        <h2>Size Pattern Prediction (Big/Small) 📏</h2>
+        <div id="size-prediction-display">
+            <div class="size-pred-box Pending">Pending</div>
+            <div id="size-prediction-meta">
+                Awaiting data...
+            </div>
+        </div>
+    </section>
+  </div>
+
   <section class="section" id="current-prediction">
-    <h2>Current Prediction (Draw #<span id="draw-number">--</span>) ✨</h2>
+    <h2>Main Prediction (Draw #<span id="draw-number">--</span>) ✨</h2>
     <div class="flex-row" style="justify-content: space-around; text-align: center;">
       <div>
         <div style="font-weight: 500; color: #555;">Predicted Numbers:</div>
         <div class="prediction-numbers" id="predicted-numbers"></div>
-        <div id="ai-prediction-badge" style="margin-top:0.3em;"></div> </div>
+      </div>
       <div class="flex-col" style="flex-grow: 1;">
         <div class="prediction-detail">Big/Small: <span id="predicted-big-small">--</span></div>
         <div class="percentages" id="big-small-percentages"></div>
@@ -613,26 +659,64 @@
     </div>
   </section>
 
-  <section class="section" id="sequence-analysis-section">
-    <h2>Sequence Pattern Analysis 📈</h2>
-    <div id="sequence-analysis"></div>
-  </section>
+  <div class="flex-row">
+    <section class="section" id="color-performance-section" style="flex: 1 1 48%;">
+        <h2>Color Prediction Performance 🚀</h2>
+        <div id="color-performance-stats" class="performance-streaks-container">
+            <p>Loading performance data...</p>
+        </div>
+    </section>
+    <section class="section" id="size-performance-section" style="flex: 1 1 48%;">
+        <h2>Size Prediction Performance 📊</h2>
+        <div id="size-performance-stats" class="performance-streaks-container">
+            <p>Loading performance data...</p>
+        </div>
+    </section>
+  </div>
 
-  <section class="section" id="previous-draw-actions-section">
-    <h2 style="border-bottom: none; margin-bottom: 0.5rem;">Previous Draw Result & Actions 🎯
-      <div class="button-bar" style="margin-top: 0; margin-bottom: 0;">
-        <button class="dashboard-btn" onclick="manualRefresh()">Refresh 🔄</button>
-        <button class="dashboard-btn" onclick="window.location.href='/simulator/'">Simulator 🎮</button>
-        <button class="dashboard-btn ai-toggle-btn" id="ai-toggle-btn" onclick="toggleAI()" aria-pressed="false" title="Enable or disable Gemini AI prediction">
-          <span id="ai-toggle-btn-label">Start AI 🤖</span>
-        </button>
-      </div>
-    </h2>
-    <div class="previous-draw" id="previous-draw" style="margin-top: 0.2rem; margin-bottom: 0.5rem;">Loading...</div>
-  </section>
+  <div class="flex-row">
+    <section class="section" id="color-history-section" style="flex: 1 1 48%;">
+        <h2>Color Prediction History 📜</h2>
+        <div style="overflow-x: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Issue #</th>
+                <th>Predicted</th>
+                <th>Rule</th>
+                <th>Actual</th>
+                <th>Result</th>
+              </tr>
+            </thead>
+            <tbody id="color-history-table-body">
+                <tr><td colspan="5">Loading history...</td></tr>
+            </tbody>
+          </table>
+        </div>
+    </section>
+    <section class="section" id="size-history-section" style="flex: 1 1 48%;">
+        <h2>Size Prediction History 📊</h2>
+        <div style="overflow-x: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Issue #</th>
+                <th>Predicted</th>
+                <th>Rule</th>
+                <th>Actual</th>
+                <th>Result</th>
+              </tr>
+            </thead>
+            <tbody id="size-history-table-body">
+                <tr><td colspan="5">Loading history...</td></tr>
+            </tbody>
+          </table>
+        </div>
+    </section>
+  </div>
 
   <section class="section" id="history-predictions">
-    <h2>Last 11 Predictions History 📜</h2>
+    <h2>Main Prediction History 📜</h2>
     <div style="overflow-x: auto;">
       <table>
         <thead>
@@ -645,471 +729,523 @@
             <th>Color</th>
           </tr>
         </thead>
-        <tbody id="history-table-body"></tbody>
+        <tbody id="history-table-body">
+          <tr><td colspan="6">Loading main prediction data...</td></tr>
+        </tbody>
       </table>
     </div>
   </section>
 
-  <section class="section">
-    <h2>Past Performance & Streaks 📊📈</h2>
-    <div class="combined-performance-streaks">
+  <section class="section" id="past-performance-streaks">
+    <h2>Main Prediction Performance & Streaks 📊📈</h2>
+    <div class="performance-streaks-container">
       <div class="inner-section" id="past-performance">
         <h3>Accuracy</h3>
-        <div class="accuracy-grid" id="accuracy-stats"></div>
+        <div class="accuracy-grid" id="accuracy-stats">
+          <div class="stat-card"><div class="stat-label">Loading...</div><div class="stat-value">--</div></div>
+        </div>
       </div>
-
       <div class="inner-section" id="streaks-section">
         <h3>Streaks</h3>
-        <div class="streaks-grid" id="streaks-stats"></div>
+        <div class="streaks-grid" id="streaks-stats">
+          <div class="stat-card"><div class="stat-label">Loading...</div><div class="stat-value">--</div></div>
+        </div>
       </div>
     </div>
   </section>
 
-  </main>
+  <section class="section" id="sequence-analysis-section">
+    <h2>Sequence Pattern Analysis 📈</h2>
+    <div id="sequence-analysis">Loading sequence analysis...</div>
+  </section>
+
+  <section class="section" id="raw-json-section">
+    <h2>Raw API Responses
+      <select id="raw-json-dropdown" onchange="updateRawJsonDisplay()">
+        <option value="prediction">Main Prediction</option>
+        <option value="color_insights">Color Insights</option>
+        <option value="size_insights">Size Insights</option>
+        <option value="v2_insights">Combined Insights</option>
+        <option value="ai_prediction">AI Prediction</option>
+        <option value="ai_big_small_accuracy">AI B/S Accuracy</option>
+        <option value="status">Status</option>
+      </select>
+    </h2>
+    <pre id="raw-json-display"><button id="copy-json-btn">Copy</button>No data loaded yet.</pre>
+  </section>
+</main>
+
+<!-- Insert a small client-side redirect so relative /api/* calls go to the Railway host when served as a static page -->
+<script>
+  const RAILWAY_API_BASE_URL = 'https://web-developer.up.railway.app';
+  (function(){
+    try {
+      const originalFetch = window.fetch.bind(window);
+      window.fetch = function(input, init){
+        if (typeof input === 'string' && input.startsWith('/api/')) {
+          input = RAILWAY_API_BASE_URL + input;
+        }
+        return originalFetch(input, init);
+      };
+    } catch (e) {
+      console.warn('Could not monkey-patch fetch for API base redirection', e);
+    }
+  })();
+</script>
 
 <script>
-  const COLOR_MAP = {
-    0: {primary: 'Red', secondary: 'Violet'},
-    1: {primary: 'Green', secondary: null},
-    2: {primary: 'Red', secondary: null},
-    3: {primary: 'Green', secondary: null},
-    4: {primary: 'Red', secondary: null},
-    5: {primary: 'Green', secondary: 'Violet'},
-    6: {primary: 'Red', secondary: null},
-    7: {primary: 'Green', secondary: null},
-    8: {primary: 'Red', secondary: null},
-    9: {primary: 'Green', secondary: null}
+  const NUM_TO_COLOR_MAP = {
+    0: 'Red', 1: 'Green', 2: 'Red', 3: 'Green', 4: 'Red',
+    5: 'Green', 6: 'Red', 7: 'Green', 8: 'Red', 9: 'Green'
   };
-
-  function createNumberBubbleWithPct(num, pct) {
-    const bubble = document.createElement('div');
-    bubble.className = 'number-bubble';
-    bubble.textContent = num;
-
-    const redNumbers = [0, 2, 4, 6, 8];
-    const greenNumbers = [1, 3, 5, 7, 9];
-    const violetNumbers = [0, 5];
-
-    if (redNumbers.includes(num)) {
-        bubble.style.backgroundColor = '#d32f2f';
-    } else if (greenNumbers.includes(num)) {
-        bubble.style.backgroundColor = '#388e3c';
-    }
-
-    if (violetNumbers.includes(num)) {
-        bubble.style.boxShadow = '0 0 10px 3px #8e24aa';
-    }
-
-    if (pct !== undefined && pct !== null) {
-      const pctDiv = document.createElement('div');
-      pctDiv.className = 'bubble-pct';
-      pctDiv.textContent = `${pct.toFixed(1)}%`;
-      bubble.appendChild(pctDiv);
-    }
-    return bubble;
-  }
+  const COLOR_MAP = {
+    0: {primary: 'Red', secondary: 'Violet'}, 1: {primary: 'Green', secondary: null},
+    2: {primary: 'Red', secondary: null}, 3: {primary: 'Green', secondary: null},
+    4: {primary: 'Red', secondary: null}, 5: {primary: 'Green', secondary: 'Violet'},
+    6: {primary: 'Red', secondary: null}, 7: {primary: 'Green', secondary: null},
+    8: {primary: 'Red', secondary: null}, 9: {primary: 'Green', secondary: null}
+  };
 
   function createChip(text, color) {
     const safeText = text ? String(text) : '';
     const safeColor = color ? String(color).toLowerCase() : 'gray';
-
     const validColors = ['red', 'green', 'violet', 'gray', 'blue', 'gold'];
     const finalColor = validColors.includes(safeColor) ? safeColor : 'gray';
-
     return `<span class="chip ${finalColor}">${safeText}</span>`;
   }
-
-
-  function formatPercentages(percentObj) {
-    if (!percentObj) return '';
-    return Object.entries(percentObj).map(([key, val]) =>
-      `<span>${key}: ${val.toFixed(2)}%</span>`
-    ).join('');
+  
+  function createHistoryChip(text, type) {
+    const safeText = text ? String(text) : 'Pending';
+    let safeType = safeText === 'Pending' ? 'Pending' : safeText;
+    if (!type.startsWith('Result-')) {
+        safeType = 'Result-' + safeType;
+    } else {
+        safeType = type;
+    }
+    return `<span class="chip ${safeType}">${safeText}</span>`;
   }
-
-  let timerIntervalId = null;
-  let lastUpdateTimestamp = null;
-  let countdownSeconds = 30; // Assuming your worker runs every 30 seconds
 
   function formatTimestamp(isoString) {
     try {
+      if (!isoString) return '--';
       const date = new Date(isoString);
-      if (isNaN(date.getTime())) {
-        throw new Error("Invalid date string");
-      }
-      const options = {
-        year: 'numeric', month: 'short', day: 'numeric',
-        hour: '2-digit', minute: '2-digit', second: '2-digit',
-        hour12: true,
-        timeZoneName: 'shortOffset'
-      };
-      return date.toLocaleString('en-US', options);
+      if (isNaN(date.getTime())) throw new Error("Invalid date string");
+      return date.toLocaleString('en-US', {
+        month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true
+      });
     } catch (e) {
       console.error("Error formatting timestamp:", e);
-      return isoString || '-- Invalid Timestamp --';
+      return '-- Invalid --';
     }
   }
 
-  function startCountdown(apiTimestampISO) {
-    if (!apiTimestampISO) {
+  let timerIntervalId = null;
+  let countdownSeconds = 60;
+  let lastApiTimestamp = null;
+  
+  const refreshTimes = [1.5, 5.0, 10.0, 58.5];
+
+  let refreshGate = {
+    '1.5': false,
+    '5.0': false,
+    '10.0': false,
+    '58.5': false,
+  };
+  
+  function checkRefreshTime() {
+    const now = new Date();
+    const currentSecond = now.getSeconds();
+    const currentMs = now.getMilliseconds();
+    
+    if (currentSecond === 58 && currentMs >= 500 && !refreshGate['58.5']) {
+      loadAllData();
+      refreshGate['58.5'] = true;
+    }
+    if (currentSecond === 1 && currentMs >= 500 && !refreshGate['1.5']) {
+      loadAllData();
+      refreshGate['1.5'] = true;
+    }
+    if (currentSecond === 5 && currentMs >= 0 && currentMs <= 100 && !refreshGate['5.0']) {
+      loadAllData();
+      refreshGate['5.0'] = true;
+    }
+    if (currentSecond === 10 && currentMs >= 0 && currentMs <= 100 && !refreshGate['10.0']) {
+      loadAllData();
+      refreshGate['10.0'] = true;
+    }
+    
+    if (currentMs < 100) {
+      if (currentSecond !== 58 && refreshGate['58.5']) refreshGate['58.5'] = false;
+      if (currentSecond !== 1 && refreshGate['1.5']) refreshGate['1.5'] = false;
+      if (currentSecond !== 5 && refreshGate['5.0']) refreshGate['5.0'] = false;
+      if (currentSecond !== 10 && refreshGate['10.0']) refreshGate['10.0'] = false;
+    }
+  }
+
+  function updateCountdownDisplay() {
+    if (!lastApiTimestamp) {
       document.getElementById('countdown-timer').textContent = "Next update in: -- seconds (No timestamp)";
       return;
     }
-
-    lastUpdateTimestamp = apiTimestampISO;
-    document.getElementById('last-updated-time').textContent = formatTimestamp(lastUpdateTimestamp);
-
-    if (timerIntervalId) clearInterval(timerIntervalId); // Clear any existing interval
-
-    const apiDate = new Date(lastUpdateTimestamp);
-
-    function updateTimer() {
-      const now = new Date();
-      let elapsedSeconds = Math.floor((now.getTime() - apiDate.getTime()) / 1000);
-
-      if (elapsedSeconds < 0) elapsedSeconds = 0; // Prevent negative time if client clock is behind server
-
-      // Calculate remaining time for display
-      let remaining = countdownSeconds - (elapsedSeconds % countdownSeconds);
-
-      document.getElementById('countdown-timer').textContent = `Next update in: ${remaining} second${remaining !== 1 ? 's' : ''} ⏳`;
-
-      // Trigger loadPredictionData when elapsedSeconds reaches or exceeds the countdown interval
-      // This is the key change: from `remaining <= 0` to `elapsedSeconds >= countdownSeconds`
-      if (elapsedSeconds >= countdownSeconds) {
-        if (timerIntervalId) clearInterval(timerIntervalId); // Stop the current timer
-        loadPredictionData(); // Fetch new data and restart countdown
-      }
+    const now = new Date();
+    const apiDate = new Date(lastApiTimestamp);
+    let elapsedSeconds = Math.floor((now.getTime() - apiDate.getTime()) / 1000);
+    if (elapsedSeconds < 0) elapsedSeconds = 0;
+    
+    let remaining = countdownSeconds - (elapsedSeconds % countdownSeconds);
+    if (remaining <= 1 && elapsedSeconds > 0) { // ensure it doesn't get stuck at 60
+      remaining = countdownSeconds;
     }
-
-    updateTimer(); // Call immediately to set initial timer state
-    timerIntervalId = setInterval(updateTimer, 1000); // Update every second
+    document.getElementById('countdown-timer').textContent = `Next update in: ${remaining}s ⏳`;
   }
-
 
   function manualRefresh() {
-    loadPredictionData(); // Changed from window.location.reload()
+    document.getElementById('countdown-timer').textContent = `Refreshing...`;
+    loadAllData();
   }
+  
+  let rawApiResponses = { 
+    prediction: null, 
+    ai_prediction: null, 
+    status: null, 
+    ai_big_small_accuracy: null, 
+    color_insights: null,
+    size_insights: null,
+    v2_insights: null
+  };
 
-  let rawApiResponses = { prediction: null, status: null };
   function updateRawJsonDisplay() {
     const dropdown = document.getElementById('raw-json-dropdown');
     const display = document.getElementById('raw-json-display');
     const selected = dropdown.value;
-    if (rawApiResponses[selected]) {
-      display.textContent = JSON.stringify(rawApiResponses[selected], null, 2);
+    const content = rawApiResponses[selected] ? JSON.stringify(rawApiResponses[selected], null, 2) : `No data for ${selected}.`;
+    
+    if (!display.querySelector('#copy-json-btn')) {
+        display.innerHTML = `<button id="copy-json-btn">Copy</button>${content}`;
     } else {
-      display.textContent = "No data loaded yet or API failed.";
+        display.firstChild.nextSibling.textContent = content;
     }
+
+    const copyBtn = document.getElementById('copy-json-btn');
+    copyBtn.onclick = () => {
+        navigator.clipboard.writeText(content)
+            .then(() => {
+                const originalText = copyBtn.textContent;
+                copyBtn.textContent = 'Copied!';
+                setTimeout(() => copyBtn.textContent = originalText, 1500);
+            })
+            .catch(err => console.error('Failed to copy text: ', err));
+    };
   }
 
-  document.addEventListener('DOMContentLoaded', function() {
-    const dropdown = document.getElementById('raw-json-dropdown');
-    const copyBtn = document.getElementById('copy-json-btn');
-    // Check if dropdown and copy button exist before adding event listeners
-    if (dropdown) {
-        dropdown.addEventListener('change', updateRawJsonDisplay);
-    }
-    if (copyBtn) {
-        copyBtn.addEventListener('click', function() {
-            const text = document.getElementById('raw-json-display').textContent;
-            navigator.clipboard.writeText(text).then(() => {
-                copyBtn.textContent = "Copied!";
-                setTimeout(() => { copyBtn.textContent = "Copy"; }, 1200);
-            });
-        });
-    }
-  });
-
-  // NEW: AI toggle logic
-  let aiEnabled = false; // Will be set by API
-  // Define the base URL for your Railway API
-  const RAILWAY_API_BASE_URL = 'https://web-developer.up.railway.app'; // <--- IMPORTANT: YOUR RAILWAY HOST
+  let aiEnabled = false;
 
   async function fetchAIStatusAndUpdateBtn() {
     try {
-      // Use absolute URL for API calls
-      const res = await fetch(`${RAILWAY_API_BASE_URL}/api/ai/status`);
+      const res = await fetch('/api/ai/status');
       if (!res.ok) throw new Error('Failed to fetch AI status');
       const data = await res.json();
-      aiEnabled = !!data.ai_enabled;
-      updateAIToggleBtn();
+      aiEnabled = !!data.ai_enabled_flag;
     } catch (e) {
       aiEnabled = false;
-      updateAIToggleBtn();
       console.error("Error fetching AI status:", e);
+      showErrorMessage("Failed to fetch AI status.");
+    } finally {
+      updateAIToggleBtn();
     }
   }
 
   function updateAIToggleBtn() {
     const btn = document.getElementById('ai-toggle-btn');
     const label = document.getElementById('ai-toggle-btn-label');
-    if (!btn || !label) return;
+    const aiDisplayBadge = document.getElementById('ai-prediction-display-badge');
+    if (!btn || !label || !aiDisplayBadge) return;
     if (aiEnabled) {
       btn.classList.add('active');
-      btn.setAttribute('aria-pressed', 'true');
       label.textContent = 'Stop AI 🛑';
     } else {
       btn.classList.remove('active');
-      btn.setAttribute('aria-pressed', 'false');
       label.textContent = 'Start AI 🤖';
+      aiDisplayBadge.innerHTML = `<span class="ai-badge" disabled title="AI is OFF">AI OFF</span>`;
     }
   }
 
   async function toggleAI() {
-    // Use absolute URL for API calls
-    const endpoint = aiEnabled ? `${RAILWAY_API_BASE_URL}/api/ai/stop` : `${RAILWAY_API_BASE_URL}/api/ai/start`;
-    const btn = document.getElementById('ai-toggle-btn');
-    btn.disabled = true; // Disable button during API call
+    const endpoint = aiEnabled ? '/api/ai/stop' : '/api/ai/start';
+    document.getElementById('ai-toggle-btn').disabled = true;
     try {
       const res = await fetch(endpoint, { method: 'POST' });
-      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+      if (!res.ok) throw new Error((await res.json()).message || 'Unknown error');
       const data = await res.json();
-      aiEnabled = !!data.ai_enabled; // Update aiEnabled based on response
-      updateAIToggleBtn(); // Update button state
-      loadPredictionData(); // Reload data to get updated AI badge
+      aiEnabled = !!data.ai_enabled_flag;
+      updateAIToggleBtn();
+      loadAIPredictionData();
+      loadAIBigSmallAccuracy();
     } catch (e) {
-      alert('Failed to toggle AI: ' + e.message);
-      console.error("Error toggling AI:", e);
+      showErrorMessage('Failed to toggle AI: ' + e.message);
+    } finally {
+      document.getElementById('ai-toggle-btn').disabled = false;
     }
-    btn.disabled = false; // Re-enable button
   }
-  // END NEW: AI toggle logic
 
-  async function loadPredictionData() {
-    const errorDiv = document.getElementById('error-message');
-    errorDiv.style.display = "none";
+  function showErrorMessage(message) {
+      const errorDiv = document.getElementById('error-message');
+      errorDiv.textContent = message;
+      errorDiv.style.display = "block";
+      setTimeout(() => errorDiv.style.display = "none", 5000);
+  }
+
+  // --- Main Prediction Data Loading ---
+  async function loadMainPredictionData() {
     try {
-      // Use absolute URL for API calls
-      const res = await fetch(`${RAILWAY_API_BASE_URL}/api/prediction`);
-      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-      const data = await res.json();
-      rawApiResponses['prediction'] = data;
+        const res = await fetch('/api/prediction');
+        const data = await res.json();
+        rawApiResponses['prediction'] = data;
 
-      // Use absolute URL for API calls
-      fetch(`${RAILWAY_API_BASE_URL}/api/status`)
-        .then(statusRes => {
-          if (statusRes.ok) return statusRes.json();
-          throw new Error(`Status API HTTP error! status: ${statusRes.status}`);
-        })
-        .then(statusData => {
-          rawApiResponses['status'] = statusData;
-        })
-        .catch(e => {
-          rawApiResponses['status'] = {error: "Failed to fetch status API: " + e.message};
-          console.error("Failed to fetch status API:", e);
-        })
-        .finally(() => {
-          updateRawJsonDisplay();
-        });
-
-
-      const drawNumElem = document.getElementById('draw-number');
-      drawNumElem.textContent = data.next_issue ? data.next_issue.slice(-4) : '--';
-
-
-      const numbersContainer = document.getElementById('predicted-numbers');
-      numbersContainer.innerHTML = '';
-      if (data.prediction && Array.isArray(data.prediction.predicted_likelihoods) && data.prediction.predicted_likelihoods.length > 0) {
-        const sortedLikelihoods = [...data.prediction.predicted_likelihoods].sort((a, b) => b.likelihood - a.likelihood);
-        sortedLikelihoods.forEach(item => {
-          numbersContainer.appendChild(createNumberBubbleWithPct(item.number, item.likelihood));
-        });
-      } else if (data.prediction && Array.isArray(data.prediction.numbers) && data.prediction.numbers.length > 0) {
-        data.prediction.numbers.forEach(num => {
-          numbersContainer.appendChild(createNumberBubbleWithPct(num, null));
-        });
-      } else {
-        numbersContainer.textContent = 'No predictions yet.';
-      }
-
-      // NEW: AI Prediction badge display
-      const aiPredDiv = document.getElementById('ai-prediction-badge');
-      aiPredDiv.innerHTML = '';
-      if (typeof data.ai_prediction === 'number' && aiEnabled) {
-        aiPredDiv.innerHTML = `<span class="ai-badge" title="Gemini AI Prediction">AI: ${data.ai_prediction}</span>`;
-      } else if (!aiEnabled) {
-        aiPredDiv.innerHTML = `<span class="ai-badge" disabled title="Gemini AI is OFF">AI: --</span>`;
-      } else {
-        aiPredDiv.innerHTML = `<span class="ai-badge" disabled title="No AI prediction">AI: --</span>`;
-      }
-      // END NEW: AI Prediction badge display
-
-      const bsElem = document.getElementById('predicted-big-small');
-      bsElem.textContent = `${data.prediction && data.prediction.big_small ? data.prediction.big_small : '--'}`;
-      const bsPercElem = document.getElementById('big-small-percentages');
-      bsPercElem.innerHTML = data.prediction && data.prediction.big_small_percentages
-        ? formatPercentages(data.prediction.big_small_percentages)
-        : '<span>No data</span>';
-
-      const colorElem = document.getElementById('predicted-color');
-      colorElem.textContent = `${data.prediction && data.prediction.color ? data.prediction.color : '--'}`;
-      const colorPercElem = document.getElementById('color-percentages');
-      colorPercElem.innerHTML = data.prediction && data.prediction.color_percentages
-        ? formatPercentages(data.prediction.color_percentages)
-        : '<span>No data</span>';
-
-      const seqDiv = document.getElementById('sequence-analysis');
-      seqDiv.innerHTML = '';
-      if (data.sequence_analysis && data.sequence_analysis.length > 0) {
-        data.sequence_analysis.forEach(item => {
-          let preds = item.predictions && item.predictions.length > 0 ?
-            item.predictions.map(p => `<strong>${p.number}</strong> (${p.chance.toFixed(1)}% | ${p.count}x)`).join(', ')
-            : 'No specific predictions';
-          seqDiv.innerHTML += `<div style="margin-bottom:0.7em;">
-            <p style="margin:0;"><b>Pattern [${item.pattern.join(', ')}]:</b> ${preds}</p>
-            <p style="color:#888;font-size:0.9em;margin:0.2em 0 0;"><em>${item.message}</em></p>
-          </div>`;
-        });
-      } else {
-        seqDiv.innerHTML = '<p>No significant patterns detected recently.</p>';
-      }
-
-      const prevDrawElem = document.getElementById('previous-draw');
-      if (data.recent_results) {
-        const recentIssues = Object.keys(data.recent_results).sort((a,b) => b.localeCompare(a));
-        if (recentIssues.length > 0) {
-          const lastIssueKey = recentIssues[0];
-          const lastNum = data.recent_results[lastIssueKey];
-          const colors = [];
-          if (COLOR_MAP[lastNum]) {
-            if (COLOR_MAP[lastNum].primary) colors.push(COLOR_MAP[lastNum].primary);
-            if (COLOR_MAP[lastNum].secondary) colors.push(COLOR_MAP[lastNum].secondary); // Fixed possible typo if primary was meant for colors as well
-          }
-          prevDrawElem.innerHTML = `Draw #<b>${lastIssueKey.slice(-4)}</b>: <strong style="color: ${colors[0] ? colors[0].toLowerCase() : '#333'};">${lastNum}</strong> (${colors.map(c => createChip(c, c)).join(' ')})`;
-        } else {
-          prevDrawElem.textContent = "No recent draw data.";
+        // *** MODIFIED: Set the global timestamp from the API response for the countdown timer ***
+        if (data.timestamp) {
+            lastApiTimestamp = data.timestamp;
         }
-      } else {
-        prevDrawElem.textContent = "No recent draw data available.";
-      }
 
-      const historyBody = document.getElementById('history-table-body');
-      historyBody.innerHTML = '';
-      if (data.prediction_history && Array.isArray(data.prediction_history) && data.prediction_history.length > 0) {
-        data.prediction_history.slice(0, 11).forEach(item => {
-          const tr = document.createElement('tr');
+        // Update previous draw info
+        const prevDrawElem = document.getElementById('previous-draw');
+        if (data.status === 'initializing') {
+            prevDrawElem.innerHTML = `<span style="color: #888;">⏳ Main prediction system initializing...</span>`;
+        } else if (data.status === 'error') {
+            prevDrawElem.innerHTML = `<span style="color: #d32f2f;">❌ Error: ${data.message}</span>`;
+        } else {
+            const drawNumber = data.next_issue || data.issue || '--';
+            const prediction = data.prediction || {};
+            const predictedNumbers = prediction.predicted_likelihoods || [];
+            const bigSmall = prediction.big_small || '--';
+            const color = prediction.color || '--';
 
-          tr.insertCell().textContent = item.issue ? item.issue.slice(-4) : '--';
-
-          const tdPredicted = tr.insertCell();
-          let predictedContent = '';
-          if (item.prediction) {
-              const predNums = (Array.isArray(item.prediction.number) && item.prediction.number.length > 0) ? item.prediction.number.join('/') : '--';
-              const predBS = item.prediction.big_small || '--';
-              const predColor = item.prediction.color ? createChip(item.prediction.color, item.prediction.color) : '--';
-              predictedContent = `<b>${predNums}</b><br>${predBS}<br>${predColor}`;
-          } else {
-              predictedContent = '--';
-          }
-          tdPredicted.innerHTML = predictedContent;
-
-
-          const tdActual = tr.insertCell();
-          let actualContent = '';
-          if (item.result) {
-              const actualNum = item.result.number !== undefined ? item.result.number : '--';
-              const actualBS = item.result.big_small || '--';
-              const actualColors = (Array.isArray(item.result.colors) && item.result.colors.filter(Boolean).length > 0)
-                  ? item.result.colors.filter(Boolean).map(color => createChip(color, color)).join(' ')
-                  : '--';
-              actualContent = `<b>${actualNum}</b><br>${actualBS}<br>${actualColors}`;
-          } else {
-              actualContent = '--';
-          }
-          tdActual.innerHTML = actualContent;
-
-
-          const checkMark = '✔';
-          const crossMark = '✘';
-
-          const numCorrectTd = tr.insertCell();
-          numCorrectTd.textContent = item.correct && item.correct.number === true ? checkMark : crossMark;
-          numCorrectTd.className = item.correct && item.correct.number === true ? 'correct' : 'incorrect';
-
-          const bsCorrectTd = tr.insertCell();
-          bsCorrectTd.textContent = item.correct && item.correct.big_small === true ? checkMark : crossMark;
-          bsCorrectTd.className = item.correct && item.correct.big_small === true ? 'correct' : 'incorrect';
-
-          const colorCorrectTd = tr.insertCell();
-          colorCorrectTd.textContent = item.correct && item.correct.color === true ? checkMark : crossMark;
-          colorCorrectTd.className = item.correct && item.correct.color === true ? 'correct' : 'incorrect';
-
-          historyBody.appendChild(tr);
-        });
-      } else {
-        const tr = document.createElement('tr');
-        const td = document.createElement('td');
-        td.colSpan = 6;
-        td.textContent = "No prediction history available.";
-        tr.appendChild(td);
-        historyBody.appendChild(tr);
-      }
-
-      const accuracyGrid = document.getElementById('accuracy-stats');
-      accuracyGrid.innerHTML = '';
-      if (data.accuracy) {
-        Object.entries(data.accuracy).forEach(([key, val]) => {
-          const card = document.createElement('div');
-          card.className = 'stat-card';
-          const displayKey = key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-          card.innerHTML = `<div class="stat-label">${displayKey}</div><div class="stat-value">${val}</div>`;
-          accuracyGrid.appendChild(card);
-        });
-      } else {
-        accuracyGrid.innerHTML = '<p style="text-align:center;width:100%;font-size:0.9em;color:#777;">No accuracy data available.</p>';
-      }
-
-      const streaksGrid = document.getElementById('streaks-stats');
-      streaksGrid.innerHTML = '';
-      if (data.streaks) {
-        const streakKeys = ['number', 'big_small', 'color'];
-        streakKeys.forEach(key => {
-            const val = data.streaks[key];
-            const card = document.createElement('div');
-            card.className = 'stat-card streak-card';
-            const displayKey = key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-
-            let content = `<div class="stat-label">${displayKey} Streaks</div>`;
-            if (val) {
-                content += `
-                    <div class="streak-detail-row">Current Win: <strong>${val.current_win || 0}</strong></div>
-                    <div class="streak-detail-row">Current Loss: <strong>${val.current_loss || 0}</strong></div>
-                    <div class="streak-detail-row">Max Win: <strong>${val.max_win || 0}</strong></div>
-                    <div class="streak-detail-row">Max Loss: <strong>${val.max_loss || 0}</strong></div>
-                `;
+            document.getElementById('draw-number').textContent = String(drawNumber).slice(-4);
+            
+            // Update predicted numbers bubbles
+            const numbersContainer = document.getElementById('predicted-numbers');
+            if (predictedNumbers && predictedNumbers.length > 0) {
+                numbersContainer.innerHTML = '';
+                [...predictedNumbers].sort((a, b) => b.likelihood - a.likelihood).forEach(item => {
+                    const bubble = document.createElement('div');
+                    bubble.className = 'number-bubble';
+                    bubble.textContent = item.number;
+                    if ([0, 2, 4, 6, 8].includes(item.number)) bubble.style.backgroundColor = '#d32f2f';
+                    if ([1, 3, 5, 7, 9].includes(item.number)) bubble.style.backgroundColor = '#388e3c';
+                    if ([0, 5].includes(item.number)) bubble.style.boxShadow = '0 0 10px 3px #8e24aa';
+                    const pctDiv = document.createElement('div');
+                    pctDiv.className = 'bubble-pct';
+                    pctDiv.textContent = `${item.likelihood.toFixed(1)}%`;
+                    bubble.appendChild(pctDiv);
+                    numbersContainer.appendChild(bubble);
+                });
             } else {
-                content += `<div class="stat-value">N/A</div><div class="streak-detail-row">No Data</div>`;
+                numbersContainer.innerHTML = '<div class="number-bubble" style="background: #999;">--</div>';
             }
-            card.innerHTML = content;
-            streaksGrid.appendChild(card);
-        });
-      } else {
-        streaksGrid.innerHTML = '<p style="text-align:center;width:100%;font-size:0.9em;color:#777;">No streak data available.</p>';
-      }
 
-      if (data.timestamp) {
-        startCountdown(data.timestamp);
-      } else {
-        console.warn("API response missing timestamp. Using current time for refresh countdown.");
-        startCountdown(new Date().toISOString());
-      }
+            // Update big/small prediction
+            document.getElementById('predicted-big-small').textContent = bigSmall;
+            const bigSmallPercentages = document.getElementById('big-small-percentages');
+            if (prediction.big_small_percentages) {
+                bigSmallPercentages.innerHTML = Object.entries(prediction.big_small_percentages)
+                    .map(([k, v]) => `<span>${k.replace('_percentage', '')}: ${v.toFixed(1)}%</span>`).join('');
+            }
+
+            // Update color prediction
+            document.getElementById('predicted-color').textContent = color;
+            const colorPercentages = document.getElementById('color-percentages');
+            if (prediction.color_percentages) {
+                colorPercentages.innerHTML = Object.entries(prediction.color_percentages)
+                    .map(([k, v]) => `<span>${k}: ${v.toFixed(1)}%</span>`).join('');
+            }
+
+            // Update previous draw info
+            if (data.recent_results) {
+                const recentIssues = Object.keys(data.recent_results).sort((a,b) => b.localeCompare(a));
+                if (recentIssues.length > 0) {
+                    const lastIssueKey = recentIssues[0];
+                    const lastNum = data.recent_results[lastIssueKey];
+                    const lastColor = NUM_TO_COLOR_MAP[lastNum] || '--';
+                    const lastSize = lastNum >= 5 ? 'Big' : 'Small';
+                    prevDrawElem.innerHTML = `Previous Draw #${String(lastIssueKey).slice(-4)}: <strong>${lastNum}</strong> (${lastColor}, ${lastSize})`;
+                }
+            } else {
+                prevDrawElem.innerHTML = `Current Prediction for Draw #${String(drawNumber).slice(-4)}`;
+            }
+
+            // Update sequence analysis
+            const seqDiv = document.getElementById('sequence-analysis');
+            if (data.sequence_analysis && data.sequence_analysis.length > 0) {
+                seqDiv.innerHTML = data.sequence_analysis.map(item => `
+                    <div style="margin-bottom:0.7em;">
+                        <p style="margin:0;"><b>Pattern [${item.pattern.join(', ')}]:</b> ${item.predictions.map(p => `<strong>${p.number}</strong>`).join(', ')}</p>
+                        <p style="color:#888;font-size:0.9em;margin:0.2em 0 0;"><em>${item.message}</em></p>
+                    </div>
+                `).join('');
+            } else { 
+                seqDiv.innerHTML = '<p>No significant patterns detected.</p>'; 
+            }
+
+            updateMainPredictionHistory(data.prediction_history || []);
+            updateMainPerformanceStats(data.accuracy, data.streaks);
+        }
 
     } catch (err) {
-      console.error("Failed to load data:", err);
-      const errorDiv = document.getElementById('error-message');
-      errorDiv.textContent = `Failed to load data: ${err.message}. Please try again.`;
-      errorDiv.style.display = "block";
-      document.getElementById('countdown-timer').textContent = "Refresh paused due to error.";
-      if (timerIntervalId) clearInterval(timerIntervalId);
+        console.error("Failed to load main prediction data:", err);
+        showErrorMessage(`Failed to load main prediction: ${err.message}`);
+        document.getElementById('previous-draw').innerHTML = `<span style="color: #d32f2f;">❌ Failed to load main prediction data</span>`;
     }
   }
 
+  function updateMainPredictionHistory(historyData) {
+    const tbody = document.getElementById('history-table-body');
+    if (!historyData || historyData.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6">No main prediction history available.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = '';
+    historyData.slice(0, 15).forEach(item => {
+        const tr = document.createElement('tr');
+        const pred = item.prediction || {};
+        const res = item.result || {};
+        const corr = item.correct || {};
+
+        const predText = `<b>${pred.number ? pred.number.join('/') : '--'}</b><br>${pred.big_small || '--'}<br>${createHistoryChip(pred.color, `Result-${pred.color}`)}`;
+        
+        const actualNum = res.number !== undefined ? res.number : '--';
+        const actualColors = (res.colors || []).filter(Boolean).map(c => createHistoryChip(c, `Result-${c}`)).join(' ');
+        const actualBS = res.big_small || '--';
+        
+        const actualText = `<b>${actualNum}</b><br>${actualBS}<br>${actualColors}`;
+
+        tr.innerHTML = `
+            <td>${String(item.issue).slice(-4)}</td>
+            <td>${predText}</td>
+            <td>${actualText}</td>
+            <td class="${corr.number ? 'correct' : 'incorrect'}">${corr.number ? '✔' : '✘'}</td>
+            <td class="${corr.big_small ? 'correct' : 'incorrect'}">${corr.big_small ? '✔' : '✘'}</td>
+            <td class="${corr.color ? 'correct' : 'incorrect'}">${corr.color ? '✔' : '✘'}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+  }
+
+  function updateMainPerformanceStats(accuracyStats, streakStats) {
+    const accuracyContainer = document.getElementById('accuracy-stats');
+    const streaksContainer = document.getElementById('streaks-stats');
+
+    if (accuracyStats) {
+        const parsePercent = (str) => (str || "0%").match(/(\d+\.?\d*)/)?.[0] || "0";
+        accuracyContainer.innerHTML = `
+            <div class="stat-card">
+                <div class="stat-label">Numbers Acc.</div>
+                <div class="stat-value">${parsePercent(accuracyStats.number_accuracy)}%</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Color Acc.</div>
+                <div class="stat-value">${parsePercent(accuracyStats.color_accuracy)}%</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Big/Small Acc.</div>
+                <div class="stat-value">${parsePercent(accuracyStats.big_small_accuracy)}%</div>
+            </div>
+        `;
+    } else {
+        accuracyContainer.innerHTML = '<div class="stat-card"><div class="stat-label">Loading...</div><div class="stat-value">--</div></div>';
+    }
+
+    // Streaks
+    if (streakStats) {
+        streaksContainer.innerHTML = '';
+        const keys = ['number','big_small','color'];
+        keys.forEach(k => {
+            const s = streakStats[k] || {};
+            const card = document.createElement('div');
+            card.className = 'stat-card streak-card';
+            card.innerHTML = `
+                <div class="stat-label">${k.replace('_',' ').toUpperCase()}</div>
+                <div class="stat-value">${s.current_win || 0}</div>
+                <div class="streak-detail-row">Max Win: <strong>${s.max_win || 0}</strong></div>
+            `;
+            streaksContainer.appendChild(card);
+        });
+    } else {
+        streaksContainer.innerHTML = '<div class="stat-card"><div class="stat-label">Loading...</div><div class="stat-value">--</div></div>';
+    }
+  }
+
+  // --- AI & Insights loaders ---
+  async function loadAIPredictionData() {
+    try {
+      const res = await fetch('/api/ai_prediction');
+      if (!res.ok) throw new Error('AI prediction fetch failed');
+      const data = await res.json();
+      rawApiResponses['ai_prediction'] = data;
+      document.getElementById('ai-prediction-value').textContent = data.prediction ?? '--';
+      document.getElementById('ai-issue').textContent = data.issue ?? '--';
+      document.getElementById('ai-timestamp').textContent = formatTimestamp(data.timestamp || new Date().toISOString());
+      updateRawJsonDisplay();
+    } catch (e) {
+      console.warn('loadAIPredictionData error', e);
+    }
+  }
+
+  async function loadAIBigSmallAccuracy() {
+    try {
+      const res = await fetch('/api/ai_big_small_accuracy');
+      if (!res.ok) throw new Error('AI B/S accuracy fetch failed');
+      const data = await res.json();
+      rawApiResponses['ai_big_small_accuracy'] = data;
+      document.getElementById('ai-big-small-accuracy-value').textContent = data.accuracy ?? '--';
+      document.getElementById('ai-accuracy-timestamp').textContent = formatTimestamp(data.timestamp || new Date().toISOString());
+      document.getElementById('ai-accuracy-correct').textContent = data.correct ?? '--';
+      document.getElementById('ai-accuracy-total').textContent = data.total ?? '--';
+      updateRawJsonDisplay();
+    } catch (e) { console.warn('loadAIBigSmallAccuracy error', e); }
+  }
+
+  async function loadColorInsightsData() {
+    try {
+      const res = await fetch('/api/color_insights');
+      if (!res.ok) throw new Error('Color insights fetch failed');
+      const data = await res.json();
+      rawApiResponses['color_insights'] = data;
+      updateRawJsonDisplay();
+    } catch (e) { console.warn('loadColorInsightsData error', e); }
+  }
+
+  async function loadSizeInsightsData() {
+    try {
+      const res = await fetch('/api/size_insights');
+      if (!res.ok) throw new Error('Size insights fetch failed');
+      const data = await res.json();
+      rawApiResponses['size_insights'] = data;
+      updateRawJsonDisplay();
+    } catch (e) { console.warn('loadSizeInsightsData error', e); }
+  }
+
+  async function loadAllData() {
+    await Promise.allSettled([
+      loadMainPredictionData(),
+      loadAIPredictionData(),
+      loadAIBigSmallAccuracy(),
+      loadColorInsightsData(),
+      loadSizeInsightsData()
+    ]);
+    updateCountdownDisplay();
+  }
+
+  // Periodic checks
+  setInterval(checkRefreshTime, 250);
+  setInterval(updateCountdownDisplay, 1000);
+
+  // Initial load
   window.addEventListener('load', () => {
-    // NEW: Fetch AI status on page load
     fetchAIStatusAndUpdateBtn();
-    loadPredictionData();
+    loadAllData();
   });
+
 </script>
 </body>
 </html>
