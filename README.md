@@ -1,168 +1,145 @@
-<<<<<<< HEAD
-# prediction_backend
-=======
-# Lottery Prediction Service
+# Prediction Backend — Lottery Prediction Service
 
-This repository contains the backend (Flask API) and worker service for a lottery prediction application. It utilizes Redis for data storage and facilitates communication with a frontend application (e.g., hosted on GitHub Pages).
+Professional, production-ready backend for the Lottery Prediction system.
 
-## Table of Contents
+This repository contains the Flask API, worker processes, simulator blueprint and helper scripts that power a lottery prediction service using Redis as the primary datastore. It is designed to run locally for development and on platforms such as Railway for production.
 
--   [Features](#features)
--   [Architecture](#architecture)
--   [Deployment](#deployment)
--   [Getting Started (Local Development)](#getting-started-local-development)
--   [API Endpoints](#api-endpoints)
--   [Contributing](#contributing)
--   [License](#license)
+Developer: Akshar — GitHub: `workforakng` (https://github.com/workforakng)
 
-## Features
+Contents: `app.py`, `worker.py`, `ai_worker.py`, `bot.py`, `simulator_api.py`, `simulator_worker.py`, `templates/`, `requirements.txt`, `Procfile`, and `railway.toml`.
 
-* **Lottery Prediction:** Generates and stores lottery predictions.
-* **Redis Integration:** Leverages Redis as a fast in-memory data store for predictions, history, and status.
-* **AI Toggle:** Allows enabling/disabling AI-based predictions via API.
-* **Status Monitoring:** Provides API endpoints to check the service status and latest prediction updates.
-* **CORS Enabled:** Configured for secure cross-origin resource sharing with specified frontend domains.
+Table of contents
 
-## Architecture
+- Overview
+- Features
+- Architecture & Components
+- Quick start (Local)
+- Environment variables
+- API Reference (summary)
+- Deployment notes
+- Observability & Troubleshooting
+- Contributing & Contact
 
-The service is composed of two main parts, typically deployed as separate services on platforms like Railway:
+Overview
 
-1.  **Web Service (`app.py`):**
-    * A Flask application that exposes RESTful API endpoints.
-    * Handles requests from the frontend for current predictions, service status, and AI toggle.
-    * Interacts with Redis to retrieve prediction data.
-    * Configured with CORS to allow specific frontend origins.
+This project provides the backend services for a lottery prediction product:
 
-2.  **Worker Service (e.g., `worker.py` or a script executed periodically):**
-    * Responsible for the core prediction logic.
-    * Fetches historical lottery data.
-    * Runs prediction algorithms (potentially involving AI, like Gemini AI).
-    * Stores the latest predictions and related statistics into Redis.
-    * *Note: While not explicitly in `app.py`, the logs indicate a worker is saving data to Redis keys like `lottery:history`, `lottery:predictions`, etc.*
+- `app.py`: Flask web service that serves the API and frontend templates.
+- `worker.py`: Main prediction worker that fetches history, computes predictions, and persists results in Redis.
+- `ai_worker.py`: AI enrichment worker that listens on a Redis pub/sub channel and produces AI-based predictions.
+- `simulator_api.py`: Flask blueprint that exposes simulator endpoints for strategy testing and analysis.
+- `bot.py`: Telegram bot integration to broadcast predictions and interact with users.
+- Redis is the primary datastore for predictions, history, flags, accuracy metrics and pub/sub triggers.
 
-3.  **Redis Database:**
-    * Used for storing various data points including:
-        * `latest_prediction_data` (under `REDIS_PREDICTION_KEY`).
-        * `lottery:history`
-        * `lottery:predictions`
-        * `lottery:number_stats`
-        * `lottery:trend_analysis`
-        * `lottery:streaks`
-    * Also stores the AI enabled/disabled status.
+Features
 
-## Deployment
+- Real-time Flask API with health checks and Redis diagnostics
+- Worker process that generates and persists prediction data and triggers AI enrichment
+- AI worker integrating with external AI providers (e.g., Perplexity) with retry/backoff and accuracy tracking
+- Simulator API for running strategy simulations and collecting session analytics
+- Telegram bot for multi-chat notifications and interactions
+- Railway-friendly configuration and file-based logs when a data mount is provided
 
-This service is designed to be deployed on platforms like [Railway](https://railway.app/).
+Architecture & components
 
-**Railway Deployment Steps:**
+- `app.py` (Web service): exposes endpoints such as `/api/prediction`, `/api/status`, `/api/ai/*`, `/health`, and registers the simulator blueprint.
+- `worker.py` (Prediction worker): produces `latest_prediction_data` and publishes `lottery:ai_trigger` messages to Redis.
+- `ai_worker.py` (AI worker): subscribes to `lottery:ai_trigger`, writes `lottery:ai_prediction`, and maintains accuracy hashes such as `lottery:ai_preds_history` and `lottery:ai_big_small_accuracy`.
+- `simulator_api.py`: provides `/api/simulator/*` endpoints to start/stop simulations and inspect simulator state.
+- `bot.py`: Telegram bot using `python-telegram-bot`, stores chat state in Redis keys prefixed with `telegram_chat:`.
 
-1.  **Fork/Clone this Repository:** Get a copy of this codebase.
-2.  **Create a New Project on Railway:** Connect your GitHub repository to a new Railway project.
-3.  **Add Redis Database:** Add a Redis database service to your Railway project. Railway will automatically inject the `REDIS_URL` environment variable.
-4.  **Configure Services:**
-    * **Web Service:** Point your `web` service to `app.py`. Ensure its start command is `python app.py`.
-    * **Worker Service:** Configure a separate `worker` service (e.g., a cron job or background worker) that runs your prediction script periodically. Its command might be `python worker.py` or similar, depending on your worker implementation.
-5.  **Environment Variables:** Ensure `REDIS_URL` is correctly set (Railway usually handles this automatically for Redis).
-6.  **CORS Configuration:** The `app.py` is pre-configured to allow requests from:
-    * `https://prediction.up.railway.app` (your Railway app URL)
-    * `https://workforakng.github.io` (your GitHub Pages frontend URL)
-    * **Important:** If your GitHub Pages URL changes (e.g., if you host it under a project-specific path), you **must** update the `CORS` configuration in `app.py` accordingly.
+Quick start (Local development)
 
-## Getting Started (Local Development)
+Prerequisites
 
-To run this project locally for development and testing:
+- Python 3.10+
+- Redis server (local or remote)
 
-1.  **Clone the Repository:**
-    ```bash
-    git clone [https://github.com/workforakng/prediction.git](https://github.com/workforakng/prediction.git)
-    cd prediction
-    ```
+Clone and set up
 
-2.  **Create a Virtual Environment (Recommended):**
-    ```bash
-    python -m venv venv
-    source venv/bin/activate # On Windows: .\venv\Scripts\activate
-    ```
+```powershell
+git clone https://github.com/workforakng/prediction_backend.git
+cd prediction_backend
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+```
 
-3.  **Install Dependencies:**
-    ```bash
-    pip install -r requirements.txt
-    ```
-    *(Make sure `requirements.txt` contains `Flask`, `Flask-CORS`, `python-dotenv`, `redis`)*
+Environment
 
-4.  **Set up Environment Variables:**
-    Create a `.env` file in the root of the project and add:
-    ```
-    REDIS_URL=redis://localhost:6379/0
-    RAILWAY_VOLUME_MOUNT_PATH=/data # Or a local path for logs if needed
-    ```
-    (Ensure you have a local Redis server running, or provide a public Redis URL for testing).
+Create a `.env` file in the repository root with important variables (see next section). Example:
 
-5.  **Run the Flask App:**
-    ```bash
-    python app.py
-    ```
-    The Flask API will typically run on `http://127.0.0.1:5000` (or the `PORT` specified in your `.env`).
+```env
+REDIS_URL=redis://localhost:6379/0
+BOT_TOKEN=your_telegram_bot_token
+DAMAN_USERNAME=example_user
+DAMAN_PASSWORD=example_pass
+PERPLEXITY_API_KEY=sk-xxxx
+RAILWAY_VOLUME_MOUNT_PATH=/data
+```
 
-6.  **Run the Worker (in a separate terminal):**
-    You would need to run your worker script (e.g., `worker.py`) separately if it's not integrated within the Flask app itself.
-    ```bash
-    python worker.py # Replace with your actual worker script name
-    ```
+Run services (each in its own terminal)
 
-## API Endpoints
+```powershell
+python app.py        # web API
+python worker.py     # main prediction worker
+python ai_worker.py  # AI pub/sub listener
+python bot.py        # Telegram bot (optional)
+```
 
-All API endpoints are prefixed with `/api`.
+Environment variables (important)
 
-* **`GET /api/prediction`**
-    * Returns the latest lottery prediction data.
-    * **Response:** JSON object containing prediction data, timestamp, and `ai_enabled` status.
-    * **Example Success Response:**
-        ```json
-        {
-            "prediction": [1, 2, 3, 4, 5],
-            "timestamp": "2025-06-25 12:30:00",
-            "status": "success",
-            "message": "Latest prediction data.",
-            "ai_enabled": true
-        }
-        ```
-* **`GET /api/status`**
-    * Provides the current status of the prediction service.
-    * **Response:** JSON object with service status, last update timestamp, and `ai_enabled` status.
-    * **Example Success Response:**
-        ```json
-        {
-            "service_status": "running",
-            "last_prediction_update": "2025-06-25 12:30:00",
-            "current_data_status": "success",
-            "message": "Prediction cycle completed.",
-            "ai_enabled": true
-        }
-        ```
-* **`GET /api/ai/status`**
-    * Checks if the AI prediction is currently enabled or disabled.
-    * **Response:** `{"ai_enabled": true/false}`
-* **`POST /api/ai/start`**
-    * Enables AI-based predictions.
-    * **Response:** `{"status": "success", "ai_enabled": true}`
-* **`POST /api/ai/stop`**
-    * Disables AI-based predictions.
-    * **Response:** `{"status": "success", "ai_enabled": false}`
+- `REDIS_URL` — Primary Redis connection (e.g., `redis://localhost:6379/0`)
+- `REDIS_URL_UPSTASH` — Optional Upstash URL used by `ai_worker.py` as a fallback
+- `BOT_TOKEN` — Telegram bot token (required for `bot.py`)
+- `DAMAN_USERNAME`, `DAMAN_PASSWORD` — Credentials used by `worker.py`'s `TokenManager`
+- `PERPLEXITY_API_KEY`, `PERPLEXITY_API_KEY1` — API keys for the AI worker
+- `RAILWAY_VOLUME_MOUNT_PATH` — Path for logs when running on Railway (defaults to `/data`)
+- `PORT` — Flask port (defaults to `5000`)
+- Railway-specific flags: `RAILWAY_ENVIRONMENT`, `RAILWAY_PUBLIC_DOMAIN`, `RAILWAY_SERVICE_NAME`
 
-## Contributing
+API reference (summary)
 
-Contributions are welcome! Please feel free to open issues or submit pull requests.
+- `GET /api/prediction` — Returns the latest prediction payload (includes `ai_enabled` flag)
+- `GET /api/status` — High-level service & Redis status
+- `GET /api/ai/status` — Whether AI predictions are enabled
+- `POST /api/ai/start` — Enable AI predictions (sets `lottery:ai_enabled` key in Redis)
+- `POST /api/ai/stop` — Disable AI predictions (removes the key)
+- Simulator endpoints are exposed under the blueprint at `/api/simulator/*`
 
-## License
+Deployment notes (Railway or similar)
 
-[Specify your license here, e.g., MIT License]
+- `Procfile` and `railway.toml` are included. Configure separate services for the web and workers.
+- Ensure `REDIS_URL` is available in the deployment environment.
+- When available, use `RAILWAY_VOLUME_MOUNT_PATH` for persistent logs.
+
+Observability & logging
+
+- Each component writes logs to stdout (suitable for platform log collectors) and to files under the configured data mount when writable.
+- Health endpoints include `GET /health` and `GET /api/redis/status` to inspect Redis connectivity and latency.
+
+Troubleshooting
+
+- Redis connection failures: verify `REDIS_URL`, network, and credentials. For managed Redis (Upstash), use the Upstash URL.
+- AI worker not responding: confirm `lottery:ai_trigger` channel subscribers and valid Perplexity API keys.
+- Worker exits at startup: ensure `DAMAN_USERNAME`, `DAMAN_PASSWORD`, and `REDIS_URL` are present.
+
+Contributing
+
+
+
+Contact & attribution
+
+- Developer: Akshar — GitHub: `workforakng` — https://github.com/workforakng
+
+License
+
 
 ---
 
 **Your GitHub Repository Link:**
 
-[https://github.com/workforakng/prediction.git](https://github.com/workforakng/prediction.git)
+[https://github.com/workforakng/prediction_backend.git](https://github.com/workforakng/prediction_backend.git)
 
 ---
->>>>>>> 568df4d (Initial lottery prediction system for Railway deployment)
+
