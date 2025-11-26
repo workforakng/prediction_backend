@@ -1,5 +1,6 @@
 # Prediction Backend — Lottery Prediction Service
-
+Live link
+https://workforakng.github.io/prediction_backend/
 Professional, production-ready backend for the Lottery Prediction system.
 
 This repository contains the Flask API, worker processes, simulator blueprint and helper scripts that power a lottery prediction service using Redis as the primary datastore. It is designed to run locally for development and on platforms such as Railway for production.
